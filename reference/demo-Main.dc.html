@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FloodReady drain watch</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.fr-btn{font-family:inherit;font-weight:700;font-size:16px;border:0;border-radius:999px;padding:14px 20px;cursor:pointer;min-height:48px}
+.fr-btn:focus-visible,.fr-mk:focus-visible,.fr-card:focus-visible{outline:3px solid #FFD27A;outline-offset:3px}
+.fr-pri{background:#FF8A4C;color:#2A1208}
+.fr-pri:hover{background:#FFA06B}
+.fr-sec{background:#1E4A63;color:#EAF6FB}
+.fr-sec:hover{background:#27607F}
+.fr-ghost{background:transparent;color:#B9D6E3;text-decoration:underline}
+.fr-mk{cursor:pointer}
+.fr-card{transition:transform .15s;display:flex;flex-direction:column;gap:8px;text-align:left;width:230px;padding:20px;border-radius:28px;border:3px solid #2D6182;background:#102F45;color:#EAF6FB;font-family:inherit;cursor:pointer}
+.fr-card:hover{transform:translateY(-4px) rotate(-1deg);border-color:#4FC3E8;background:#14405C}
+.fr-cardhi{border-color:#FF8A4C}
+.fr-ct{font-size:20px;font-weight:700}
+.fr-cd{font-size:15px;line-height:1.4;color:#B9D6E3}
+.fr-pulse{transform-box:fill-box;transform-origin:center;animation:frp 1.6s ease-out infinite}
+@keyframes frp{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2.2);opacity:0}}
+.fr-spin{transform-box:fill-box;transform-origin:center;animation:frs 1s linear infinite}
+@keyframes frs{to{transform:rotate(360deg)}}
+.fr-bob{transform-box:fill-box;transform-origin:center;animation:frb 1.6s ease-in-out infinite}
+@keyframes frb{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.fr-fall{animation:frf 3.2s linear infinite}
+@keyframes frf{from{transform:translate(0,-20px) rotate(0)}to{transform:translate(20px,60px) rotate(120deg)}}
+.fr-pop{animation:frpop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes frpop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.fr-pulse,.fr-spin,.fr-fall,.fr-pop,.fr-bob{animation:none}}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;700;800&display=swap">
+</helmet>
+
+<div style="min-height: 900px; background: #0B2233; color: #EAF6FB; font-family: 'Fredoka', 'Nunito', system-ui, sans-serif; position: relative">
+
+<sc-if value="{{ showHeader }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 28px; background: #102F45; border-bottom: 2px solid #1E4A63">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg width="34" height="34" viewBox="0 0 36 36" aria-hidden="true"><path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8"/><path d="M18 15 C18 15 12.5 20 12.5 24 a5.5 5.5 0 0 0 11 0 C23.5 20 18 15 18 15Z" fill="#FF8A4C"/></svg>
+<span style="font-weight: 700; font-size: 22px">FloodReady</span>
+<span style="font-size: 13px; font-weight: 600; color: #B9D6E3; border: 1px solid #2D6182; border-radius: 999px; padding: 4px 12px">Simulation · sample data</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+<div style="background: #0B2233; border: 2px solid #1E4A63; border-radius: 14px; padding: 8px 16px"><div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">TIME</div><div style="font-size: 22px; font-weight: 700">{{ clock }}</div></div>
+<div style="background: #0B2233; border: 2px solid #1E4A63; border-radius: 14px; padding: 8px 16px"><div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">RAIN NOW</div><div style="font-size: 22px; font-weight: 700">{{ rainNow }} mm/h</div></div>
+<div style="background: #0B2233; border: 2px solid #1E4A63; border-radius: 14px; padding: 8px 16px"><div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">HIGH RISK</div><div style="font-size: 22px; font-weight: 700">{{ highCount }} of {{ total }}</div></div>
+<div style="background: #0B2233; border: 2px solid #1E4A63; border-radius: 14px; padding: 8px 16px"><div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">CLEANED TODAY</div><div style="font-size: 22px; font-weight: 700">{{ done }}</div></div>
+<button class="fr-btn fr-sec" type="button" onClick="{{ switchRole }}" style="padding: 8px 16px; min-height: 44px">Switch role</button>
+</div>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; padding: 20px 28px 32px; justify-content: center">
+
+<sc-if value="{{ showMap }}" hint-placeholder-val="{{ true }}">
+<section style="flex: 3 1 640px; min-width: 0; position: relative; align-self: flex-start">
+
+<div style="position: absolute; top: 14px; right: 14px; z-index: 5; display: flex; gap: 6px; background: #102F45; border: 2px solid #2D6182; border-radius: 999px; padding: 4px">
+<button type="button" class="{{ btn2d }}" onClick="{{ set2d }}" style="padding: 6px 16px; min-height: 40px">2D map</button>
+<button type="button" class="{{ btn3d }}" onClick="{{ set3d }}" style="padding: 6px 16px; min-height: 40px">3D water</button>
+</div>
+
+<sc-if value="{{ show2d }}" hint-placeholder-val="{{ true }}">
+<svg viewBox="0 0 800 500" width="100%" role="img" aria-label="Game-style map of a catchment with a creek, roads, a depot and drain inlets and gross pollutant traps coloured and shaped by blockage risk. Select a marker for details." style="display: block; height: auto; border-radius: 22px 22px 0 0; border: 2px solid #1E4A63; border-bottom: 0; background: #12384F; overflow: hidden">
+<path d="M60 70 L760 100" stroke="#2A5A78" stroke-width="14" stroke-linecap="round" fill="none"/>
+<path d="M140 0 L210 500" stroke="#2A5A78" stroke-width="14" stroke-linecap="round" fill="none"/>
+<path d="M470 0 L520 500" stroke="#2A5A78" stroke-width="14" stroke-linecap="round" fill="none"/>
+<path d="M650 0 L720 500" stroke="#2A5A78" stroke-width="14" stroke-linecap="round" fill="none"/>
+<path d="M0 410 L800 380" stroke="#2A5A78" stroke-width="14" stroke-linecap="round" fill="none"/>
+<path d="M-10 270 C 120 215, 230 315, 370 255 S 610 190, 810 235" fill="none" stroke="#2F8FB5" stroke-width="40" stroke-linecap="round"/>
+<path id="fr-creek" d="M-10 270 C 120 215, 230 315, 370 255 S 610 190, 810 235" fill="none" stroke="#4FC3E8" stroke-width="14" stroke-linecap="round"/>
+
+<g aria-hidden="true" opacity="0.55">
+<g class="fr-fall"><path d="M90 20 q8 -6 12 2 q-8 8 -12 -2Z M260 0 q8 -6 12 2 q-8 8 -12 -2Z M420 30 q8 -6 12 2 q-8 8 -12 -2Z M580 10 q8 -6 12 2 q-8 8 -12 -2Z M720 25 q8 -6 12 2 q-8 8 -12 -2Z" fill="#FF8A4C"/></g>
+<g class="fr-fall" style="animation-delay:-1.6s"><path d="M30 70 q8 -6 12 2 q-8 8 -12 -2Z M180 50 q8 -6 12 2 q-8 8 -12 -2Z M340 60 q8 -6 12 2 q-8 8 -12 -2Z M500 45 q8 -6 12 2 q-8 8 -12 -2Z M650 65 q8 -6 12 2 q-8 8 -12 -2Z" fill="#FFD27A"/></g>
+</g>
+
+<g transform="translate(110,52)" aria-hidden="true">
+<g class="fr-bob"><circle cx="-26" cy="4" r="18" fill="#EAF6FB"/><circle cx="0" cy="-6" r="24" fill="#EAF6FB"/><circle cx="28" cy="4" r="18" fill="#EAF6FB"/><rect x="-44" y="4" width="90" height="18" rx="9" fill="#EAF6FB"/>
+<circle cx="-8" cy="4" r="3.2" fill="#0B2233"/><circle cx="10" cy="4" r="3.2" fill="#0B2233"/><path d="M-6 12 q5 5 10 0" fill="none" stroke="#0B2233" stroke-width="2.5" stroke-linecap="round"/><circle cx="-16" cy="11" r="4" fill="#FFB38A" opacity=".7"/><circle cx="18" cy="11" r="4" fill="#FFB38A" opacity=".7"/></g>
+</g>
+
+<g transform="translate(70,445)">
+<path d="M-40 -24 L0 -50 L40 -24 Z" fill="#FF8A4C" stroke="#FF8A4C" stroke-width="8" stroke-linejoin="round"/>
+<rect x="-34" y="-26" width="68" height="52" rx="14" fill="#1E4A63" stroke="#4FC3E8" stroke-width="3"/>
+<text x="0" y="6" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#EAF6FB">Depot</text>
+</g>
+
+<sc-if value="{{ planHas }}" hint-placeholder-val="{{ false }}"><polyline points="{{ planPts }}" fill="none" stroke="#EAF6FB" stroke-width="3" stroke-dasharray="8 8" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/></sc-if>
+
+<sc-for list="{{ assets }}" as="a" hint-placeholder-count="12">
+<g class="fr-mk" role="button" tabindex="0" aria-label="{{ a.label }}" transform="{{ a.tf }}" onClick="{{ a.click }}" onKeyDown="{{ a.key }}">
+<sc-if value="{{ a.pulse }}" hint-placeholder-val="{{ false }}"><circle r="22" class="fr-pulse" fill="#FF8A4C" opacity="0.5"/></sc-if>
+<sc-if value="{{ a.cam }}" hint-placeholder-val="{{ false }}"><circle r="25" fill="none" stroke="#EAF6FB" stroke-width="2.5" stroke-dasharray="4 4"/></sc-if>
+<path d="M0 -26 C11 -12 19 -3 19 8 a19 19 0 0 1 -38 0 C-19 -3 -11 -12 0 -26Z" fill="{{ a.fill }}" stroke="#FFF3EA" stroke-width="3.5" stroke-linejoin="round"/>
+<circle cx="-6.5" cy="5" r="3.2" fill="{{ a.eye }}"/>
+<circle cx="6.5" cy="5" r="3.2" fill="{{ a.eye }}"/>
+<path d="{{ a.mouth }}" fill="none" stroke="{{ a.eye }}" stroke-width="2.6" stroke-linecap="round"/>
+<sc-if value="{{ a.gpt }}" hint-placeholder-val="{{ false }}"><rect x="-27" y="6" width="17" height="17" rx="5" fill="#0B2233" stroke="#EAF6FB" stroke-width="2"/><text x="-18.5" y="19" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="12" fill="#EAF6FB">G</text></sc-if>
+<sc-if value="{{ a.badge }}" hint-placeholder-val="{{ false }}"><circle cx="15" cy="-14" r="10" fill="{{ a.badgeFill }}" stroke="#0B2233" stroke-width="2.5"/><sc-if value="{{ a.bDone }}" hint-placeholder-val="{{ false }}"><path d="M10 -14 l3.5 3.5 l7 -8" fill="none" stroke="#0B2233" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></sc-if>
+<sc-if value="{{ a.bBusy }}" hint-placeholder-val="{{ false }}"><circle cx="10" cy="-14" r="1.8" fill="#0B2233"/><circle cx="15" cy="-14" r="1.8" fill="#0B2233"/><circle cx="20" cy="-14" r="1.8" fill="#0B2233"/></sc-if>
+<sc-if value="{{ a.n1 }}" hint-placeholder-val="{{ false }}"><text x="15" y="-9.5" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#0B2233">1</text></sc-if>
+<sc-if value="{{ a.n2 }}" hint-placeholder-val="{{ false }}"><text x="15" y="-9.5" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#0B2233">2</text></sc-if>
+<sc-if value="{{ a.n3 }}" hint-placeholder-val="{{ false }}"><text x="15" y="-9.5" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#0B2233">3</text></sc-if>
+<sc-if value="{{ a.n4 }}" hint-placeholder-val="{{ false }}"><text x="15" y="-9.5" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#0B2233">4</text></sc-if>
+<sc-if value="{{ a.n5 }}" hint-placeholder-val="{{ false }}"><text x="15" y="-9.5" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#0B2233">5</text></sc-if>
+<sc-if value="{{ a.n6 }}" hint-placeholder-val="{{ false }}"><text x="15" y="-9.5" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="14" fill="#0B2233">6</text></sc-if>
+</sc-if>
+</g>
+</sc-for>
+
+<sc-for list="{{ crews }}" as="c" hint-placeholder-count="3">
+<g transform="{{ c.tf }}" aria-label="{{ c.name }}">
+<circle r="15" fill="#FFE0C2" stroke="#0B2233" stroke-width="3"/>
+<circle cx="-4.5" cy="2" r="2" fill="#0B2233"/><circle cx="4.5" cy="2" r="2" fill="#0B2233"/>
+<path d="M-4 7 q4 4 8 0" fill="none" stroke="#0B2233" stroke-width="2" stroke-linecap="round"/>
+<circle cx="-9" cy="6" r="2.5" fill="#FFB38A"/><circle cx="9" cy="6" r="2.5" fill="#FFB38A"/>
+<path d="M-15 -2 a15 14 0 0 1 30 0 Z" fill="{{ c.hat }}" stroke="#0B2233" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="-18" y="-3" width="36" height="5" rx="2.5" fill="{{ c.hat }}" stroke="#0B2233" stroke-width="2"/>
+<circle cx="13" cy="14" r="8" fill="#0B2233"/>
+<sc-if value="{{ c.isA }}" hint-placeholder-val="{{ false }}"><text x="13" y="18" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="11" fill="#EAF6FB">A</text></sc-if>
+<sc-if value="{{ c.isB }}" hint-placeholder-val="{{ false }}"><text x="13" y="18" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="11" fill="#EAF6FB">B</text></sc-if>
+<sc-if value="{{ c.isC }}" hint-placeholder-val="{{ false }}"><text x="13" y="18" text-anchor="middle" font-family="Nunito, sans-serif" font-weight="800" font-size="11" fill="#EAF6FB">C</text></sc-if>
+<sc-if value="{{ c.work }}" hint-placeholder-val="{{ false }}"><circle r="25" fill="none" stroke="#FFD27A" stroke-width="3" stroke-dasharray="20 40" class="fr-spin"/></sc-if>
+</g>
+</sc-for>
+</svg>
+
+<div style="display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; background: #102F45; border: 2px solid #1E4A63; border-radius: 0 0 22px 22px; padding: 12px 18px; font-size: 14px; color: #CFE6F0">
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="-20 -28 40 56" aria-hidden="true"><path d="M0 -26 C11 -12 19 -3 19 8 a19 19 0 0 1 -38 0 C-19 -3 -11 -12 0 -26Z" fill="#FF8A4C" stroke="#FFF3EA" stroke-width="3"/><path d="M-5 16 q5 -6 10 0" fill="none" stroke="#2A1208" stroke-width="3"/></svg>High (frowning, pulsing)</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="-20 -28 40 56" aria-hidden="true"><path d="M0 -26 C11 -12 19 -3 19 8 a19 19 0 0 1 -38 0 C-19 -3 -11 -12 0 -26Z" fill="#FFD27A" stroke="#FFF3EA" stroke-width="3"/><path d="M-4 14 h8" fill="none" stroke="#0B2233" stroke-width="3"/></svg>Medium (neutral)</span>
+<span style="display: inline-flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="-20 -28 40 56" aria-hidden="true"><path d="M0 -26 C11 -12 19 -3 19 8 a19 19 0 0 1 -38 0 C-19 -3 -11 -12 0 -26Z" fill="#4FC3E8" stroke="#FFF3EA" stroke-width="3"/><path d="M-6 12 q6 7 12 0" fill="none" stroke="#0B2233" stroke-width="3"/></svg>Low (smiling)</span>
+<span><b style="border: 2px solid #EAF6FB; border-radius: 5px; padding: 0 4px; font-family: Nunito, sans-serif">G</b> gross pollutant trap</span>
+<span>Dashed ring = has a camera</span>
+</div>
+</sc-if>
+
+<div id="fr-3dhost" style="{{ host3dStyle }}"></div>
+<sc-if value="{{ show3d }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: center; background: #102F45; border: 2px solid #1E4A63; border-top: 2px solid #2D6182; border-radius: 0 0 22px 22px; margin-top: -2px; padding: 12px 18px">
+<div><div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">WATER LEVEL (SAMPLE)</div><div style="font-size: 24px; font-weight: 700">{{ level3 }} m</div></div>
+<div style="font-size: 15px; color: #CFE6F0">Assets the water reaches<br><b style="font-size: 22px">{{ reached3 }}</b> of {{ total }} · <b style="font-size: 22px">{{ reachedHigh3 }}</b> high risk</div>
+<div style="font-size: 13px; color: #8FB8CC; flex: 1 1 220px">{{ view3dNote }}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="position: absolute; left: 20px; bottom: 70px; max-width: 70%; background: #102F45; border: 2px solid #4FC3E8; border-radius: 14px; padding: 10px 16px; font-weight: 600; font-size: 15px; z-index: 6">{{ toast }}</div>
+</sc-if>
+</section>
+
+<aside style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<section style="background: #102F45; border: 2px solid #1E4A63; border-radius: 22px; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">CHECK NEXT · HIGHEST BLOCKAGE RISK</div>
+<ol style="list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ queue }}" as="q" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: 10px; background: #0B2233; border-radius: 14px; padding: 10px 12px">
+<div style="flex: 1; min-width: 0"><div style="font-weight: 700; font-size: 16px">{{ q.name }} <span style="{{ q.tierStyle }}">{{ q.tier }} · {{ q.pct }}%</span></div><div style="font-size: 13px; color: #B9D6E3; line-height: 1.35">{{ q.why }}</div></div>
+<button type="button" class="fr-btn fr-pri" onClick="{{ q.send }}" style="padding: 6px 14px; min-height: 40px; font-size: 14px">Send crew</button>
+</li>
+</sc-for>
+</ol>
+</section>
+
+<section style="background: #102F45; border: 2px solid #1E4A63; border-radius: 22px; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">TRUCK RUN PLANNER</div>
+<label for="fr-cap" style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-top: 12px"><span>Truck capacity</span><span style="color: #CFE6F0">{{ capLabel }}</span></label>
+<input id="fr-cap" type="range" min="1" max="4" step="0.5" value="{{ capVal }}" onChange="{{ onCap }}" style="width: 100%; accent-color: #4FC3E8">
+<sc-if value="{{ planNone }}" hint-placeholder-val="{{ false }}"><div style="margin-top: 10px; font-size: 14px; color: #8FB8CC">No stops worth a run right now.</div></sc-if>
+<sc-if value="{{ planHas }}" hint-placeholder-val="{{ true }}">
+<div style="margin-top: 12px; font-weight: 700; font-size: 16px">Best run now: {{ planLoadText }}</div>
+<div style="height: 10px; background: #1E4A63; border-radius: 999px; margin: 8px 0 12px"><div style="{{ planBarStyle }}"></div></div>
+<ol style="list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{ planRows }}" as="p" hint-placeholder-count="4">
+<li style="display: flex; justify-content: space-between; gap: 8px; background: #0B2233; border-radius: 12px; padding: 8px 12px; font-size: 14px"><span><b>{{ p.n }}. {{ p.name }}</b> · {{ p.tier }}<br><span style="color: #8FB8CC; font-size: 12px">{{ p.note }}</span></span><span style="font-weight: 700; color: #FFD27A; white-space: nowrap">{{ p.load }}</span></li>
+</sc-for>
+</ol>
+<button class="fr-btn fr-pri" type="button" onClick="{{ planSend }}" style="width: 100%">Send a crew on this run</button>
+</sc-if>
+<div style="margin-top: 10px; font-size: 12px; color: #8FB8CC; line-height: 1.4">{{ planNote }} Load sizes are sample estimates. Real truck and bin volumes come from council.</div>
+</section>
+
+<section style="background: #102F45; border: 2px solid #1E4A63; border-radius: 22px; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">WHAT IF · DEMO CONTROLS</div>
+<label for="fr-leaf" style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-top: 12px"><span>Leaf fall</span><span style="color: #CFE6F0">{{ leafLabel }}</span></label>
+<input id="fr-leaf" type="range" min="0" max="100" value="{{ leaf }}" onChange="{{ onLeaf }}" style="width: 100%; accent-color: #FFD27A">
+<label for="fr-extra" style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-top: 8px"><span>Extra rain</span><span style="color: #CFE6F0">{{ extraLabel }}</span></label>
+<input id="fr-extra" type="range" min="0" max="100" value="{{ extra }}" onChange="{{ onExtra }}" style="width: 100%; accent-color: #FF8A4C">
+<div style="margin-top: 10px; font-size: 13px; color: #8FB8CC; line-height: 1.4">Risk scores come from a simple demo formula on sample data (tree cover, leaf fall, rain, days since cleaning). It is not a trained model yet.</div>
+</section>
+
+<section style="background: #102F45; border: 2px solid #1E4A63; border-radius: 22px; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">RAIN FORECAST · NEXT 6 HOURS</div>
+<div style="display: flex; align-items: flex-end; gap: 8px; height: 90px; margin-top: 26px">
+<sc-for list="{{ bars }}" as="b" hint-placeholder-count="6">
+<div style="{{ b.style }}"><span style="position: absolute; top: -20px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 700; color: #CFE6F0">{{ b.v }}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; gap: 8px; margin-top: 6px; font-size: 13px; font-weight: 600; color: #8FB8CC"><span style="flex: 1">13</span><span style="flex: 1">14</span><span style="flex: 1">15</span><span style="flex: 1">16</span><span style="flex: 1">17</span><span style="flex: 1">18</span></div>
+<div style="margin-top: 8px; font-size: 13px; color: #8FB8CC">Source: Bureau of Meteorology feed [connect]</div>
+</section>
+
+<section style="background: #102F45; border: 2px solid #1E4A63; border-radius: 22px; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">COMPLIANCE RECORDS</div>
+<div style="display: flex; gap: 8px; margin-top: 12px">
+<div style="flex: 1; background: #0B2233; border-radius: 14px; padding: 10px"><div style="font-size: 24px; font-weight: 700; color: #FFD27A">{{ beforeN }}</div><div style="font-size: 12px; line-height: 1.3; color: #CFE6F0">Before photos<br>AI training</div></div>
+<div style="flex: 1; background: #0B2233; border-radius: 14px; padding: 10px"><div style="font-size: 24px; font-weight: 700; color: #7ED9A3">{{ afterN }}</div><div style="font-size: 12px; line-height: 1.3; color: #CFE6F0">After photos<br>evidence</div></div>
+<div style="flex: 1; background: #0B2233; border-radius: 14px; padding: 10px"><div style="font-size: 24px; font-weight: 700; color: #4FC3E8">{{ camN }}</div><div style="font-size: 12px; line-height: 1.3; color: #CFE6F0">Camera<br>checks</div></div>
+</div>
+<sc-if value="{{ noEv }}" hint-placeholder-val="{{ true }}"><div style="margin-top: 12px; font-size: 14px; color: #8FB8CC; line-height: 1.4">No completed jobs yet. Sites with a camera are checked by the camera. All other sites need a before and an after photo before the job can be closed.</div></sc-if>
+<sc-if value="{{ hasEv }}" hint-placeholder-val="{{ false }}">
+<ul style="list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ evRows }}" as="e" hint-placeholder-count="2">
+<li style="display: flex; gap: 10px; align-items: center; background: #0B2233; border-radius: 12px; padding: 8px 10px">
+<sc-if value="{{ e.photos }}" hint-placeholder-val="{{ true }}"><svg width="48" height="32" viewBox="0 0 120 80" role="img" aria-label="Before: grate covered in leaves" style="flex:none;border-radius:10px"><rect width="120" height="80" rx="10" fill="#3A4A3A"/><rect x="14" y="18" width="92" height="44" rx="8" fill="#0B1626"/><path d="M32 24v32M50 24v32M68 24v32M86 24v32" stroke="#4A5F94" stroke-width="5" stroke-linecap="round"/><g stroke="#0E1B38" stroke-width="1.5"><ellipse cx="34" cy="38" rx="13" ry="6" fill="#D9622B" transform="rotate(-25 34 38)"/><ellipse cx="58" cy="32" rx="14" ry="6" fill="#E8A33D" transform="rotate(15 58 32)"/><ellipse cx="80" cy="42" rx="13" ry="6" fill="#7BC043" transform="rotate(-10 80 42)"/><ellipse cx="50" cy="48" rx="12" ry="5" fill="#E8A33D" transform="rotate(30 50 48)"/><ellipse cx="72" cy="52" rx="12" ry="5" fill="#D9622B" transform="rotate(-35 72 52)"/><ellipse cx="94" cy="34" rx="10" ry="5" fill="#D9622B" transform="rotate(40 94 34)"/></g></svg><svg width="48" height="32" viewBox="0 0 120 80" role="img" aria-label="After: grate clear" style="flex:none;border-radius:10px"><rect width="120" height="80" rx="10" fill="#4A5F4A"/><rect x="14" y="18" width="92" height="44" rx="8" fill="#0B1626"/><path d="M32 24v32M50 24v32M68 24v32M86 24v32" stroke="#4A5F94" stroke-width="5" stroke-linecap="round"/><path d="M24 66l4-4M92 64l4-4" stroke="#8FD0FF" stroke-width="3" stroke-linecap="round"/></svg></sc-if>
+<sc-if value="{{ e.cam }}" hint-placeholder-val="{{ false }}"><svg width="48" height="32" viewBox="0 0 52 32" role="img" aria-label="Camera" style="flex: none"><rect x="2" y="6" width="36" height="20" rx="6" fill="#4FC3E8" stroke="#EAF6FB" stroke-width="2"/><circle cx="20" cy="16" r="6" fill="#0B2233"/><path d="M40 12 L50 7 V25 L40 20 Z" fill="#4FC3E8" stroke="#EAF6FB" stroke-width="2" stroke-linejoin="round"/></svg></sc-if>
+<div style="font-size: 13px; line-height: 1.35; color: #CFE6F0"><b>{{ e.name }}</b> · {{ e.how }}<br>{{ e.meta }}</div></li>
+</sc-for>
+</ul>
+</sc-if>
+<div style="margin-top: 10px; font-size: 12px; color: #8FB8CC; line-height: 1.4">Sample records. Real photos would carry time and location, be stored with the work order, and be checked for faces before use in training.</div>
+</section>
+
+<section style="background: #102F45; border: 2px solid #1E4A63; border-radius: 22px; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">CREWS</div>
+<ul style="list-style: none; margin: 10px 0 18px; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ crewRows }}" as="r" hint-placeholder-count="3">
+<li style="display: flex; justify-content: space-between; gap: 10px; background: #0B2233; border-radius: 12px; padding: 10px 14px; font-weight: 600"><span>{{ r.name }}</span><span style="{{ r.style }}">{{ r.status }}</span></li>
+</sc-for>
+</ul>
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">ACTIVITY LOG</div>
+<ol style="list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.4">
+<sc-for list="{{ logRows }}" as="l" hint-placeholder-count="3">
+<li style="background: #0B2233; border-radius: 12px; padding: 10px 14px"><b style="color: #8FB8CC">{{ l.t }}</b> &nbsp;{{ l.x }}</li>
+</sc-for>
+</ol>
+</section>
+</aside>
+</sc-if>
+
+<sc-if value="{{ showPhone }}" hint-placeholder-val="{{ false }}">
+<aside style="flex: 0 0 340px; width: 340px; align-self: flex-start; background: #0B2233; border: 6px solid #1E4A63; border-radius: 40px; padding: 22px 18px 24px; min-height: 640px; box-sizing: border-box">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px"><span style="font-weight: 700; font-size: 18px">Crew app</span><button class="fr-btn fr-ghost" type="button" onClick="{{ switchRole }}" style="padding: 6px 10px; min-height: 40px; font-size: 14px">Switch role</button></div>
+<div style="display: flex; gap: 8px; margin-bottom: 16px">
+<sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+<button type="button" class="fr-btn" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{ phNone }}" hint-placeholder-val="{{ true }}">
+<div style="text-align: center; padding: 40px 8px; color: #B9D6E3"><svg width="56" height="56" viewBox="0 0 36 36" aria-hidden="true"><path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8"/></svg><div style="font-weight: 700; font-size: 20px; color: #EAF6FB; margin-top: 10px">All clear</div><div style="font-size: 15px; margin-top: 6px">Waiting for the next task.</div></div>
+</sc-if>
+
+<sc-if value="{{ phHas }}" hint-placeholder-val="{{ false }}">
+<div class="fr-pop" style="background: #102F45; border: 3px solid #FF8A4C; border-radius: 20px; padding: 18px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #FFB38A">{{ phLabel }}</div>
+<div style="font-weight: 700; font-size: 20px; margin: 6px 0">{{ phTitle }}</div>
+<div style="font-size: 15px; color: #CFE6F0; line-height: 1.4; margin-bottom: 10px">{{ phBody }}</div>
+<div style="font-size: 14px; font-weight: 600; color: #8FB8CC; margin-bottom: 12px">Job: Clear leaves and debris</div>
+<sc-if value="{{ phRun }}" hint-placeholder-val="{{ false }}">
+<div style="background: #0B2233; border-radius: 14px; padding: 10px 12px; margin-bottom: 14px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #FFD27A">{{ phRunStop }}</div>
+<div style="height: 8px; background: #1E4A63; border-radius: 999px; margin: 8px 0">
+<div style="{{ phBarStyle }}"></div></div>
+<div style="font-size: 13px; line-height: 1.4; color: #CFE6F0">{{ phLoadText }}<br>{{ phNext }}</div>
+</div>
+</sc-if>
+<sc-if value="{{ phNew }}" hint-placeholder-val="{{ true }}"><button class="fr-btn fr-pri" type="button" onClick="{{ phAccept }}" style="width: 100%">Accept task</button></sc-if>
+<sc-if value="{{ phGoing }}" hint-placeholder-val="{{ false }}"><div style="text-align: center; font-weight: 600; color: #FFD27A">Heading to the site…</div></sc-if>
+<sc-if value="{{ phArrivedCam }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 10px; align-items: center; background: #0B2233; border-radius: 14px; padding: 10px"><svg width="44" height="32" viewBox="0 0 52 32" role="img" aria-label="Camera" style="flex: none"><rect x="2" y="6" width="36" height="20" rx="6" fill="#4FC3E8" stroke="#EAF6FB" stroke-width="2"/><circle cx="20" cy="16" r="6" fill="#0B2233"/><path d="M40 12 L50 7 V25 L40 20 Z" fill="#4FC3E8" stroke="#EAF6FB" stroke-width="2" stroke-linejoin="round"/></svg><div style="font-size: 13px; line-height: 1.35; color: #CFE6F0"><b style="color: #7ED9A3">Camera site</b><br>The camera records before and after, so no photos are needed.</div></div>
+<button class="fr-btn fr-pri" type="button" onClick="{{ phDone }}" style="width: 100%">Mark as cleaned</button>
+</div>
+</sc-if>
+<sc-if value="{{ phArrivedPhoto }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 12px; font-weight: 700; letter-spacing: .06em; color: #8FB8CC">PROOF OF WORK · 2 PHOTOS REQUIRED</div>
+<sc-if value="{{ phNeedBefore }}" hint-placeholder-val="{{ true }}">
+<div style="font-size: 14px; color: #CFE6F0; line-height: 1.4"><b>Step 1.</b> Photograph the drain as you found it. Drain only, no people or number plates.</div>
+<button class="fr-btn fr-pri" type="button" onClick="{{ phBefore }}" style="width: 100%">Take BEFORE photo</button>
+</sc-if>
+<sc-if value="{{ phHasBefore }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 10px; align-items: center; background: #0B2233; border-radius: 14px; padding: 8px"><svg width="84" height="56" viewBox="0 0 120 80" role="img" aria-label="Before: grate covered in leaves" style="flex:none;border-radius:10px"><rect width="120" height="80" rx="10" fill="#3A4A3A"/><rect x="14" y="18" width="92" height="44" rx="8" fill="#0B1626"/><path d="M32 24v32M50 24v32M68 24v32M86 24v32" stroke="#4A5F94" stroke-width="5" stroke-linecap="round"/><g stroke="#0E1B38" stroke-width="1.5"><ellipse cx="34" cy="38" rx="13" ry="6" fill="#D9622B" transform="rotate(-25 34 38)"/><ellipse cx="58" cy="32" rx="14" ry="6" fill="#E8A33D" transform="rotate(15 58 32)"/><ellipse cx="80" cy="42" rx="13" ry="6" fill="#7BC043" transform="rotate(-10 80 42)"/><ellipse cx="50" cy="48" rx="12" ry="5" fill="#E8A33D" transform="rotate(30 50 48)"/><ellipse cx="72" cy="52" rx="12" ry="5" fill="#D9622B" transform="rotate(-35 72 52)"/><ellipse cx="94" cy="34" rx="10" ry="5" fill="#D9622B" transform="rotate(40 94 34)"/></g></svg><div style="font-size: 13px; line-height: 1.35; color: #CFE6F0"><b style="color: #FFD27A">Before saved</b><br>Used to improve the AI</div></div>
+</sc-if>
+<sc-if value="{{ phNeedAfter }}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 14px; color: #CFE6F0; line-height: 1.4"><b>Step 2.</b> Clear the leaves and debris, then photograph the clean drain.</div>
+<button class="fr-btn fr-pri" type="button" onClick="{{ phAfter }}" style="width: 100%">Take AFTER photo</button>
+</sc-if>
+<sc-if value="{{ phHasAfter }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; gap: 10px; align-items: center; background: #0B2233; border-radius: 14px; padding: 8px"><svg width="84" height="56" viewBox="0 0 120 80" role="img" aria-label="After: grate clear" style="flex:none;border-radius:10px"><rect width="120" height="80" rx="10" fill="#4A5F4A"/><rect x="14" y="18" width="92" height="44" rx="8" fill="#0B1626"/><path d="M32 24v32M50 24v32M68 24v32M86 24v32" stroke="#4A5F94" stroke-width="5" stroke-linecap="round"/><path d="M24 66l4-4M92 64l4-4" stroke="#8FD0FF" stroke-width="3" stroke-linecap="round"/></svg><div style="font-size: 13px; line-height: 1.35; color: #CFE6F0"><b style="color: #7ED9A3">After saved</b><br>Kept as evidence</div></div>
+<button class="fr-btn fr-pri" type="button" onClick="{{ phDone }}" style="width: 100%">Submit and mark cleaned</button>
+</sc-if>
+<div style="font-size: 12px; color: #8FB8CC; line-height: 1.4">Demo: tapping simulates the camera. The real app opens the phone camera and stamps time and location on each photo.</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
+</aside>
+</sc-if>
+</div>
+
+<sc-if value="{{ showModal }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: rgba(5,15,25,.7); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10">
+<div class="fr-pop" style="background: #102F45; border: 3px solid #FF8A4C; border-radius: 24px; padding: 28px; max-width: 540px; width: 100%">
+<div style="font-size: 13px; font-weight: 700; letter-spacing: .06em; color: #FFB38A">{{ modKind }}</div>
+<h2 style="margin: 6px 0 8px; font-size: 26px; font-weight: 700">{{ modTitle }}</h2>
+<p style="margin: 0 0 12px; font-size: 16px; line-height: 1.5; color: #CFE6F0">{{ modBody }}</p>
+<ul style="margin: 0 0 14px; padding-left: 20px; font-size: 15px; line-height: 1.5; color: #CFE6F0">
+<sc-for list="{{ modReasons }}" as="m" hint-placeholder-count="3"><li>{{ m.t }}</li></sc-for>
+</ul>
+<div style="font-size: 14px; color: #8FB8CC; margin-bottom: 18px">{{ modNote }}</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<button class="fr-btn fr-pri" type="button" onClick="{{ modGo }}">Send a crew to clean it</button>
+<button class="fr-btn fr-ghost" type="button" onClick="{{ modNo }}">Not now</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showRoles }}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 20; background: radial-gradient(circle at 20% 15%, #14506F 0%, #0B2233 55%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 32px 20px">
+<div style="text-align: center; max-width: 720px">
+<svg width="56" height="56" viewBox="0 0 36 36" aria-hidden="true"><path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8"/><path d="M18 15 C18 15 12.5 20 12.5 24 a5.5 5.5 0 0 0 11 0 C23.5 20 18 15 18 15Z" fill="#FF8A4C"/></svg>
+<h1 style="margin: 8px 0 6px; font-size: 40px; font-weight: 700">FloodReady</h1>
+<p style="margin: 0 0 8px; font-size: 20px; color: #EAF6FB">Clean the right drains before they block.</p>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #B9D6E3">Leaves block drain inlets and gross pollutant traps, and most of them have no camera. FloodReady predicts which ones are about to block and tells crews where to go first. Crews fill the truck on one run, and every job is closed with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 1000px">
+<button type="button" class="fr-card" onClick="{{ pickManager }}">
+<svg width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true"><circle r="19" fill="#FFE0C2" stroke="#0B2233" stroke-width="3"/><circle cx="-6" cy="2" r="2.4" fill="#0B2233"/><circle cx="6" cy="2" r="2.4" fill="#0B2233"/><path d="M-5 9 q5 5 10 0" fill="none" stroke="#0B2233" stroke-width="2.4" stroke-linecap="round"/><circle cx="-11" cy="8" r="3" fill="#FFB38A"/><circle cx="11" cy="8" r="3" fill="#FFB38A"/><path d="M-19 -2 a19 18 0 0 1 38 0 q-19 -8 -38 0Z" fill="#4FC3E8" stroke="#0B2233" stroke-width="2.5"/></svg>
+<span class="fr-ct">Manager</span><span class="fr-cd">See risk across the whole map and send crews.</span></button>
+<button type="button" class="fr-card" onClick="{{ pickCrew }}">
+<svg width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true"><circle r="19" fill="#FFE0C2" stroke="#0B2233" stroke-width="3"/><circle cx="-6" cy="2" r="2.4" fill="#0B2233"/><circle cx="6" cy="2" r="2.4" fill="#0B2233"/><path d="M-5 9 q5 5 10 0" fill="none" stroke="#0B2233" stroke-width="2.4" stroke-linecap="round"/><circle cx="-11" cy="8" r="3" fill="#FFB38A"/><circle cx="11" cy="8" r="3" fill="#FFB38A"/><path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#FF8A4C" stroke="#0B2233" stroke-width="2.5" stroke-linejoin="round"/><rect x="-22" y="-4" width="44" height="6" rx="3" fill="#FF8A4C" stroke="#0B2233" stroke-width="2"/></svg>
+<span class="fr-ct">Crew (phone)</span><span class="fr-cd">Get a run, photograph before and after, mark each stop cleaned.</span></button>
+<button type="button" class="fr-card fr-cardhi" onClick="{{ pickSplit }}">
+<svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true"><g transform="translate(24,24)"><circle r="19" fill="#FFE0C2" stroke="#0B2233" stroke-width="3"/><circle cx="-6" cy="2" r="2.4" fill="#0B2233"/><circle cx="6" cy="2" r="2.4" fill="#0B2233"/><path d="M-5 9 q5 5 10 0" fill="none" stroke="#0B2233" stroke-width="2.4" stroke-linecap="round"/><path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#FFD27A" stroke="#0B2233" stroke-width="2.5"/></g><g transform="translate(66,24)"><circle r="19" fill="#FFE0C2" stroke="#0B2233" stroke-width="3"/><circle cx="-6" cy="2" r="2.4" fill="#0B2233"/><circle cx="6" cy="2" r="2.4" fill="#0B2233"/><path d="M-5 9 q5 5 10 0" fill="none" stroke="#0B2233" stroke-width="2.4" stroke-linecap="round"/><path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#7ED9A3" stroke="#0B2233" stroke-width="2.5"/></g></svg>
+<span class="fr-ct">Side-by-side demo</span><span class="fr-cd">Manager map and crew phone together. Best for judges.</span></button>
+</div>
+<p style="margin: 0; font-size: 14px; color: #8FB8CC">Sample data only. Real deployment would use council single sign-on and audit logs.</p>
+</div>
+</sc-if>
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  initGame() {
+    let seed = 11; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const cx = [0, 120, 240, 370, 490, 610, 800], cy = [262, 248, 282, 255, 222, 205, 232];
+    const creekY = (x) => { for (let i = 0; i < cx.length - 1; i++) { if (x <= cx[i + 1]) { const f = (x - cx[i]) / (cx[i + 1] - cx[i]); return cy[i] + (cy[i + 1] - cy[i]) * f; } } return cy[cy.length - 1]; };
+    const assets = []; let nd = 0, ng = 0;
+    while (assets.length < 36) {
+      const x = 50 + rnd() * 700, y = creekY(x) + (rnd() < 0.5 ? -1 : 1) * (18 + rnd() * 105);
+      if (y < 45 || y > 470 || (x < 150 && y > 380)) continue;
+      if (assets.some((q) => Math.abs(q.x - x) < 30 && Math.abs(q.y - y) < 30)) continue;
+      const gpt = rnd() < 0.28, cam = rnd() < (gpt ? 0.55 : 0.2);
+      assets.push({ id: assets.length + 1, name: gpt ? 'GPT-' + String(++ng).padStart(2, '0') : 'DR-' + String(++nd).padStart(3, '0'), type: gpt ? 'Gross pollutant trap' : 'Drain inlet', gpt, cam, x: Math.round(x), y: Math.round(y), canopy: Math.round(8 + rnd() * 62), days: Math.round(5 + rnd() * 170), state: 'idle', crew: '' });
+    }
+    this.G = {
+      role: null, phoneCrew: 'Crew A', t0: Date.now(), done: 0, cur: null, logs: [], toast: '', toastUntil: 0,
+      autoOpened: false, beforeN: 0, afterN: 0, camN: 0, evidence: [], runs: {}, cap: 2.0, view: '2d', extra: 0, leaf: 60, level: 0.5, reached: 0, reachedHigh: 0, assets,
+      crews: {
+        'Crew A': { i: 0, hat: '#FFD27A', s: 'Ready', work: false, mv: null },
+        'Crew B': { i: 1, hat: '#FF8A4C', s: 'Ready', work: false, mv: null },
+        'Crew C': { i: 2, hat: '#7ED9A3', s: 'Ready', work: false, mv: null }
+      }
+    };
+    Object.keys(this.G.crews).forEach((n) => { const c = this.G.crews[n]; c.hx = 70 + (c.i - 1) * 22; c.hy = 475; c.x = c.hx; c.y = c.hy; });
+    this.FC = [4, 9, 22, 31, 18, 7];
+    this.G.logs.push({ t: '13:00', x: 'Shift started. Risk scores update with leaf fall and rain.' });
+  }
+  minute() { return Math.floor(((Date.now() - this.G.t0) / 1000) * 5) % 360; }
+  fmt(m) { const h = 13 + Math.floor(m / 60), mm = m % 60; return h + ':' + (mm < 10 ? '0' : '') + mm; }
+  rain() { const m = this.minute(), i = Math.floor(m / 60), f = (m % 60) / 60, nx = this.FC[Math.min(i + 1, 5)]; return this.FC[i] + (nx - this.FC[i]) * f; }
+  log(x) { this.G.logs.unshift({ t: this.fmt(this.minute()), x }); this.G.logs = this.G.logs.slice(0, 8); }
+  toast(x) { this.G.toast = x; this.G.toastUntil = Date.now() + 3500; }
+  manual() { return this.G.role === 'crew' || this.G.role === 'split'; }
+  // demo scoring: not a trained model
+  risk(a) {
+    const G = this.G, c = a.canopy / 70, l = G.leaf / 100, r = Math.min(1, (31 + G.extra * 0.2) / 31 * 0.8 + (G.extra / 100) * 0.2), d = Math.min(1, a.days / 150);
+    const s = (0.45 * c + 0.35 * l + 0.2 * r) * (0.2 + 0.8 * d);
+    const f = [
+      { w: 0.45 * c, t: 'Heavy tree cover nearby (' + a.canopy + '%)' },
+      { w: 0.35 * l, t: 'Leaf-fall season' },
+      { w: 0.2 * r, t: 'Heavy rain in the forecast' },
+      { w: 0.4 * d, t: 'Last cleaned ' + a.days + ' days ago' }
+    ].sort((p, q) => q.w - p.w);
+    return { s, why: f.map((q) => q.t) };
+  }
+  tier(a) { if (a.state === 'done') return 'Low'; const s = this.risk(a).s; return s >= 0.46 ? 'High' : (s >= 0.28 ? 'Medium' : 'Low'); }
+  pct(a) { return a.state === 'done' ? 8 : Math.min(99, Math.round(this.risk(a).s * 130)); }
+  taskOf(n) { return this.G.assets.filter((a) => a.crew === n && (a.state === 'dispatched' || a.state === 'going' || a.state === 'arrived'))[0]; }
+  topIdle() { return this.G.assets.filter((a) => a.state === 'idle').sort((p, q) => this.risk(q).s - this.risk(p).s)[0]; }
+  move(c, x, y, ms, cb) { c.mv = { fx: c.x, fy: c.y, tx: x, ty: y, t0: Date.now(), d: ms, cb }; }
+  openAsset(id) { const a = this.G.assets.filter((q) => q.id === id)[0]; if (a && a.state === 'idle') { this.G.cur = id; this.forceUpdate(); } }
+  setRole(r) { const G = this.G; G.role = r; G.t0 = Date.now(); G.autoOpened = false; G.cur = null; G.phoneCrew = 'Crew A'; this.forceUpdate(); }
+  loadOf(a) { const f = Math.min(1, this.risk(a).s * 1.3); return Math.round(((a.gpt ? 0.35 : 0.06) + (a.gpt ? 1.0 : 0.22) * f) * 100) / 100; }
+  // demo planner: greedy packing by risk, nearby first, never above truck capacity
+  planRun() {
+    const G = this.G, cap = G.cap, dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+    const pool = G.assets.filter((a) => a.state === 'idle').map((a) => ({ a, s: this.risk(a).s, l: this.loadOf(a) })).filter((r) => r.s >= 0.28).sort((p, q) => q.s - p.s);
+    if (!pool.length) return { stops: [], load: 0, cap, skipped: 0 };
+    let rem = cap, pos = { x: pool[0].a.x, y: pool[0].a.y }; const chosen = [];
+    while (chosen.length < 6) {
+      let best = null, bs = -1;
+      pool.forEach((r) => { if (r.l <= rem + 1e-9) { const sc = r.s / (1 + dist(pos, r.a) / 120); if (sc > bs) { bs = sc; best = r; } } });
+      if (!best) break;
+      chosen.push(best); rem -= best.l; pos = best.a; pool.splice(pool.indexOf(best), 1);
+    }
+    const ordered = []; let cur = { x: 70, y: 475 }; const left = chosen.slice();
+    while (left.length) { left.sort((p, q) => dist(cur, p.a) - dist(cur, q.a)); const nx = left.shift(); ordered.push(nx); cur = nx.a; }
+    const load = ordered.reduce((t, r) => t + r.l, 0);
+    return { stops: ordered, load, cap, skipped: pool.filter((r) => r.s >= 0.46).length };
+  }
+  startRun(ids) {
+    const G = this.G, n = Object.keys(G.crews).filter((k) => G.crews[k].s === 'Ready')[0];
+    if (!n) { this.toast('All crews are busy. Try again soon.'); return; }
+    const as = ids.map((id) => G.assets.filter((q) => q.id === id)[0]).filter((a) => a && a.state === 'idle');
+    if (!as.length) return;
+    const c = G.crews[n]; let load = 0;
+    as.forEach((a, i) => { a.crew = n; a.load = this.loadOf(a); load += a.load; a.state = i === 0 ? 'dispatched' : 'queued'; });
+    G.runs[n] = { stops: as.map((a) => a.id), idx: 0, cap: G.cap, load, loadDone: 0 };
+    c.s = 'Dispatched'; G.phoneCrew = n;
+    this.log(as.length > 1 ? n + ' sent on a run: ' + as.length + ' stops, ' + load.toFixed(1) + ' of ' + G.cap.toFixed(1) + ' m³.' : n + ' sent to ' + as[0].name + '.');
+    if (!this.manual()) setTimeout(() => { this.accept(as[0]); this.forceUpdate(); }, 900);
+  }
+  dispatch(id) { this.G.cur = null; this.startRun([id]); }
+  photo(a, kind) {
+    if (a.state !== 'arrived' || a.cam) return;
+    if (kind === 'before' && !a.before) { a.before = true; this.G.beforeN++; this.log(a.crew + ' took the before photo of ' + a.name + ' (added to AI training set).'); }
+    if (kind === 'after' && a.before && !a.after) { a.after = true; this.G.afterN++; this.log(a.crew + ' took the after photo of ' + a.name + ' (saved as evidence).'); }
+  }
+  goTo(a) {
+    const G = this.G, c = G.crews[a.crew]; a.state = 'going'; c.s = 'On the way'; c.work = false;
+    this.move(c, a.x + 24, a.y + 26, 3000, () => {
+      a.state = 'arrived'; c.s = 'Cleaning'; c.work = true;
+      this.log(a.crew + ' arrived at ' + a.name + (a.cam ? ' (camera site, no photos needed).' : ' and is clearing it.'));
+      if (!this.manual()) { this.photo(a, 'before'); setTimeout(() => { this.photo(a, 'after'); this.finish(a); this.forceUpdate(); }, 3200); }
+    });
+  }
+  accept(a) {
+    if (a.state !== 'dispatched') return;
+    this.log(a.crew + ' accepted and is on the way to ' + a.name + '.'); this.goTo(a);
+  }
+  finish(a) {
+    if (a.state !== 'arrived') return;
+    if (!a.cam && (!a.before || !a.after)) return;
+    const G = this.G, c = G.crews[a.crew], run = G.runs[a.crew];
+    G.evidence.unshift({ name: a.name, crew: a.crew, t: this.fmt(this.minute()), pct: this.pct(a), cam: !!a.cam });
+    if (a.cam) G.camN++;
+    c.work = false; a.state = 'done'; a.days = 0; G.done++;
+    this.log(a.crew + ' cleaned ' + a.name + '. Risk reset.'); this.toast(a.name + ' cleaned.');
+    if (run) run.loadDone += a.load || 0;
+    if (run && run.idx + 1 < run.stops.length) {
+      run.idx++; const nx = G.assets.filter((q) => q.id === run.stops[run.idx])[0];
+      this.log(a.crew + ' heads to the next stop, ' + nx.name + '.'); this.goTo(nx);
+    } else {
+      delete G.runs[a.crew]; c.s = 'Returning';
+      if (run && run.stops.length > 1) this.log(a.crew + ' finished the run (' + run.loadDone.toFixed(1) + ' m³ collected) and is returning to empty the truck.');
+      this.move(c, c.hx, c.hy, 3200, () => { c.s = 'Ready'; });
+    }
+  }
+  step() {
+    const G = this.G, t = Date.now();
+    Object.keys(G.crews).forEach((n) => {
+      const c = G.crews[n];
+      if (c.mv) {
+        const p = Math.min(1, (t - c.mv.t0) / c.mv.d), e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+        c.x = c.mv.fx + (c.mv.tx - c.mv.fx) * e; c.y = c.mv.fy + (c.mv.ty - c.mv.fy) * e;
+        if (p >= 1) { const cb = c.mv.cb; c.mv = null; if (cb) cb(); }
+      }
+    });
+    if (!G.autoOpened && t - G.t0 > 1800) {
+      if (G.role === 'manager' || G.role === 'split') { G.autoOpened = true; const a = this.topIdle(); if (a && !G.cur) G.cur = a.id; }
+      else if (G.role === 'crew') { G.autoOpened = true; const p = this.planRun(); if (p.stops.length) this.startRun(p.stops.map((r) => r.a.id)); }
+    }
+  }
+  componentDidMount() {
+    if (!this.G) this.initGame();
+    this.timer = setInterval(() => { this.step(); this.forceUpdate(); }, 60);
+  }
+  componentWillUnmount() { clearInterval(this.timer); }
+
+  go3d() {
+    const G = this.G; G.view = '3d'; this.forceUpdate();
+    const start = () => { setTimeout(() => this.init3d(), 50); };
+    if (window.THREE) { start(); return; }
+    if (this.loading3d) return; this.loading3d = true;
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    s.onload = start;
+    s.onerror = () => { this.loading3d = false; G.view = '2d'; this.toast('3D library could not load. Check the connection.'); this.forceUpdate(); };
+    document.head.appendChild(s);
+  }
+  init3d() {
+    const T = window.THREE, host = document.getElementById('fr-3dhost'), G = this.G, self = this;
+    if (!T || !host || this.r3) { return; }
+    const W = host.clientWidth || 800, H = Math.round(W * 0.625);
+    const renderer = new T.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); renderer.setSize(W, H);
+    const el = renderer.domElement; el.style.cssText = 'display:block;width:100%;height:auto;touch-action:none;cursor:grab'; host.appendChild(el);
+    this.r3 = renderer;
+    const scene = new T.Scene(); scene.background = new T.Color(0x12384F); scene.fog = new T.Fog(0x12384F, 90, 170);
+    const cam = new T.PerspectiveCamera(45, W / H, 0.5, 400);
+    scene.add(new T.AmbientLight(0xBFE3F2, 0.75)); const sun = new T.DirectionalLight(0xFFF1DC, 0.8); sun.position.set(-30, 60, 20); scene.add(sun);
+    const P = document.getElementById('fr-creek'), creek = [];
+    if (P && P.getTotalLength) { const len = P.getTotalLength(); for (let i = 0; i <= 160; i++) { const pt = P.getPointAtLength(len * i / 160); creek.push([(pt.x - 400) / 10, (pt.y - 250) / 10]); } }
+    else { for (let k = 0; k <= 80; k++) creek.push([-40 + k, 2 + 3 * Math.sin(k * 0.1)]); }
+    const wx = (px) => (px - 400) / 10, wz = (py) => (py - 250) / 10;
+    const dCreek = (x, z) => { let m = 1e9; for (let i = 0; i < creek.length; i++) { const dx = x - creek[i][0], dz = z - creek[i][1], d = dx * dx + dz * dz; if (d < m) m = d; } return Math.sqrt(m); };
+    const hf = (x, z) => { const d = Math.min(dCreek(x, z), 30); return 0.35 + 0.055 * Math.pow(d, 1.3) + 0.22 * Math.sin(x * 0.35) * Math.cos(z * 0.3); };
+    const g = new T.PlaneGeometry(84, 54, 126, 81); g.rotateX(-Math.PI / 2);
+    const pos = g.attributes.position, cols = new Float32Array(pos.count * 3), c1 = new T.Color(0x2F8FB5), c2 = new T.Color(0x3C7D6B), c3 = new T.Color(0x9CB58A), tmp = new T.Color();
+    for (let v = 0; v < pos.count; v++) { const x = pos.getX(v), z = pos.getZ(v), h = hf(x, z); pos.setY(v, h); const t = Math.min(1, h / 3.2); if (t < 0.4) tmp.copy(c1).lerp(c2, t / 0.4); else tmp.copy(c2).lerp(c3, (t - 0.4) / 0.6); cols[v * 3] = tmp.r; cols[v * 3 + 1] = tmp.g; cols[v * 3 + 2] = tmp.b; }
+    g.setAttribute('color', new T.BufferAttribute(cols, 3)); g.computeVertexNormals();
+    scene.add(new T.Mesh(g, new T.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.93 })));
+    const roads = [[60, 70, 760, 100], [140, 0, 210, 500], [470, 0, 520, 500], [650, 0, 720, 500], [0, 410, 800, 380]];
+    const pipeMat = new T.LineBasicMaterial({ color: 0x9FE8FF, transparent: true, opacity: 0.6, depthTest: false });
+    const roadMat = new T.LineBasicMaterial({ color: 0xE8F3F7, transparent: true, opacity: 0.5 });
+    roads.forEach((r) => {
+      const rp = [], pp = [];
+      for (let i = 0; i <= 70; i++) { const f = i / 70, x = wx(r[0] + (r[2] - r[0]) * f), z = wz(r[1] + (r[3] - r[1]) * f), h = hf(x, z); rp.push(new T.Vector3(x, h + 0.06, z)); pp.push(new T.Vector3(x, h - 0.25, z)); }
+      scene.add(new T.Line(new T.BufferGeometry().setFromPoints(rp), roadMat)); const pl = new T.Line(new T.BufferGeometry().setFromPoints(pp), pipeMat); pl.renderOrder = 2; scene.add(pl);
+    });
+    const wg = new T.PlaneGeometry(84, 54); wg.rotateX(-Math.PI / 2);
+    const water = new T.Mesh(wg, new T.MeshPhongMaterial({ color: 0x4FC3E8, transparent: true, opacity: 0.62, shininess: 90, specular: 0xCFEFFF })); scene.add(water);
+    const cache = {};
+    const mkTex = (draw, size) => { const c = document.createElement('canvas'); c.width = c.height = size; draw(c.getContext('2d'), size); return new T.CanvasTexture(c); };
+    const dropTex = (tier, st) => {
+      const key = tier + st; if (cache[key]) return cache[key]; const busy = st === 'dispatched' || st === 'going' || st === 'arrived' || st === 'queued', done = st === 'done';
+      const fill = (done || tier === 'Low') ? '#4FC3E8' : (tier === 'High' ? '#FF8A4C' : '#FFD27A');
+      cache[key] = mkTex((ctx, s) => {
+        const k = s / 128; ctx.scale(k, k); ctx.translate(64, 70); ctx.beginPath(); ctx.moveTo(0, -56); ctx.bezierCurveTo(24, -28, 42, -8, 42, 16); ctx.arc(0, 16, 42, 0, Math.PI, false); ctx.bezierCurveTo(-42, -8, -24, -28, 0, -56); ctx.closePath();
+        ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = 7; ctx.strokeStyle = '#FFF3EA'; ctx.stroke();
+        const ink = tier === 'High' && !done ? '#2A1208' : '#0B2233'; ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(-14, 10, 6.5, 0, 7); ctx.arc(14, 10, 6.5, 0, 7); ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath();
+        if (done || tier === 'Low') { ctx.moveTo(-12, 26); ctx.quadraticCurveTo(0, 40, 12, 26); } else if (tier === 'High') { ctx.moveTo(-10, 36); ctx.quadraticCurveTo(0, 24, 10, 36); } else { ctx.moveTo(-8, 32); ctx.lineTo(8, 32); }
+        ctx.stroke();
+        if (busy || done) { ctx.beginPath(); ctx.arc(34, -36, 20, 0, 7); ctx.fillStyle = done ? '#fff' : '#FFD27A'; ctx.fill(); ctx.lineWidth = 4; ctx.strokeStyle = '#0B2233'; ctx.stroke(); ctx.fillStyle = '#0B2233'; ctx.font = '800 26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(done ? '✓' : '…', 34, -27); }
+      }, 128);
+      return cache[key];
+    };
+    const crewTex = (n) => {
+      const key = 'c' + n; if (cache[key]) return cache[key]; const hat = G.crews[n].hat;
+      cache[key] = mkTex((ctx, s) => {
+        const k = s / 96; ctx.scale(k, k); ctx.translate(48, 52); ctx.beginPath(); ctx.arc(0, 0, 30, 0, 7); ctx.fillStyle = '#FFE0C2'; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = '#0B2233'; ctx.stroke();
+        ctx.fillStyle = '#0B2233'; ctx.beginPath(); ctx.arc(-9, 3, 3.5, 0, 7); ctx.arc(9, 3, 3.5, 0, 7); ctx.fill(); ctx.lineWidth = 3.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-7, 13); ctx.quadraticCurveTo(0, 20, 7, 13); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-30, -4); ctx.arc(0, -4, 30, Math.PI, 0); ctx.closePath(); ctx.fillStyle = hat; ctx.fill(); ctx.lineWidth = 4; ctx.stroke(); ctx.fillRect(-36, -6, 72, 10); ctx.strokeRect(-36, -6, 72, 10);
+        ctx.beginPath(); ctx.arc(26, 28, 14, 0, 7); ctx.fillStyle = '#0B2233'; ctx.fill(); ctx.fillStyle = '#EAF6FB'; ctx.font = '800 18px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(n.slice(-1), 26, 34);
+      }, 96);
+      return cache[key];
+    };
+    const mk = G.assets.map((a) => { const sp = new T.Sprite(new T.SpriteMaterial({ map: dropTex('Low', 'idle'), depthTest: false, transparent: true })); sp.renderOrder = 10; sp.userData = { a, key: '' }; scene.add(sp); return sp; });
+    const cs = Object.keys(G.crews).map((n) => { const sp = new T.Sprite(new T.SpriteMaterial({ map: crewTex(n), depthTest: false, transparent: true })); sp.scale.set(3.4, 3.4, 1); sp.renderOrder = 11; sp.userData = { n }; scene.add(sp); return sp; });
+    let az = 0.35, po = 0.95, rad = 64, dn = null, moved = 0;
+    const placeCam = () => { cam.position.set(rad * Math.sin(po) * Math.sin(az), rad * Math.cos(po), rad * Math.sin(po) * Math.cos(az)); cam.lookAt(0, 1, 0); };
+    el.addEventListener('pointerdown', (e) => { dn = { x: e.clientX, y: e.clientY }; moved = 0; el.setPointerCapture(e.pointerId); el.style.cursor = 'grabbing'; });
+    el.addEventListener('pointermove', (e) => { if (!dn) return; const dx = e.clientX - dn.x, dy = e.clientY - dn.y; moved += Math.abs(dx) + Math.abs(dy); dn = { x: e.clientX, y: e.clientY }; az -= dx * 0.006; po = Math.max(0.35, Math.min(1.3, po - dy * 0.005)); });
+    el.addEventListener('pointerup', (e) => { el.style.cursor = 'grab'; if (moved < 6) { const r = el.getBoundingClientRect(), m = new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), rc = new T.Raycaster(); rc.setFromCamera(m, cam); const hit = rc.intersectObjects(mk)[0]; if (hit) self.openAsset(hit.object.userData.a.id); } dn = null; });
+    el.addEventListener('wheel', (e) => { e.preventDefault(); rad = Math.max(28, Math.min(100, rad + e.deltaY * 0.04)); }, { passive: false });
+    window.addEventListener('resize', () => { const w = host.clientWidth; if (!w) return; renderer.setSize(w, Math.round(w * 0.625)); });
+    let L = 0.5, tm = 0;
+    const loop = () => {
+      this.raf3 = requestAnimationFrame(loop);
+      if (G.view !== '3d') return;
+      const w = host.clientWidth; if (w && Math.abs(renderer.domElement.width / renderer.getPixelRatio() - w) > 2) { renderer.setSize(w, Math.round(w * 0.625)); }
+      tm += 0.03;
+      const target = 0.5 + (this.rain() / 31) * 1.25 + (G.extra / 100) * 1.1; L += (target - L) * 0.03; water.position.y = L; water.material.opacity = 0.55 + 0.08 * Math.sin(tm);
+      G.level = L; let n = 0, nh = 0;
+      mk.forEach((sp) => {
+        const a = sp.userData.a, x = wx(a.x), z = wz(a.y), h = hf(x, z), tier = self.tier(a), key = tier + a.state;
+        if (L > h + 0.1) { n++; if (tier === 'High') nh++; }
+        if (sp.userData.key !== key) { sp.userData.key = key; sp.material.map = dropTex(tier, a.state); sp.material.needsUpdate = true; }
+        const base = tier === 'High' ? 4.2 : (tier === 'Medium' ? 3.2 : 2.4), b = tier === 'High' && a.state === 'idle' ? (1 + 0.12 * Math.sin(tm * 3)) : 1;
+        sp.scale.set(base * b, base * b, 1); sp.position.set(x, h + 0.8 + base * 0.5 + 0.15 * Math.sin(tm * 2 + a.id), z);
+      });
+      G.reached = n; G.reachedHigh = nh;
+      cs.forEach((sp) => { const c = G.crews[sp.userData.n], x = wx(c.x), z = wz(c.y); sp.position.set(x, hf(x, z) + 1.9 + (c.work ? 0.15 * Math.sin(tm * 8) : 0), z); });
+      placeCam(); renderer.render(scene, cam);
+    };
+    placeCam(); loop();
+  }
+
+  renderVals() {
+    if (!this.G) this.initGame();
+    const G = this.G, now = Date.now(), role = G.role, self = this;
+    const showMap = !role || role === 'manager' || role === 'split';
+    const showPhone = role === 'crew' || role === 'split';
+    const busyCol = '#FFD27A';
+    const rows = G.assets.map((a) => ({ a, s: this.risk(a).s, tier: this.tier(a) }));
+    const plan = this.planRun(), planIdx = {}; plan.stops.forEach((r, i) => { planIdx[r.a.id] = i + 1; });
+    const assets = rows.slice().sort((p, q) => p.s - q.s).map((r) => {
+      const a = r.a, st = a.state, tier = r.tier, busy = st === 'dispatched' || st === 'going' || st === 'arrived' || st === 'queued', done = st === 'done';
+      const sc = tier === 'High' && !done ? 0.95 : (tier === 'Medium' ? 0.75 : 0.58);
+      return {
+        tf: 'translate(' + a.x + ',' + a.y + ') scale(' + sc + ')', label: a.name + ', ' + a.type + ', ' + tier + ' blockage risk' + (a.cam ? ', has a camera' : ''),
+        pulse: tier === 'High' && st === 'idle', cam: a.cam, gpt: a.gpt,
+        fill: (done || tier === 'Low') ? '#4FC3E8' : (tier === 'High' ? '#FF8A4C' : '#FFD27A'),
+        eye: (tier === 'High' && !done) ? '#2A1208' : '#0B2233',
+        mouth: (done || tier === 'Low') ? 'M-6 12 q6 7 12 0' : (tier === 'High' ? 'M-5 16 q5 -6 10 0' : 'M-4 14 h8'),
+        badge: busy || done || !!planIdx[a.id], badgeFill: done ? '#FFFFFF' : (busy ? busyCol : '#EAF6FB'), bDone: done, bBusy: busy && !done, n1: !done && !busy && planIdx[a.id] === 1, n2: !done && !busy && planIdx[a.id] === 2, n3: !done && !busy && planIdx[a.id] === 3, n4: !done && !busy && planIdx[a.id] === 4, n5: !done && !busy && planIdx[a.id] === 5, n6: !done && !busy && planIdx[a.id] === 6,
+        click: () => self.openAsset(a.id),
+        key: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); self.openAsset(a.id); } }
+      };
+    });
+    const idle = rows.filter((r) => r.a.state === 'idle');
+    const highCount = idle.filter((r) => r.tier === 'High').length;
+    const queue = idle.slice().sort((p, q) => q.s - p.s).slice(0, 5).map((r) => ({
+      name: r.a.name, tier: r.tier, pct: this.pct(r.a), why: this.risk(r.a).why.slice(0, 2).join(' · '),
+      tierStyle: 'font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:4px;' + (r.tier === 'High' ? 'background:#FF8A4C;color:#2A1208' : (r.tier === 'Medium' ? 'background:#FFD27A;color:#0B2233' : 'background:#4FC3E8;color:#0B2233')),
+      send: () => self.dispatch(r.a.id)
+    }));
+    const crews = Object.keys(G.crews).map((n) => { const c = G.crews[n]; return { name: n, tf: 'translate(' + c.x.toFixed(1) + ',' + c.y.toFixed(1) + ')', hat: c.hat, isA: n === 'Crew A', isB: n === 'Crew B', isC: n === 'Crew C', work: c.work }; });
+    const crewRows = Object.keys(G.crews).map((n) => { const c = G.crews[n]; return { name: n, status: c.s, style: 'color:' + (c.s === 'Ready' ? '#8FB8CC' : '#FFD27A') }; });
+    const bars = this.FC.map((v) => ({ v, style: 'flex:1;border-radius:8px 8px 3px 3px;position:relative;background:' + (v >= 20 ? '#FF8A4C' : '#4FC3E8') + ';height:' + Math.round(v / 31 * 100) + '%' }));
+    const cur = G.assets.filter((q) => q.id === G.cur)[0];
+    const task = this.taskOf(G.phoneCrew);
+    const tabs = Object.keys(G.crews).map((n) => { const on = n === G.phoneCrew; return { label: n.replace('Crew ', ''), pick: () => { G.phoneCrew = n; self.forceUpdate(); }, style: 'flex:1;padding:8px;min-height:44px;font-size:15px;background:' + (on ? '#4FC3E8' : '#1E4A63') + ';color:' + (on ? '#0B2233' : '#EAF6FB') }; });
+    const m3 = G.view === '3d';
+    const curRisk = cur ? this.risk(cur) : null;
+    const run = task ? G.runs[task.crew] : null;
+    const planPts = plan.stops.length ? ['70,445'].concat(plan.stops.map((r) => r.a.x + ',' + r.a.y)).concat(['70,445']).join(' ') : '';
+    const planRows = plan.stops.map((r, i) => ({ n: i + 1, name: r.a.name, load: r.l.toFixed(2) + ' m³', note: r.a.cam ? 'camera, no photos' : 'photos needed', tier: this.tier(r.a) }));
+    const capPct = Math.min(100, Math.round(plan.load / plan.cap * 100));
+    return {
+      showRoles: !role, showHeader: role !== 'crew', showMap, showPhone,
+      clock: this.fmt(this.minute()), rainNow: Math.round(this.rain()), done: G.done, highCount, total: G.assets.length,
+      switchRole: () => { G.role = null; G.cur = null; self.forceUpdate(); },
+      pickManager: () => self.setRole('manager'), pickCrew: () => self.setRole('crew'), pickSplit: () => self.setRole('split'),
+      btn2d: 'fr-btn ' + (m3 ? 'fr-sec' : 'fr-pri'), btn3d: 'fr-btn ' + (m3 ? 'fr-pri' : 'fr-sec'),
+      set2d: () => { G.view = '2d'; self.forceUpdate(); }, set3d: () => self.go3d(),
+      show2d: !m3, show3d: m3,
+      host3dStyle: m3 ? 'display:block;position:relative;border-radius:22px 22px 0 0;border:2px solid #1E4A63;overflow:hidden;background:#12384F;line-height:0' : 'display:none',
+      level3: Math.max(0, G.level - 0.35).toFixed(1), reached3: G.reached, reachedHigh3: G.reachedHigh,
+      view3dNote: 'Drag to turn. Scroll to zoom. Terrain and pipes are mock data. Use the sliders to see risk and water change.',
+      leaf: G.leaf, extra: G.extra,
+      leafLabel: G.leaf < 25 ? 'Low (' + G.leaf + '%)' : (G.leaf < 65 ? 'Moderate (' + G.leaf + '%)' : 'Peak (' + G.leaf + '%)'),
+      extraLabel: G.extra === 0 ? 'Forecast as is' : '+' + G.extra + '%',
+      onLeaf: (e) => { G.leaf = +e.target.value; self.forceUpdate(); },
+      onExtra: (e) => { G.extra = +e.target.value; self.forceUpdate(); },
+      assets, crews, crewRows, bars, queue,
+      logRows: G.logs,
+      hasToast: now < G.toastUntil, toast: G.toast,
+      showModal: !!cur && showMap, modKind: cur ? (cur.gpt ? 'GROSS POLLUTANT TRAP' : 'DRAIN INLET') : '',
+      modTitle: cur ? cur.name + ' · ' + this.tier(cur) + ' risk' : '',
+      modBody: cur ? 'Estimated blockage risk about ' + this.pct(cur) + '%. ' + (cur.cam ? 'Camera view: about ' + Math.min(99, Math.round(this.pct(cur) * 0.9)) + '% full (sample).' : 'No camera here, so this is an AI estimate.') : '',
+      modReasons: curRisk ? curRisk.why.slice(0, 3).map((t) => ({ t })) : [],
+      modNote: 'Sample data. The crew confirms the real condition on site.',
+      modGo: () => { if (cur) self.dispatch(cur.id); }, modNo: () => { G.cur = null; self.forceUpdate(); },
+      tabs, phNone: !task, phHas: !!task,
+      phLabel: task ? (task.state === 'dispatched' ? 'NEW TASK' : (task.state === 'going' ? 'ON YOUR WAY' : 'YOU HAVE ARRIVED')) : '',
+      phTitle: task ? task.name + ' · ' + task.type : '',
+      phBody: task ? 'Estimated risk ' + this.pct(task) + '% (' + this.tier(task) + '). ' + this.risk(task).why.slice(0, 2).join('. ') + '.' : '',
+      phNew: !!task && task.state === 'dispatched', phGoing: !!task && task.state === 'going', phArrived: !!task && task.state === 'arrived',
+      phArrivedPhoto: !!task && task.state === 'arrived' && !task.cam, phArrivedCam: !!task && task.state === 'arrived' && !!task.cam,
+      phRun: !!run && run.stops.length > 1, phRunStop: run ? 'RUN · STOP ' + (run.idx + 1) + ' OF ' + run.stops.length : '',
+      phLoadText: run ? 'Planned load ' + run.load.toFixed(1) + ' of ' + run.cap.toFixed(1) + ' m³ · collected so far ' + run.loadDone.toFixed(1) + ' m³' : '',
+      phBarStyle: run ? 'height:100%;border-radius:999px;background:#FFD27A;width:' + Math.min(100, Math.round(run.load / run.cap * 100)) + '%' : '',
+      phNext: run && run.idx + 1 < run.stops.length ? 'Next: ' + run.stops.slice(run.idx + 1).map((id) => G.assets.filter((q) => q.id === id)[0].name).join(', ') : (run ? 'Last stop, then back to the depot' : ''),
+      planHas: plan.stops.length > 0, planNone: plan.stops.length === 0, planPts, planRows,
+      planLoadText: plan.load.toFixed(1) + ' of ' + plan.cap.toFixed(1) + ' m³ · ' + plan.stops.length + ' stops',
+      planBarStyle: 'height:100%;border-radius:999px;background:' + (capPct >= 85 ? '#FF8A4C' : '#4FC3E8') + ';width:' + capPct + '%',
+      planNote: plan.skipped ? plan.skipped + ' more high-risk stop(s) do not fit on this truck and wait for the next run.' : 'Fills the truck with the riskiest nearby stops without going over its capacity.',
+      planSend: () => { if (plan.stops.length) { self.startRun(plan.stops.map((r) => r.a.id)); self.forceUpdate(); } },
+      capVal: G.cap, capLabel: G.cap.toFixed(1) + ' m³', onCap: (e) => { G.cap = +e.target.value; self.forceUpdate(); },
+      camN: G.camN,
+      phNeedBefore: !!task && task.state === 'arrived' && !task.before,
+      phHasBefore: !!task && task.state === 'arrived' && !!task.before,
+      phNeedAfter: !!task && task.state === 'arrived' && !!task.before && !task.after,
+      phHasAfter: !!task && task.state === 'arrived' && !!task.after,
+      phBefore: () => { if (task) { self.photo(task, 'before'); self.forceUpdate(); } },
+      phAfter: () => { if (task) { self.photo(task, 'after'); self.forceUpdate(); } },
+      beforeN: G.beforeN, afterN: G.afterN, noEv: G.evidence.length === 0, hasEv: G.evidence.length > 0,
+      evRows: G.evidence.slice(0, 3).map((e) => ({ name: e.name, photos: !e.cam, cam: !!e.cam, how: e.cam ? 'checked by camera' : 'verified by photos', meta: e.crew + ' · ' + e.t + ' · risk was ' + e.pct + '%' })),
+      phAccept: () => { if (task) { self.accept(task); self.forceUpdate(); } }, phDone: () => { if (task) { self.finish(task); self.forceUpdate(); } }
+    };
+  }
+}
+</script>
+</body>
+</html>

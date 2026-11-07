@@ -1,0 +1,134 @@
+# DrainWise — project brief for Claude Code
+
+Working name: **DrainWise** (the demo page still says "FloodReady"; rename is pending the owner's confirmation).
+Tagline: **Clean the right drains before they block.**
+Owner: Lingyun (Sydney, solo, front-end developer moving into AI engineering). Reply in Chinese when she writes Chinese; code, UI copy and docs in English.
+
+## 1. What this is
+
+Entry for the City of Parramatta hackathon (WSTI Festi). Final submission around 18–20 Nov 2026. Council experts are online Mon 9 Nov and Fri 13 Nov.
+
+Problem (from council experts): hundreds of stormwater drain inlets and gross pollutant traps (GPTs) fill with leaves and block. Inspection is manual. Only some sites have cameras.
+
+Idea: predict which drain inlets / GPTs will block next, rank them, and plan a truck run that cleans the riskiest nearby ones without exceeding the truck's capacity. Crews close each job with proof. Photos taken before cleaning become training data for the model; photos after cleaning are evidence of work. Sites with a camera need no photos.
+
+Chosen hackathon challenge: **5. AI for Smarter Asset and Environmental Management** (primary), with 1 (Climate Resilience) as secondary. Select "City challenges", not "Open Innovation".
+
+Scope decision (final): **drains and GPTs only.** No roads, sandbags, resident notices or SES. Real-time flood warning already exists (FloodSmart/FLASH, BoM forecast + 3Di); we do not compete with it. Our value is operational action on blockage.
+
+"GPT" is interpreted as Gross Pollutant Trap. The owner has not confirmed this.
+
+## 2. What the demo already does (reference implementation)
+
+`reference/demo-Main.dc.html` is the published demo (a Claude Design artifact, native DC format: React-based runtime, not plain HTML). It is a **UI and behaviour reference, not code to extend.** Reimplement in the real stack.
+
+Behaviour to preserve:
+- Role entry screen: Manager, Crew (phone), side-by-side demo. Demo only; no real auth needed for the hackathon.
+- Manager view: 2D map with 36 mock assets (drop-shaped mascots: frowning orange = High, neutral yellow = Medium, smiling blue = Low; "G" badge = GPT; dashed ring = has a camera), creek, depot, 3 crew characters. 2D/3D toggle (3D water/terrain with Three.js).
+- "Check next" queue ranked by risk, with reasons ("Heavy tree cover nearby", "Last cleaned N days ago").
+- Truck run planner: capacity slider (1–4 m³), greedy plan (risk first, nearby first, never over capacity), numbered stops and dashed route on the map, per-stop load and "camera, no photos" / "photos needed".
+- Crew phone app: accept run, "Stop n of m", load bar, next stops. At each stop: camera site = just "Mark as cleaned"; otherwise BEFORE photo, clear, AFTER photo, then "Submit and mark cleaned". Cannot submit without both photos.
+- Compliance records panel: before photos (AI training), after photos (evidence), camera checks, per-job rows with thumbnails.
+- What-if sliders: leaf fall, extra rain. Activity log. Rain forecast bars.
+
+Design principles: original characters only (never reuse Disney/Pixar/Inside Out characters), severity must not rely on colour alone (faces + labels), support `prefers-reduced-motion`, mobile-first crew view.
+
+Demo scoring formula (placeholder, **not a trained model**):
+`s = (0.45*canopy/70 + 0.35*leaf/100 + 0.2*rain) * (0.2 + 0.8*min(1, days/150))`; High >= 0.46, Medium >= 0.28.
+Load estimate (m³ of debris, made-up): inlet `0.06 + 0.22*f`, GPT `0.35 + 1.0*f`, `f = min(1, s*1.3)`. Truck default 2.0 m³ is an assumption.
+
+## 3. Data reality (be honest in the product and in the pitch)
+
+NOT publicly available, must come from council or be mocked: drain/pit/GPT locations, which sites have cameras, historical blockage and cleaning records, truck and bin sizes, cost per clean.
+
+Publicly available and useful:
+- NSW tree canopy 2024–25 (public; the finest 0.48 m layer is restricted).
+- ELVIS LiDAR (free) for terrain.
+- Parramatta River Flood Study 2024 (planning-level, XP-RAFTS + 1D/2D TUFLOW, CC BY 3.0 AU, 43 PDFs).
+- BoM rainfall; Data.NSW datasets (licences vary, check each).
+
+Rules: label everything simulated as "sample data" in the UI. Never present the demo formula as an AI model. Until real history exists, the model is trained on **simulated** data and must say so.
+
+## 4. Recommended real implementation (hackathon MVP, ~10 days)
+
+Keep it small and demonstrable. Suggested stack (owner is a front-end dev; adjust if she prefers otherwise):
+- Web app: Next.js + TypeScript + Tailwind. Crew view as a mobile-first PWA (camera via `<input type="file" accept="image/*" capture="environment">`).
+- Map: MapLibre GL JS (2D) with 3D terrain/extrusion for the 3D view, or keep Three.js as in the demo.
+- Backend/DB: Supabase (Postgres + PostGIS + Storage for photos). Tables: `assets` (id, type inlet|gpt, geom, has_camera), `observations` (asset_id, ts, source photo|camera|inspection, label blocked_level, photo_url), `jobs`/`runs`/`run_stops`, `weather`, `canopy_by_asset`.
+- Risk service: Python (FastAPI) with scikit-learn first (gradient boosting on simulated history: canopy, season/leaf fall, rainfall, days since clean, catchment). TensorFlow only if there is a reason; `tensorflow-cpu` installs fine. Output: probability of blockage in next N days plus top reasons (feature contributions).
+- Planner: start with the greedy heuristic from the demo; then a small knapsack + nearest-neighbour or OR-Tools routing if time allows. Keep it explainable.
+- Photo pipeline: store before/after with timestamp, GPS, crew id, run id. Before photos feed a labelling queue (blocked level 0–3) to retrain. Check for faces/number plates before any training use.
+- Auth: Supabase Auth with 2 roles (manager, crew) if time permits; otherwise keep the role picker.
+
+Suggested build order: (1) seed data + map + ranked queue, (2) risk service on simulated data with explanations, (3) truck planner, (4) crew PWA with photo capture and compliance, (5) 3D view, (6) polish, README and pitch.
+
+## 5. Open questions for council experts (9 and 13 Nov)
+
+1. Can we get asset locations (drain pits, GPTs), even a sample or anonymised?
+2. How many GPTs and cameras are there, and how are cameras monitored today?
+3. Is there any cleaning/blockage history, and in what format?
+4. Truck and bin volumes, typical load per inlet and per GPT, cost per clean, crews per day?
+5. Existing work-order or inspection system we should integrate with, and rules for photo evidence?
+6. Do judges prefer depth (one well-grounded model) or breadth?
+7. Confirm "GPT" means Gross Pollutant Trap.
+
+## 6. Open decisions for the owner
+
+- Final name: DrainWise vs FloodReady.
+- Train a small model on simulated data now (recommended) vs. keep the transparent formula.
+- Whether to extract tables from the flood-study PDFs for context.
+
+## 7. Working agreements
+
+- Prefer simple, explainable approaches over impressive-sounding ones.
+- Do not fabricate data sources, statistics or council facts. Flag assumptions in the UI and README.
+- Verify in a browser before claiming a UI works; test the crew flow end to end (accept, photos/camera, submit, next stop, return to depot).
+- If the project is public, do not commit secrets or the owner's personal details.
+
+## 8. AI / ML component
+
+### Layout
+- `ml/`        training code: simulated data generator, training script, evaluation, saved model (`model.joblib`)
+- `risk-api/`  FastAPI service that loads the model and serves predictions
+- `web/`       Next.js app; calls risk-api (or reads precomputed scores from Supabase `risk_scores`)
+
+### What the model does
+- Predicts probability that a drain inlet / GPT blocks within the next N days, plus top reasons (feature contributions).
+- Features: tree canopy near asset, season / leaf-fall index, recent and forecast rainfall, days since last clean, catchment/terrain, asset type (inlet|gpt), has_camera.
+- Start with scikit-learn gradient boosting. Do not add TensorFlow unless there is a clear reason.
+
+### Data rules (important)
+- There is NO real blockage/cleaning history yet. Train on SIMULATED data from `ml/simulate.py`.
+- Everything simulated must be labelled "sample data" in the UI, README and pitch. Never present the demo formula or simulated results as observed council data.
+- When real records arrive (council experts, 9 and 13 Nov), only swap the training data and retrain; keep the API contract unchanged.
+- Never commit raw photos, large datasets or secrets. Model file is small and may be committed.
+
+### API contract
+POST /predict
+  in:  [{asset_id, type, canopy_pct, leaf_index, rain_mm_7d, rain_forecast_mm, days_since_clean, has_camera}]
+  out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
+
+### Photo classification (separate from the risk model)
+- Uses a hosted vision model called from the SERVER only (API key in env vars, never in client code).
+- Returns blockage level 0-3 + confidence + short rationale; a human confirms before it becomes a training label.
+- Only 7 unlabelled sample images exist: do not claim accuracy; report as a prototype with human review.
+- Check for faces / number plates before any image is used for training.
+
+### Commands
+- `python -m ml.simulate` then `python -m ml.train` -> writes `ml/model.joblib`
+- `uvicorn risk_api.main:app --reload` -> serves /predict
+- Keep results reproducible: fixed random seed, log the data source and version in each run.
+
+### Working agreements
+- Prefer simple, explainable models. Every score must show reasons.
+- Test the full flow (train -> API -> web ranked queue) before claiming it works.
+
+### Web and planner (added 2026-11-08)
+- `planner/`  TypeScript planner (vitest): `planRun` (knapsack + nearest-neighbour, min-risk cutoff) and `canComplete` (crew submit rule). Tests: `cd planner && npm test`.
+- `web/`      Next.js 16 app: manager page `/` (map, queue, truck run, sliders), crew phone page `/crew`. Imports the planner by relative path.
+- Run: `uvicorn risk_api.main:app` from the project root, then `cd web && npm run dev`. `RISK_API_URL` env var overrides the default `http://127.0.0.1:8000`.
+- Manager-to-crew handoff is localStorage only (demo). Photos are kept in memory, never persisted.
+
+### UI (updated 2026-11-08)
+- UI matches `reference/demo-Main.dc.html`: role screen on `/` (Manager, Crew -> `/crew`, Side-by-side), map in 800x500 units, shared `web/app/CrewApp.tsx`. Run state and records in `web/lib/runStore.ts` (localStorage, events for same-tab sync). "Reset sample session" clears it.
+- 3D water view not built yet (button disabled).

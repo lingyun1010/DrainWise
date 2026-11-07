@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env*
+.claude/handoff.md
+node_modules/
+.next/
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.claude/settings.local.json
