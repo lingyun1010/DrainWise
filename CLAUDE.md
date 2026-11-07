@@ -23,6 +23,7 @@ Scope decision (final): **drains and GPTs only.** No roads, sandbags, resident n
 `reference/demo-Main.dc.html` is the published demo (a Claude Design artifact, native DC format: React-based runtime, not plain HTML). It is a **UI and behaviour reference, not code to extend.** Reimplement in the real stack.
 
 Behaviour to preserve:
+
 - Role entry screen: Manager, Crew (phone), side-by-side demo. Demo only; no real auth needed for the hackathon.
 - Manager view: 2D map with 36 mock assets (drop-shaped mascots: frowning orange = High, neutral yellow = Medium, smiling blue = Low; "G" badge = GPT; dashed ring = has a camera), creek, depot, 3 crew characters. 2D/3D toggle (3D water/terrain with Three.js).
 - "Check next" queue ranked by risk, with reasons ("Heavy tree cover nearby", "Last cleaned N days ago").
@@ -42,6 +43,7 @@ Load estimate (m³ of debris, made-up): inlet `0.06 + 0.22*f`, GPT `0.35 + 1.0*f
 NOT publicly available, must come from council or be mocked: drain/pit/GPT locations, which sites have cameras, historical blockage and cleaning records, truck and bin sizes, cost per clean.
 
 Publicly available and useful:
+
 - NSW tree canopy 2024–25 (public; the finest 0.48 m layer is restricted).
 - ELVIS LiDAR (free) for terrain.
 - Parramatta River Flood Study 2024 (planning-level, XP-RAFTS + 1D/2D TUFLOW, CC BY 3.0 AU, 43 PDFs).
@@ -52,6 +54,7 @@ Rules: label everything simulated as "sample data" in the UI. Never present the 
 ## 4. Recommended real implementation (hackathon MVP, ~10 days)
 
 Keep it small and demonstrable. Suggested stack (owner is a front-end dev; adjust if she prefers otherwise):
+
 - Web app: Next.js + TypeScript + Tailwind. Crew view as a mobile-first PWA (camera via `<input type="file" accept="image/*" capture="environment">`).
 - Map: MapLibre GL JS (2D) with 3D terrain/extrusion for the 3D view, or keep Three.js as in the demo.
 - Backend/DB: Supabase (Postgres + PostGIS + Storage for photos). Tables: `assets` (id, type inlet|gpt, geom, has_camera), `observations` (asset_id, ts, source photo|camera|inspection, label blocked_level, photo_url), `jobs`/`runs`/`run_stops`, `weather`, `canopy_by_asset`.
@@ -88,47 +91,70 @@ Suggested build order: (1) seed data + map + ranked queue, (2) risk service on s
 ## 8. AI / ML component
 
 ### Layout
-- `ml/`        training code: simulated data generator, training script, evaluation, saved model (`model.joblib`)
-- `risk-api/`  FastAPI service that loads the model and serves predictions
-- `web/`       Next.js app; calls risk-api (or reads precomputed scores from Supabase `risk_scores`)
+
+- `ml/` training code: simulated data generator, training script, evaluation, saved model (`model.joblib`)
+- `risk-api/` FastAPI service that loads the model and serves predictions
+- `web/` Next.js app; calls risk-api (or reads precomputed scores from Supabase `risk_scores`)
 
 ### What the model does
+
 - Predicts probability that a drain inlet / GPT blocks within the next N days, plus top reasons (feature contributions).
 - Features: tree canopy near asset, season / leaf-fall index, recent and forecast rainfall, days since last clean, catchment/terrain, asset type (inlet|gpt), has_camera.
 - Start with scikit-learn gradient boosting. Do not add TensorFlow unless there is a clear reason.
 
 ### Data rules (important)
+
 - There is NO real blockage/cleaning history yet. Train on SIMULATED data from `ml/simulate.py`.
 - Everything simulated must be labelled "sample data" in the UI, README and pitch. Never present the demo formula or simulated results as observed council data.
 - When real records arrive (council experts, 9 and 13 Nov), only swap the training data and retrain; keep the API contract unchanged.
 - Never commit raw photos, large datasets or secrets. Model file is small and may be committed.
 
 ### API contract
+
 POST /predict
-  in:  [{asset_id, type, canopy_pct, leaf_index, rain_mm_7d, rain_forecast_mm, days_since_clean, has_camera}]
-  out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
+in: [{asset_id, type, canopy_pct, leaf_index, rain_mm_7d, rain_forecast_mm, days_since_clean, has_camera}]
+out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 
 ### Photo classification (separate from the risk model)
+
 - Uses a hosted vision model called from the SERVER only (API key in env vars, never in client code).
 - Returns blockage level 0-3 + confidence + short rationale; a human confirms before it becomes a training label.
 - Only 7 unlabelled sample images exist: do not claim accuracy; report as a prototype with human review.
 - Check for faces / number plates before any image is used for training.
 
 ### Commands
+
 - `python -m ml.simulate` then `python -m ml.train` -> writes `ml/model.joblib`
 - `uvicorn risk_api.main:app --reload` -> serves /predict
 - Keep results reproducible: fixed random seed, log the data source and version in each run.
 
 ### Working agreements
+
 - Prefer simple, explainable models. Every score must show reasons.
 - Test the full flow (train -> API -> web ranked queue) before claiming it works.
 
 ### Web and planner (added 2026-11-08)
-- `planner/`  TypeScript planner (vitest): `planRun` (knapsack + nearest-neighbour, min-risk cutoff) and `canComplete` (crew submit rule). Tests: `cd planner && npm test`.
-- `web/`      Next.js 16 app: manager page `/` (map, queue, truck run, sliders), crew phone page `/crew`. Imports the planner by relative path.
+
+- `planner/` TypeScript planner (vitest): `planRun` (knapsack + nearest-neighbour, min-risk cutoff) and `canComplete` (crew submit rule). Tests: `cd planner && npm test`.
+- `web/` Next.js 16 app: manager page `/` (map, queue, truck run, sliders), crew phone page `/crew`. Imports the planner by relative path.
 - Run: `uvicorn risk_api.main:app` from the project root, then `cd web && npm run dev`. `RISK_API_URL` env var overrides the default `http://127.0.0.1:8000`.
 - Manager-to-crew handoff is localStorage only (demo). Photos are kept in memory, never persisted.
 
 ### UI (updated 2026-11-08)
+
 - UI matches `reference/demo-Main.dc.html`: role screen on `/` (Manager, Crew -> `/crew`, Side-by-side), map in 800x500 units, shared `web/app/CrewApp.tsx`. Run state and records in `web/lib/runStore.ts` (localStorage, events for same-tab sync). "Reset sample session" clears it.
 - 3D water view: `web/app/Map3D.tsx` (three.js, lazy-loaded) on procedural SAMPLE terrain from `web/lib/terrain.ts`. Water level is an illustration driven by rain and the extra-rain slider, not a flood forecast. Planned: swap `heightAt` for a LiDAR heightmap (ELVIS DEM, Parramatta) downsampled to a small file; never commit raw LiDAR.
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/<feature>/` (map, spec, one file per ticket). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), recorded as a `Status:` line in each ticket. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
