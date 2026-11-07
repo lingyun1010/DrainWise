@@ -1,0 +1,17 @@
+{
+  "name": "drainwise",
+  "private": true,
+  "description": "Repo-level tooling only (git hooks, formatting, one-command checks). Apps live in web/, planner/, risk_api/, ml/.",
+  "scripts": {
+    "lint": "npm --prefix web run lint",
+    "typecheck": "npm --prefix web run typecheck",
+    "test": "npm --prefix planner test && npm run test:py",
+    "test:py": "sh -c 'if [ -x .venv/bin/python ]; then .venv/bin/python -m pytest -q; else python -m pytest -q; fi'",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10"
+  }
+}
