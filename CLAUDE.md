@@ -131,4 +131,4 @@ POST /predict
 
 ### UI (updated 2026-11-08)
 - UI matches `reference/demo-Main.dc.html`: role screen on `/` (Manager, Crew -> `/crew`, Side-by-side), map in 800x500 units, shared `web/app/CrewApp.tsx`. Run state and records in `web/lib/runStore.ts` (localStorage, events for same-tab sync). "Reset sample session" clears it.
-- 3D water view not built yet (button disabled).
+- 3D water view: `web/app/Map3D.tsx` (three.js, lazy-loaded) on procedural SAMPLE terrain from `web/lib/terrain.ts`. Water level is an illustration driven by rain and the extra-rain slider, not a flood forecast. Planned: swap `heightAt` for a LiDAR heightmap (ELVIS DEM, Parramatta) downsampled to a small file; never commit raw LiDAR.

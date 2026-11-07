@@ -20,6 +20,10 @@ import {
 } from "@/lib/runStore";
 import MapView, { type Level, type MapAsset, type MapCrew } from "./MapView";
 import RoleScreen from "./RoleScreen";
+import dynamic from "next/dynamic";
+
+// three.js is only loaded when the 3D view is opened.
+const Map3D = dynamic(() => import("./Map3D"), { ssr: false, loading: () => <p style={{ padding: 16 }}>Loading 3D view…</p> });
 import CrewApp, { CameraIcon } from "./CrewApp";
 
 type Prediction = { asset_id: string; p_block: number; level: Level; reasons: string[] };
@@ -52,6 +56,7 @@ export default function Home() {
   const [cur, setCur] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [minute, setMinute] = useState(0);
+  const [view, setView] = useState<"2d" | "3d">("2d");
 
   useEffect(() => {
     const read = () => setRun(loadRun());
@@ -180,6 +185,10 @@ export default function Home() {
     startRun([stopFor(id, one.load, one.photosNeeded)]);
   }
 
+  const openAsset = (id: string) => {
+    if (rows.find((r) => r.a.id === id)?.state === "idle") setCur(id);
+  };
+
   const showMap = role === "manager" || role === "split";
   const showPhone = role === "split";
   const high = idle.filter((r) => r.p.level === "high").length;
@@ -214,15 +223,19 @@ export default function Home() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 20, padding: "20px 28px 32px", justifyContent: "center" }}>
           <section style={{ flex: "3 1 640px", minWidth: 0, position: "relative", alignSelf: "flex-start" }}>
             <div style={{ position: "absolute", top: 14, right: 14, zIndex: 5, display: "flex", gap: 6, background: "#102F45", border: "2px solid #2D6182", borderRadius: 999, padding: 4 }}>
-              <button type="button" className="fr-btn fr-pri" style={{ padding: "6px 16px", minHeight: 40 }}>2D map</button>
-              <button type="button" className="fr-btn fr-sec" disabled title="3D water view is not built yet" style={{ padding: "6px 16px", minHeight: 40 }}>3D water</button>
+              <button type="button" className={`fr-btn ${view === "2d" ? "fr-pri" : "fr-sec"}`} aria-pressed={view === "2d"} onClick={() => setView("2d")} style={{ padding: "6px 16px", minHeight: 40 }}>2D map</button>
+              <button type="button" className={`fr-btn ${view === "3d" ? "fr-pri" : "fr-sec"}`} aria-pressed={view === "3d"} onClick={() => setView("3d")} style={{ padding: "6px 16px", minHeight: 40 }}>3D water</button>
             </div>
             {error && (
               <p role="alert" style={{ margin: "0 0 12px", background: "#3A1A12", border: "2px solid #FF8A4C", borderRadius: 14, padding: "10px 14px", fontSize: 14 }}>
                 Could not get risk scores: {error}. Start the risk API with <code>uvicorn risk_api.main:app</code> from the project root.
               </p>
             )}
-            <MapView assets={mapAssets} route={plan.stops.map((s) => s.id)} crews={mapCrews} onOpen={(id) => { if (rows.find((r) => r.a.id === id)?.state === "idle") setCur(id); }} />
+            {view === "3d" ? (
+              <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainNow(minute)} extra={extra} onOpen={openAsset} />
+            ) : (
+              <MapView assets={mapAssets} route={plan.stops.map((s) => s.id)} crews={mapCrews} onOpen={openAsset} />
+            )}
             {toast && (
               <div role="status" style={{ position: "absolute", left: 20, bottom: 70, maxWidth: "70%", background: "#102F45", border: "2px solid #4FC3E8", borderRadius: 14, padding: "10px 16px", fontWeight: 600, fontSize: 15, zIndex: 6 }}>{toast}</div>
             )}
