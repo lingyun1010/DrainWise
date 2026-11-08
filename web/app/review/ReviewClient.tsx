@@ -48,7 +48,7 @@ function saveLabels(v: Record<string, Label>) {
   }
 }
 
-export default function ReviewClient({ count }: { count: number }) {
+export default function ReviewClient({ count, mock }: { count: number; mock: boolean }) {
   const [labels, setLabels] = useState<Record<string, Label>>({});
   const [asks, setAsks] = useState<Record<string, Ask>>({});
   const [picked, setPicked] = useState<Record<string, Level>>({});
@@ -287,6 +287,12 @@ export default function ReviewClient({ count }: { count: number }) {
           className="fr-section"
           style={{ border: "2px dashed var(--fr-yellow)", marginBottom: 20, fontSize: 15, lineHeight: 1.5 }}
         >
+          {mock && (
+            <p style={{ margin: "0 0 8px", fontWeight: 700 }}>
+              Mock AI: no vision key is set, so suggestions are fake (picked from the file bytes). Add OPENAI_API_KEY to
+              web/.env.local for real ones.
+            </p>
+          )}
           <strong>Prototype. Human review required. No accuracy claim.</strong>
           <ul style={{ margin: "8px 0 0", paddingLeft: 20, listStyle: "disc", color: "var(--fr-soft)" }}>
             <li>
