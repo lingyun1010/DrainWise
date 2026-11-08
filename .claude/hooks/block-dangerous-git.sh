@@ -16,6 +16,7 @@ DANGEROUS_PATTERNS=(
   "git checkout \."
   "git restore \."
   "push --force"
+  "push( .*)? -f( |$)"
   "reset --hard"
 )
 
