@@ -1,7 +1,11 @@
 // Proxies to the Python risk-api so the browser never needs its address.
+// Not available on the public build: it has no risk-api and reads the baked scores file instead.
 const RISK_API_URL = process.env.RISK_API_URL ?? "http://127.0.0.1:8000";
 
 export async function POST(request: Request) {
+  if (process.env.NEXT_PUBLIC_PUBLIC_BUILD === "1") {
+    return Response.json({ error: "risk-api is off on the public build" }, { status: 404 });
+  }
   const body = await request.json();
   try {
     const res = await fetch(`${RISK_API_URL}/predict`, {

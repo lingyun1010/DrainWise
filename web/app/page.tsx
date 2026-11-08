@@ -47,6 +47,9 @@ const TABS: { id: PanelTab; label: string }[] = [
   { id: "crews", label: "Crews" },
 ];
 
+// Public build (Vercel): no risk-api, so the page only reads the baked scores file. Set at build time.
+const PUBLIC_BUILD = process.env.NEXT_PUBLIC_PUBLIC_BUILD === "1";
+
 // Only assets at Medium risk or above are worth a truck stop (matches risk-api MEDIUM_AT, a placeholder).
 const MIN_RUN_RISK = 0.3;
 const TIER = { high: "High", medium: "Medium", low: "Low" } as const;
@@ -107,6 +110,7 @@ export default function Home() {
     const t = setTimeout(async () => {
       let live: LiveResult<Prediction>;
       try {
+        if (PUBLIC_BUILD) throw new Error("public build: no live risk-api");
         const res = await fetch("/api/risk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -757,11 +761,22 @@ export default function Home() {
                   lineHeight: 1.4,
                 }}
               >
-                <strong>Offline: showing precomputed sample scores (risk-api offline)</strong>
+                <strong>
+                  {PUBLIC_BUILD
+                    ? "Public demo: showing precomputed sample scores"
+                    : "Offline: showing precomputed sample scores (risk-api offline)"}
+                </strong>
                 <div style={{ color: "#CFE6F0", fontSize: 13, marginTop: 2 }}>
                   SAMPLE DATA · generated {precomputed.generated_at.slice(0, 16).replace("T", " ")} UTC · model{" "}
                   {precomputed.model_version}. The what-if sliders are off, and cleaned assets keep their precomputed
-                  score. Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
+                  score.{" "}
+                  {PUBLIC_BUILD ? (
+                    "Run the project locally to try what-if."
+                  ) : (
+                    <>
+                      Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -1085,7 +1100,8 @@ export default function Home() {
               <summary>Simulation controls · What if and rain forecast (sample data)</summary>
               <section className="fr-group">
                 <div className="fr-label">
-                  What if · demo controls{offline ? " · off while risk-api is offline" : ""}
+                  What if · demo controls
+                  {PUBLIC_BUILD ? " · run locally to try what-if" : offline ? " · off while risk-api is offline" : ""}
                 </div>
                 <label
                   htmlFor="fr-leaf"

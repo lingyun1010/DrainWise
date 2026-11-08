@@ -1,7 +1,7 @@
 # 11: Model evaluation script
 
 Type: task
-Status: ready-for-agent
+Status: done (PR 17)
 Blocked by: None (can start immediately)
 Spec: `.scratch/drainwise/spec.md` (ticket 08)
 
