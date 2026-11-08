@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 // The ONE modal for the whole app. Every popup (details, choose a crew, confirm) must use Dialog or ConfirmDialog
 // so size, colours, spacing, buttons and keyboard behaviour stay the same. See "UI consistency" in CLAUDE.md.
 //
 // Layout: small caps eyebrow, h2 title, body, then an actions row (primary button first, quiet Cancel last).
 // Fixed to the viewport and centred; the card uses margin:auto so a tall card scrolls instead of being clipped.
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 const TONE = { info: { border: "#4FC3E8", eyebrow: "#8FD8F0" }, danger: { border: "#FF8A4C", eyebrow: "#FFB38A" } };
 
 export default function Dialog({
@@ -28,11 +30,45 @@ export default function Dialog({
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
+  const box = useRef<HTMLDivElement>(null);
+  const closeRef = useRef(onClose); // the listener below is added once, not on every parent render
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    closeRef.current = onClose;
+  });
+
+  // Keyboard: Esc closes, Tab stays inside the dialog.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return closeRef.current();
+      if (e.key !== "Tab" || !box.current) return;
+      const items = [...box.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !box.current.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !box.current.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
+
+  // Focus moves in when the dialog opens (unless a control inside already asked for it with autoFocus) and goes
+  // back to the button that opened it when it closes.
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    if (box.current && !box.current.contains(document.activeElement)) {
+      (box.current.querySelector<HTMLElement>(FOCUSABLE) ?? box.current).focus();
+    }
+    return () => {
+      if (opener && opener.isConnected) opener.focus();
+    };
+  }, []);
 
   const c = TONE[tone];
   return (
@@ -51,6 +87,8 @@ export default function Dialog({
       }}
     >
       <div
+        ref={box}
+        tabIndex={-1}
         className="fr-pop"
         style={{
           background: "#102F45",

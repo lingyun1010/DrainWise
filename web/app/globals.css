@@ -406,6 +406,9 @@ body {
   display: none;
 }
 @media (max-width: 899px) {
+  .fr-dash {
+    grid-template-columns: minmax(0, 1fr); /* the base .fr-dash rule above would otherwise keep two columns */
+  }
   .fr-dash .fr-side {
     display: flex;
     position: static;
@@ -584,4 +587,115 @@ body {
 }
 .fr-noscrollbar::-webkit-scrollbar {
   display: none;
+}
+
+.fr-qtext {
+  flex: 1;
+  min-width: 0;
+}
+.fr-tabtoast {
+  position: sticky;
+  top: 64px; /* just below the sticky tab bar, so it never covers it */
+  z-index: 19;
+  background: #102f45;
+  border: 2px solid #4fc3e8;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.fr-role {
+  overflow-y: auto;
+}
+
+/* Phone width (keep in step with NARROW_QUERY in page.tsx): tab bar stays in view, Check next rows stack,
+   header and legend are compact, touch targets are 40px, role screen cards are full-width rows. */
+@media (max-width: 899px) {
+  .fr-side .fr-tabs {
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  }
+  .fr-tab {
+    white-space: nowrap;
+    font-size: 13px;
+    padding: 6px 2px;
+  }
+  /* Check next rows: name and reason on full width, the two buttons on their own line. */
+  .fr-qrow {
+    flex-wrap: wrap;
+  }
+  .fr-qtext {
+    flex: 1 1 100%;
+  }
+  .fr-qrow .fr-btn {
+    flex: 1 1 0;
+  }
+  /* Compact header tiles so the tab bar is near the first screen. */
+  .fr-tile {
+    padding: 4px 12px;
+  }
+  .fr-tile > :last-child {
+    font-size: 18px;
+  }
+  .fr-legend {
+    gap: 2px 14px !important;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+  }
+  .fr-legend > :last-child {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  /* Touch targets of at least 40px: map zoom buttons and range sliders. */
+  .maplibregl-ctrl-group button {
+    width: 40px;
+    height: 40px;
+  }
+  .fr-side input[type="range"] {
+    height: 40px;
+  }
+  .fr-role {
+    justify-content: flex-start !important;
+    gap: 16px !important;
+    padding: 20px 16px 28px !important;
+  }
+  .fr-rolemascot {
+    width: 72px;
+    height: auto;
+  }
+  .fr-intro {
+    font-size: 14px !important;
+  }
+  .fr-cards {
+    flex-direction: column;
+    flex-wrap: nowrap !important;
+    width: 100%;
+    gap: 12px !important;
+  }
+  .fr-card {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    column-gap: 14px;
+    row-gap: 2px;
+    align-items: center;
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 22px;
+    min-height: 88px;
+  }
+  .fr-card svg {
+    grid-row: 1 / span 2;
+    width: 64px;
+    height: auto;
+  }
+  .fr-ct {
+    font-size: 18px;
+    align-self: end;
+  }
+  .fr-cd {
+    font-size: 14px;
+    align-self: start;
+  }
 }

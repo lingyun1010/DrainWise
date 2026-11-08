@@ -441,6 +441,7 @@ export default function MapView({
       </div>
 
       <div
+        className="fr-legend"
         style={{
           display: "flex",
           flexWrap: "wrap",
@@ -485,7 +486,7 @@ export default function MapView({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 6,
-                  minHeight: 36,
+                  minHeight: 40,
                   padding: "2px 8px",
                   background: "transparent",
                   border: 0,

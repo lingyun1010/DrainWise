@@ -48,12 +48,14 @@ import { PHOTO_UPLOAD_ON } from "@/lib/uploadPhoto";
 type Prediction = { asset_id: string; p_block: number; level: Level; reasons: string[] };
 type Role = null | "manager" | "split";
 const LOG_PREVIEW = 5; // rows shown before "Show today's full log"
+// Phone breakpoint: keep in step with the max-width: 899px rules in globals.css.
+const NARROW_QUERY = "(max-width: 899px)";
 type PanelTab = "queue" | "plan" | "records" | "crews";
-const TABS: { id: PanelTab; label: string }[] = [
-  { id: "queue", label: "Check next" },
-  { id: "plan", label: "Run plan" },
-  { id: "records", label: "Records" },
-  { id: "crews", label: "Crews" },
+const TABS: { id: PanelTab; label: string; short: string }[] = [
+  { id: "queue", label: "Check next", short: "Queue" },
+  { id: "plan", label: "Run plan", short: "Plan" },
+  { id: "records", label: "Records", short: "Records" },
+  { id: "crews", label: "Crews", short: "Crews" },
 ];
 
 // Public build (Vercel): no risk-api, so the page only reads the baked scores file. Set at build time.
@@ -75,6 +77,14 @@ export default function Home() {
   const seed = useMemo(() => makeSeedAssets(), []);
   const [role, setRole] = useState<Role>(null);
   const [tab, setTab] = useState<PanelTab>("queue");
+  const [narrow, setNarrow] = useState(false); // phone width: same breakpoint as the one-column layout in globals.css
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const [leaf, setLeaf] = useState(DEFAULT_LEAF);
   const [day, setDay] = useState(0); // 0 = Today; later days score tomorrow's conditions so crews can be planned ahead
   const [extra, setExtra] = useState(0);
@@ -85,6 +95,7 @@ export default function Home() {
   const [st, setSt] = useState<SavedState>({ crews: DEFAULT_CREWS, runs: {}, records: [], log: [] });
   const [logOpen, setLogOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
+  const [resetAsk, setResetAsk] = useState(false); // confirm before clearing the sample session
   const [choose, setChoose] = useState<RunStop[] | null>(null); // stops waiting for the manager to pick a crew
   const [whatIfBlock, setWhatIfBlock] = useState(false); // a send was stopped because the what-if sliders are moved
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
@@ -482,7 +493,8 @@ export default function Home() {
 
   const showMap = role === "manager" || role === "split";
   const showPhone = role === "split";
-  const tabbed = showPhone; // Manager shows every panel at once; side-by-side keeps tabs to save room
+  // Wide Manager shows every panel at once; side-by-side and phone-width Manager use tabs to save room.
+  const tabbed = showPhone || narrow;
   const high = idle.filter((r) => r.p.level === "high").length;
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
   const planPct = Math.min(100, Math.round((plan.totalLoad / capacity) * 100));
@@ -805,10 +817,7 @@ export default function Home() {
         type="button"
         className="fr-btn fr-ghost"
         style={{ marginTop: 8, padding: "6px 0", minHeight: 40, fontSize: 14 }}
-        onClick={() => {
-          resetAll();
-          setCur(null);
-        }}
+        onClick={() => setResetAsk(true)}
       >
         Reset sample session
       </button>
@@ -816,7 +825,7 @@ export default function Home() {
   );
 
   return (
-    <div style={{ minHeight: 900, position: "relative", background: "#0B2233", color: "#EAF6FB" }}>
+    <div style={{ minHeight: "100dvh", position: "relative", background: "#0B2233", color: "#EAF6FB" }}>
       {role === "manager" || role === "split" ? (
         <div
           style={{
@@ -1059,6 +1068,11 @@ export default function Home() {
           </section>
 
           <aside className="fr-side" aria-label="Manager panels">
+            {narrow && toast && (
+              <div aria-hidden="true" className="fr-tabtoast">
+                {toast}
+              </div>
+            )}
             {tabbed && (
               <div
                 role="tablist"
@@ -1090,7 +1104,7 @@ export default function Home() {
                     className={`fr-tab${tab === t.id ? " fr-tab-on" : ""}`}
                     onClick={() => setTab(t.id)}
                   >
-                    {t.label}
+                    {narrow ? t.short : t.label}
                     {t.id === "plan" && plan.stops.length > 0 ? ` · ${plan.stops.length}` : ""}
                   </button>
                 ))}
@@ -1111,6 +1125,7 @@ export default function Home() {
                 {idle.slice(0, 5).map(({ p, a }) => (
                   <li
                     key={a.id}
+                    className="fr-qrow"
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -1120,7 +1135,7 @@ export default function Home() {
                       padding: "10px 12px",
                     }}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="fr-qtext">
                       <div style={{ fontWeight: 700, fontSize: 16 }}>
                         {a.id}{" "}
                         <span
@@ -1286,7 +1301,7 @@ export default function Home() {
             {tabbed && crewsPanel}
             {tabbed && logPanel}
 
-            <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open>
+            <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open={!narrow}>
               <summary>Simulation controls · What if and rain forecast</summary>
               <section className="fr-group">
                 <div className="fr-label">
@@ -1489,6 +1504,30 @@ export default function Home() {
             Sample data. The crew confirms the real condition on site.
           </div>
         </Dialog>
+      )}
+
+      {resetAsk && (
+        <ConfirmDialog
+          label="Reset sample session"
+          eyebrow="Reset"
+          title="Reset the sample session?"
+          confirmLabel="Reset session"
+          onCancel={() => setResetAsk(false)}
+          onConfirm={() => {
+            resetAll();
+            setCur(null);
+            setResetAsk(false);
+          }}
+        >
+          <p style={{ margin: "0 0 10px" }}>
+            This clears the current run, every crew&apos;s state, the activity log and the completed-job records in this
+            sample session.{" "}
+            {role === "split" ? "The crew phone resets too." : "Any crew phone in this team resets too."}
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>
+            Risk scores and the sample map stay as they are. Photos already saved for review are not deleted.
+          </p>
+        </ConfirmDialog>
       )}
 
       {whatIfBlock && (
