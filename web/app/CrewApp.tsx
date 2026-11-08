@@ -26,8 +26,8 @@ export const CameraIcon = ({ w = 44 }: { w?: number }) => (
 export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: () => void; standalone?: boolean }) {
   const [state, setState] = useState<SavedState>(() => ({ crews: [], runs: {}, records: [], log: [] }));
   const [crewId, setCrewId] = useState<string | undefined>();
-  const [before, setBefore] = useState<string | undefined>();
-  const [after, setAfter] = useState<string | undefined>();
+  // Photos belong to one stop of one crew's run (key = crew/run/stop), so switching crew never shows another crew's photo.
+  const [photos, setPhotos] = useState<Record<string, { before?: string; after?: string }>>({});
 
   useEffect(() => {
     const read = () => setState(loadState());
@@ -47,16 +47,21 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     saveState(next);
   }
 
-  function pick(set: (url: string) => void) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      const f = e.target.files?.[0];
-      if (f) set(URL.createObjectURL(f)); // kept in memory only, never persisted
-    };
-  }
-
   const idx = run ? run.stops.findIndex((s) => !run.done.includes(s.id)) : -1;
   const stop = run && idx >= 0 ? run.stops[idx] : undefined;
   const total = run?.stops.length ?? 0;
+  const photoKey = crew && run && stop ? `${crew.id}/${run.runId}/${stop.id}` : "";
+  const before = photos[photoKey]?.before;
+  const after = photos[photoKey]?.after;
+
+  function pick(kind: "before" | "after") {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0];
+      if (!f || !photoKey) return;
+      const url = URL.createObjectURL(f); // kept in memory only, never persisted
+      setPhotos((p) => ({ ...p, [photoKey]: { ...p[photoKey], [kind]: url } }));
+    };
+  }
 
   function accept() {
     if (!run || !stop) return;
@@ -89,8 +94,13 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     const last = idx + 1 >= run.stops.length;
     if (last && run.stops.length > 1)
       log = addLog(log, t, `${crewName} finished the run and is returning to the depot.`, meta);
-    setBefore(undefined);
-    setAfter(undefined);
+    // Free this stop's photos from memory once the job is submitted.
+    for (const url of [before, after]) if (url) URL.revokeObjectURL(url);
+    setPhotos((p) => {
+      const rest = { ...p };
+      delete rest[photoKey];
+      return rest;
+    });
     update({ ...run, done: [...run.done, stop.id] }, { records: [...state.records, rec], log });
   }
 
@@ -255,7 +265,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
                       accept="image/*"
                       capture="environment"
                       className="sr-only"
-                      onChange={pick(setBefore)}
+                      onChange={pick("before")}
                     />
                   </label>
                 </>
@@ -280,7 +290,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
                       accept="image/*"
                       capture="environment"
                       className="sr-only"
-                      onChange={pick(setAfter)}
+                      onChange={pick("after")}
                     />
                   </label>
                 </>
