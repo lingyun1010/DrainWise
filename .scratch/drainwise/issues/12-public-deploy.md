@@ -1,7 +1,7 @@
 # 12: Public deploy
 
 Type: task
-Status: ready-for-agent
+Status: ready-for-human (code merged in PR #18; leftovers: private-window run with screenshots, /crew and full crew flow on the live URL)
 Blocked by: 10
 Spec: `.scratch/drainwise/spec.md` (ticket 07)
 

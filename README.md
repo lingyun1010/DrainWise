@@ -2,43 +2,62 @@
 
 **Clean the right drains before they block.**
 
-A hackathon prototype for the City of Parramatta challenge *5. AI for Smarter Asset and Environmental Management*. It predicts which stormwater drain inlets and gross pollutant traps (GPTs) are most likely to block next, ranks them, and plans a truck run that cleans the riskiest nearby ones without exceeding the truck's capacity. Crews close each job with proof: before photos become training data, after photos are evidence of work, and sites with a camera need no photos.
+A hackathon prototype for the City of Parramatta challenge _5. AI for Smarter Asset and Environmental Management_ (primary), with a nod to _1. Climate Resilience_. It predicts which stormwater drain inlets and gross pollutant traps (GPTs) are most likely to block next, ranks them, and plans a truck run that cleans the riskiest nearby ones without exceeding the truck's capacity. Crews close each job with proof: before photos are designed to become training data, after photos are evidence of work, and sites with a camera need no photos.
 
-> **All data in this repository is simulated sample data.** There are no real council asset locations, no real blockage history, and no real truck sizes. The risk model is trained on simulated history (`ml/simulate.py`). The 3D terrain and water level are illustrations, not a flood forecast. Every screen says so.
+## What is real and what is sample data
 
-We do not compete with real-time flood warning (FloodSmart / FLASH, BoM). The value here is the operational action on blockage: what to clean, in what order.
+Read this first. These statements are the same on every screen and in the pitch.
+
+- **Everything shown is sample data.** There are no real council asset locations, no real blockage history and no real truck sizes. The 36 assets are generated at real Parramatta locations, not surveyed.
+- **The risk model is trained on simulated history** (`ml/simulate.py`). It is not trained on council records.
+- **The demo formula is a baseline, not an AI model.** It is kept only to compare against the trained model.
+- **Photos are designed to become training data. Nothing is retrained.** A human confirms every label, and no photo may enter training until it has been checked for faces and number plates (that check is not built yet).
+- **No accuracy is claimed anywhere.** `python -m ml.evaluate` is a pipeline recovery check on simulated data (see `ml/README.md`).
+- **The 3D terrain and water level are illustrations,** not a flood forecast. Real-time flood warning already exists (FloodSmart / FLASH, BoM); we do not compete with it.
+
+## Try it
+
+- **Public demo:** https://drainwise-zeta.vercel.app. It reads precomputed scores, shows a "Public demo" banner and runs the what-if sliders in the browser. No key is needed and nothing is installed.
+- **Local build:** below. It adds the live risk service and the local-only photo review page.
 
 ## What it does
 
-- **Manager view** (`/`): 2D map of 36 sample assets (frowning orange drop = High, neutral yellow = Medium, smiling blue = Low, "G" badge = GPT, dashed ring = has a camera), a ranked "Check next" queue with reasons, a truck run planner (capacity slider, risk first, nearby first, never over capacity), what-if sliders (leaf fall, extra rain), a compliance records panel and an activity log.
-- **3D water view**: three.js scene on procedural sample terrain with a water plane that rises with rain and the extra-rain slider. Drag to rotate, scroll to zoom, arrow keys and `+`/`-` also work.
-- **Crew phone app** (`/crew`, mobile-first): accept a run, step through stops, at a camera site just "Mark as cleaned", otherwise take a BEFORE photo, clean, take an AFTER photo, then submit. Submit is blocked without both photos.
-- **Risk model**: gradient boosting that returns a probability of blockage plus the top reasons for every score.
+- **Manager view** (`/`): a real basemap (OpenStreetMap, OpenFreeMap) with 36 sample assets (frowning orange drop = High, neutral yellow = Medium, smiling blue = Low, "G" badge = GPT, dashed ring = has a camera), a ranked "Check next" queue with reasons, a truck run planner (capacity slider, risk first, nearby first, never over capacity), what-if sliders (leaf fall, extra rain), a compliance records panel and an activity log. The rain forecast uses the real BoM precis forecast for Parramatta; the 3-hourly strip is sample.
+- **3D water view:** three.js scene on procedural sample terrain with a water plane that rises with rain.
+- **Crew phone app** (`/crew`, mobile-first): accept a run, step through stops. At a camera site just "Mark as cleaned"; otherwise take a BEFORE photo, clean, take an AFTER photo, then submit. Submit is blocked without both photos.
+- **Shared room:** the Manager and the Crew phone can share one sample session across two devices (room chip in the header, no sign-in, last write wins, rooms expire after 24 hours).
+- **Photo review** (`/review`): lists stored before photos and the 7 sample images. The AI suggestion on the public build is a labelled mock. Real vision calls run only on a local build with a key, and a human confirms the level before it counts as a label.
+- **Model page** (`/model`): inputs, the validation loop, the training pipeline and an interactive what-if on the 36 sample GPTs. Sample data.
+- **Risk model:** gradient boosting that returns a probability of blockage plus the top reasons for every score. High is 60%+, Medium is 30%+.
 
-Design principles: original characters only, severity is never colour alone (faces and labels), `prefers-reduced-motion` is respected, crew view is mobile-first.
+Design principles: original characters only, severity is never colour alone (faces and labels), `prefers-reduced-motion` is respected, the crew view is mobile-first.
 
 ## Layout
 
-| Path | What it is |
-| --- | --- |
-| `ml/` | Simulated data generator (`simulate.py`), training script (`train.py`), saved model (`model.joblib`, small, committed) |
-| `risk_api/` | FastAPI service that loads the model and serves `POST /predict` |
-| `planner/` | TypeScript planner with tests: `planRun` (knapsack + nearest neighbour, minimum-risk cutoff) and `canComplete` (crew submit rule) |
-| `web/` | Next.js app: manager page, crew page, 3D view. Imports the planner by relative path |
-| `reference/` | The original Claude Design demo (`demo-Main.dc.html`), banner and challenge briefing. A UI reference, not code to extend |
-| `.scratch/` | Working notes: expert questions, issues, research |
+| Path         | What it is                                                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ml/`        | Simulated data generator, training script, evaluation, saved model (`model.joblib`, small, committed). See `ml/README.md`                                                 |
+| `risk_api/`  | FastAPI service that loads the model and serves `POST /predict`, plus the export scripts for the public build                                                             |
+| `planner/`   | TypeScript planner with tests: `planRun` (knapsack + nearest neighbour, minimum-risk cutoff), `canComplete` (crew submit rule), the TypeScript risk model, the BoM parser |
+| `web/`       | Next.js app: manager, crew, `/model`, `/review`, API routes. Imports the planner by relative path                                                                         |
+| `supabase/`  | Migrations for crew photos and shared rooms                                                                                                                               |
+| `reference/` | The original Claude Design demo, banner and challenge briefing. A UI reference, not code to extend                                                                        |
+| `docs/`      | Schema and review gates                                                                                                                                                   |
+| `.scratch/`  | Working notes: expert questions, tickets, research                                                                                                                        |
 
-## Run it
+## Run it locally
 
-You need Python 3 with `fastapi`, `uvicorn`, `scikit-learn`, `joblib`, `numpy` and `pytest` (there is no `requirements.txt` yet), and Node.js.
+You need Python 3 and Node.js.
 
 ```bash
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+
 # 1. Train the model on simulated data (writes ml/model.joblib)
-python -m ml.simulate
-python -m ml.train
+.venv/bin/python -m ml.simulate
+.venv/bin/python -m ml.train
 
 # 2. Risk API, from the project root (default http://127.0.0.1:8000)
-uvicorn risk_api.main:app --port 8000
+.venv/bin/uvicorn risk_api.main:app --port 8000
 
 # 3. Web app
 cd web && npm install && npm run dev -- -p 3000
@@ -46,7 +65,21 @@ cd web && npm install && npm run dev -- -p 3000
 
 Open http://localhost:3000 and pick **Manager**, **Crew**, or **Side-by-side** (best for a demo). Set `RISK_API_URL` if the risk API is not on the default address. "Reset sample session" clears the saved run and records.
 
-Tests:
+**Offline banner.** If the risk service is not running, the Manager page falls back to the precomputed scores file and shows a banner saying the scores are precomputed sample scores, with the source and the time they were generated. The what-if sliders are off in that state. (The public build is different: it runs what-if in the browser by walking the same trees in TypeScript, `planner/src/riskModel.ts`, and a test fails if that and the Python model disagree.)
+
+**Optional environment variables** go in `web/.env.local` (gitignored; see `web/.env.sample`). Never commit them.
+
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_PHOTO_UPLOAD=1`: save crew photos and shared rooms. Without them photos stay in memory.
+- `OPENAI_API_KEY`: turns on real vision suggestions at `/review`. Local only; never set it on Vercel. Without it `/review` still works and the suggestion is a labelled mock.
+
+After retraining, regenerate the files the public build reads:
+
+```bash
+.venv/bin/python -m risk_api.export_scores
+.venv/bin/python -m risk_api.export_model
+```
+
+Tests and checks:
 
 ```bash
 .venv/bin/pytest -q          # model and API
@@ -62,25 +95,41 @@ POST /predict
   out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 ```
 
-Features: tree canopy near the asset, leaf-fall index, recent and forecast rainfall, days since last clean, asset type (inlet or GPT) and whether it has a camera. More canopy, leaf fall, rain or days since clean never lowers the risk (monotonic constraints). The High and Medium thresholds are placeholders.
+Features: tree canopy near the asset, leaf-fall index, recent and forecast rainfall, days since last clean, asset type (inlet or GPT) and whether it has a camera. More canopy, leaf fall, rain or days since clean never lowers the risk (monotonic constraints).
 
 When real records arrive, only the training data is swapped and the model retrained. The API contract stays the same. Runs are reproducible (fixed random seed, data source logged).
 
+## Open items for the council
+
+We need these from council experts. Until then everything stays sample data.
+
+1. Drain pit and GPT locations, even a sample or anonymised.
+2. How many GPTs and cameras there are, and how cameras are monitored today.
+3. Any cleaning or blockage history, and its format.
+4. Truck and bin volumes, typical load per inlet and per GPT, cost per clean, crews per day.
+5. An existing work-order or inspection system to integrate with, and rules for photo evidence.
+6. Confirmation that **"GPT" means Gross Pollutant Trap.** We assume so; it is not confirmed.
+
 ## Honest limits
 
-- **Not public, must come from council or be mocked:** drain, pit and GPT locations, which sites have cameras, blockage and cleaning history, truck and bin sizes, cost per clean.
-- **Load estimates and the 2.0 m³ default truck size are assumptions.** The 36 assets are generated, not surveyed.
-- **"GPT" is interpreted as Gross Pollutant Trap.** This is not yet confirmed with the council.
-- **Photos are kept in memory only** in this demo and are never persisted. A real pipeline would store before/after photos with time, GPS, crew and run id, and check for faces and number plates before any image is used for training. Photo classification (a hosted vision model called server-side, with human confirmation before a label is used) is planned, not built.
-- **Manager-to-crew handoff uses `localStorage`.** It is a demo, there is no real authentication.
+- **Not public, must come from council or be mocked:** asset locations, which sites have cameras, blockage and cleaning history, truck and bin sizes, cost per clean.
+- **Load estimates and the 2.0 m³ default truck size are assumptions.**
+- **Crew photos are stored** in a private Supabase bucket when uploads are on (JPEG, shrunk to 1280 px in the browser, which also drops EXIF and GPS). Public demo uploads expire after 24 hours. The face and number-plate check is not built, so no photo may enter training.
+- **No sign-in.** The Manager and Crew roles are a picker, and shared rooms are last-write-wins.
+- **Vision classification is a prototype with human review.** Only 7 unlabelled sample images exist, so no accuracy is claimed.
+- **Basemap:** OpenStreetMap and OpenFreeMap, free, no key, attribution stays visible. Depot and GPT positions are sample.
 
 ## Possible next steps
 
-- Real terrain: replace the procedural `heightAt` in `web/lib/terrain.ts` with a heightmap from free ELVIS LiDAR (Geoscience Australia) for Parramatta. Only a small downsampled file should be committed, never raw LiDAR.
+- Real terrain: replace the procedural `heightAt` in `web/lib/terrain.ts` with a heightmap from free ELVIS LiDAR for Parramatta. Only a small downsampled file should be committed, never raw LiDAR.
 - Real inputs: NSW tree canopy 2024–25, BoM rainfall, and any asset and history data the council can share.
 - Planner: OR-Tools routing, keeping results explainable.
-- Supabase (Postgres + PostGIS + Storage) for assets, observations, runs and photos, with manager and crew roles.
+- Roles: Supabase Auth with manager and crew.
 
 ## Data sources and licences
 
-Public and useful: NSW tree canopy 2024–25 (the finest layer is restricted), ELVIS LiDAR (free), the Parramatta River Flood Study 2024 (planning-level, CC BY 3.0 AU), BoM rainfall and Data.NSW datasets (licences vary, check each one). Nothing from these is bundled in this repository yet.
+Public and useful: NSW tree canopy 2024–25 (the finest layer is restricted), ELVIS LiDAR (free), the Parramatta River Flood Study 2024 (planning-level, CC BY 3.0 AU), BoM rainfall and Data.NSW datasets (licences vary, check each one). The rain forecast is the BoM free precis product; BoM free text products are not for commercial use. Nothing from the flood study, canopy or LiDAR is bundled in this repository yet.
+
+## Pitch
+
+The three-minute path and the data-honesty lines are in [`docs/pitch-outline.md`](docs/pitch-outline.md).

@@ -1,7 +1,7 @@
 # 14: README and honesty statements
 
 Type: task
-Status: ready-for-agent
+Status: done (PR pending)
 Blocked by: 10, 11
 Spec: `.scratch/drainwise/spec.md` (tickets 05 and 08)
 
