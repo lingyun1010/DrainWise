@@ -197,6 +197,7 @@ export default function MapView({
           </g>
           <g transform={T}>
             <g transform={`translate(${DEPOT.x},${DEPOT.y}) scale(${cs})`}>
+              <rect x="-34" y="-26" width="68" height="52" rx="14" fill="#1E4A63" stroke="#4FC3E8" strokeWidth="3" />
               <path
                 d="M-40 -24 L0 -50 L40 -24 Z"
                 fill="#FF8A4C"
@@ -204,7 +205,6 @@ export default function MapView({
                 strokeWidth="8"
                 strokeLinejoin="round"
               />
-              <rect x="-34" y="-26" width="68" height="52" rx="14" fill="#1E4A63" stroke="#4FC3E8" strokeWidth="3" />
               <text
                 x="0"
                 y="6"

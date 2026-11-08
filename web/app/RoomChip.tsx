@@ -104,12 +104,9 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
               </>
             ) : (
               <>
-                <button type="button" className="fr-btn fr-pri" disabled={busy} onClick={() => run(createRoom, false)}>
-                  Start a new team (code is made for you)
-                </button>
                 <button
                   type="button"
-                  className="fr-btn fr-sec"
+                  className="fr-btn fr-pri"
                   disabled={busy || !typedCode}
                   onClick={() => typedCode && run(() => joinRoom(typedCode), true)}
                 >
@@ -154,6 +151,15 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
               <p style={{ margin: "0 0 14px", lineHeight: 1.5, color: "#B9D6E3" }}>
                 Do this on the first device. You do not type anything: the app makes a 4-letter code and shows it here.
               </p>
+              <button
+                type="button"
+                className="fr-btn fr-pri"
+                disabled={busy}
+                onClick={() => run(createRoom, false)}
+                style={{ marginBottom: 18 }}
+              >
+                Start a new team
+              </button>
               <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>2. Join a team</h3>
               <label style={{ display: "block", fontSize: 14, color: "#B9D6E3", marginBottom: 6 }}>
                 On the second device, type the code the first device shows
