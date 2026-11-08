@@ -1,0 +1,64 @@
+{
+  "data_source": "SAMPLE DATA. Placeholder readings from planner/src/mockSuggestion.ts. No image model was run.",
+  "level_source": "mock",
+  "photo_rule": "photo = ((GPT number - 1) mod 7) + 1, one of the 7 council sample photos in web/public/camera",
+  "generated_at": "2026-11-08T20:33:47.415Z",
+  "readings": [
+    {
+      "asset_id": "GPT-003",
+      "photo": 3,
+      "level": 2,
+      "name": "Half blocked",
+      "confidence": "low",
+      "reason": "About half of the grate is covered with leaves."
+    },
+    {
+      "asset_id": "GPT-008",
+      "photo": 1,
+      "level": 2,
+      "name": "Half blocked",
+      "confidence": "low",
+      "reason": "About half of the grate is covered with leaves."
+    },
+    {
+      "asset_id": "GPT-009",
+      "photo": 2,
+      "level": 3,
+      "name": "Blocked",
+      "confidence": "low",
+      "reason": "The grate looks covered with leaves and debris."
+    },
+    {
+      "asset_id": "GPT-010",
+      "photo": 3,
+      "level": 3,
+      "name": "Blocked",
+      "confidence": "medium",
+      "reason": "The grate looks covered with leaves and debris."
+    },
+    {
+      "asset_id": "GPT-011",
+      "photo": 4,
+      "level": 1,
+      "name": "Light debris",
+      "confidence": "medium",
+      "reason": "A few leaves on the grate, water can still pass."
+    },
+    {
+      "asset_id": "GPT-018",
+      "photo": 4,
+      "level": 3,
+      "name": "Blocked",
+      "confidence": "medium",
+      "reason": "The grate looks covered with leaves and debris."
+    },
+    {
+      "asset_id": "GPT-031",
+      "photo": 3,
+      "level": 2,
+      "name": "Half blocked",
+      "confidence": "high",
+      "reason": "About half of the grate is covered with leaves."
+    }
+  ]
+}

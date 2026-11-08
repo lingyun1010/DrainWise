@@ -32,6 +32,7 @@ import MapView, { type Level, type MapAsset, type MapCrew, type MapRoute } from 
 import RoleScreen from "./RoleScreen";
 import Link from "next/link";
 import RoomChip from "./RoomChip";
+import CameraView from "./CameraView";
 import Dialog, { ConfirmDialog } from "./Dialog";
 import dynamic from "next/dynamic";
 
@@ -1141,6 +1142,15 @@ export default function Home() {
                     </div>
                     <button
                       type="button"
+                      className="fr-btn fr-ghost"
+                      style={{ padding: "6px 12px", minHeight: 40, fontSize: 14 }}
+                      onClick={() => openAsset(a.id)}
+                      aria-label={`Details for ${a.id}${a.hasCamera ? ", has a camera" : ""}`}
+                    >
+                      Details
+                    </button>
+                    <button
+                      type="button"
                       className="fr-btn fr-pri"
                       style={{ padding: "6px 14px", minHeight: 40, fontSize: 14 }}
                       onClick={() => dispatchOne(a.id)}
@@ -1467,10 +1477,9 @@ export default function Home() {
         >
           <p style={{ margin: "0 0 12px" }}>
             Estimated blockage risk about {Math.min(99, Math.round(curRow.p.p_block * 100))}%.{" "}
-            {curRow.a.hasCamera
-              ? `Camera view: about ${Math.min(99, Math.round(curRow.p.p_block * 90))}% full (sample).`
-              : "No camera here, so this is a model estimate."}
+            {curRow.a.hasCamera ? "This site has a camera." : "No camera here, so this is a model estimate."}
           </p>
+          {curRow.a.hasCamera && <CameraView key={curRow.a.id} assetId={curRow.a.id} />}
           <ul style={{ margin: "0 0 12px", paddingLeft: 20 }}>
             {curRow.p.reasons.slice(0, 3).map((t) => (
               <li key={t}>{t}</li>
