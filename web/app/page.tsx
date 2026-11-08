@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
 import { DAYS, DAY_RAIN_MM, horizonInputs } from "../../planner/src/horizon";
@@ -152,56 +152,75 @@ export default function Home() {
   const rainForecast = hz.rain_forecast_mm;
   const scoreKey = `${leaf}|${rainForecast}|${hz.days_added}|${hz.rain_mm_7d}|${[...cleaned].sort().join(",")}`;
   const scoring = scoredKey !== scoreKey;
+  // Live scores by scenario, kept for this page load. Going back to a scenario already scored (for example Today after
+  // looking at Tomorrow) shows it at once and asks nobody. Fallback scores are never stored.
+  const scoreCache = useRef(new Map<string, Prediction[]>());
   useEffect(() => {
-    const t = setTimeout(async () => {
-      let live: LiveResult<Prediction>;
-      try {
-        const inputs = seed.map((a) => ({
-          asset_id: a.id,
-          type: a.type,
-          canopy_pct: a.canopyPct,
-          leaf_index: leaf,
-          rain_mm_7d: hz.rain_mm_7d,
-          rain_forecast_mm: rainForecast,
-          days_since_clean: (cleaned.has(a.id) ? 0 : a.daysSinceClean) + hz.days_added,
-          has_camera: a.hasCamera,
-        }));
-        if (PUBLIC_BUILD) {
-          // No risk-api on the public build: run the exported trees in the browser (same answers, see riskModel.test.ts).
-          live = { ok: true, scores: predictLocal(riskModel as unknown as ModelJson, inputs) };
+    const hit = scoreCache.current.get(scoreKey);
+    const t = setTimeout(
+      async () => {
+        if (hit) {
+          setPreds(hit);
+          setError(null);
+          setOffline(false);
+          setScoredKey(scoreKey);
+          return;
+        }
+        let live: LiveResult<Prediction>;
+        try {
+          const inputs = seed.map((a) => ({
+            asset_id: a.id,
+            type: a.type,
+            canopy_pct: a.canopyPct,
+            leaf_index: leaf,
+            rain_mm_7d: hz.rain_mm_7d,
+            rain_forecast_mm: rainForecast,
+            days_since_clean: (cleaned.has(a.id) ? 0 : a.daysSinceClean) + hz.days_added,
+            has_camera: a.hasCamera,
+          }));
+          if (PUBLIC_BUILD) {
+            // No risk-api on the public build: run the exported trees in the browser (same answers, see riskModel.test.ts).
+            live = { ok: true, scores: predictLocal(riskModel as unknown as ModelJson, inputs) };
+          } else {
+            const res = await fetch("/api/risk", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(inputs),
+            });
+            const data = await res.json();
+            live =
+              res.ok && Array.isArray(data)
+                ? { ok: true, scores: data }
+                : { ok: false, error: data.error ?? "request failed" };
+          }
+        } catch (e) {
+          live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
+        }
+        const r = resolveScores(live, precomputed.scores as Prediction[]);
+        setScoredKey(scoreKey);
+        if (r.status === "live") {
+          const cache = scoreCache.current;
+          cache.set(scoreKey, r.scores);
+          if (cache.size > 60) cache.delete(cache.keys().next().value as string); // oldest first
+        }
+        if (r.status === "error") {
+          setPreds(null);
+          setError(r.error);
+          setOffline(false);
         } else {
-          const res = await fetch("/api/risk", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(inputs),
-          });
-          const data = await res.json();
-          live =
-            res.ok && Array.isArray(data)
-              ? { ok: true, scores: data }
-              : { ok: false, error: data.error ?? "request failed" };
+          setPreds(r.scores);
+          setError(null);
+          setOffline(r.status === "precomputed");
+          if (r.status === "precomputed") {
+            // The file holds the default scenario only, so the what-if controls go back to it.
+            setLeaf(precomputed.scenario.leaf_index);
+            setExtra(0);
+            setDay(0);
+          }
         }
-      } catch (e) {
-        live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
-      }
-      const r = resolveScores(live, precomputed.scores as Prediction[]);
-      setScoredKey(scoreKey);
-      if (r.status === "error") {
-        setPreds(null);
-        setError(r.error);
-        setOffline(false);
-      } else {
-        setPreds(r.scores);
-        setError(null);
-        setOffline(r.status === "precomputed");
-        if (r.status === "precomputed") {
-          // The file holds the default scenario only, so the what-if controls go back to it.
-          setLeaf(precomputed.scenario.leaf_index);
-          setExtra(0);
-          setDay(0);
-        }
-      }
-    }, 250);
+      },
+      hit ? 0 : 250,
+    );
     return () => clearTimeout(t);
   }, [seed, leaf, rainForecast, hz.days_added, hz.rain_mm_7d, cleaned, scoreKey]);
 

@@ -251,8 +251,8 @@ body {
 .fr-wait {
   position: absolute;
   left: 50%;
-  top: 14px;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   gap: 8px;
