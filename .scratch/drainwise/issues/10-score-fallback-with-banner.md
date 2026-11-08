@@ -1,7 +1,7 @@
 # 10: Score fallback with banner
 
 Type: task
-Status: ready-for-agent
+Status: done (2026-11-08)
 Blocked by: 09
 Spec: `.scratch/drainwise/spec.md` (ticket 07)
 
@@ -13,8 +13,8 @@ The decision "which source do I use" is a pure function with its own unit tests,
 
 ## Acceptance criteria
 
-- [ ] Resolver tests: live works gives the live scores and status live; live fails gives the precomputed scores and status precomputed; both unavailable gives an explicit error state.
-- [ ] The manager page uses the resolver; stopping the risk service and reloading shows the banner, the ranked queue, and greyed sliders instead of an error screen.
-- [ ] Starting the risk service again and reloading removes the banner and re-enables the sliders.
-- [ ] Smoke test with evidence (screenshots of both states) in the PR.
-- [ ] The banner is readable without relying on colour.
+- [x] Resolver tests: live works gives the live scores and status live; live fails gives the precomputed scores and status precomputed; both unavailable gives an explicit error state.
+- [x] The manager page uses the resolver; stopping the risk service and reloading shows the banner, the ranked queue, and greyed sliders instead of an error screen.
+- [x] Starting the risk service again and reloading removes the banner and re-enables the sliders.
+- [x] Smoke test with evidence (screenshots of both states) in the PR.
+- [x] The banner is readable without relying on colour.
