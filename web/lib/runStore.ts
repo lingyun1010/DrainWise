@@ -2,6 +2,8 @@
 // is joined (see the Shared room section below) every save is also sent to the server and polled back, so a
 // laptop and a phone see the same session.
 // Photos are NOT stored here: they live in memory only and are never persisted.
+import { openStops, type Ended, type Returned, type Skip } from "../../planner/src/runActions";
+
 export type RunStop = {
   id: string;
   load: number;
@@ -33,6 +35,8 @@ export type CrewRun = {
   capacity: number;
   accepted: boolean;
   done: string[];
+  skipped?: Skip[]; // stops the crew could not do, they go back to the queue
+  ended?: Ended; // set when the crew ended the run early (cleaned stops are kept)
 };
 export type Crew = { id: string; name: string };
 export type SavedState = {
@@ -40,6 +44,7 @@ export type SavedState = {
   runs: Record<string, CrewRun | undefined>; // keyed by crew id
   records: JobRecord[];
   log: LogEntry[];
+  returns?: Returned[]; // stops a crew sent back (declined, skipped, ended early), newest first
 };
 export const DEFAULT_CREWS: Crew[] = [
   { id: "c1", name: "Crew A" },
@@ -272,14 +277,14 @@ export function addLog(
 }
 
 export function isBusy(run: CrewRun | undefined | null): boolean {
-  return !!run && run.stops.some((s) => !run.done.includes(s.id));
+  return !!run && openStops(run).length > 0;
 }
 
 // Stop ids still to clean across all crews, so two crews are never sent to the same asset.
 export function openStopIds(state: SavedState): Set<string> {
   const ids = new Set<string>();
   for (const r of Object.values(state.runs)) {
-    if (r) for (const s of r.stops) if (!r.done.includes(s.id)) ids.add(s.id);
+    if (r) for (const s of openStops(r)) ids.add(s.id);
   }
   return ids;
 }

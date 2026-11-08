@@ -19,6 +19,10 @@
   --font-sans: var(--font-fredoka), var(--font-nunito), system-ui, sans-serif;
 }
 
+html {
+  background: #0b2233;
+}
+
 body {
   margin: 0;
   background: var(--fr-bg);
@@ -524,8 +528,25 @@ body {
   z-index: 15;
 }
 
+/* Crew page on a phone: no frame, the app fills the screen (below the status bar). */
+.fr-crewmain {
+  padding: 0;
+}
+@media (max-width: 599px) {
+  .fr-device > aside {
+    max-width: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    min-height: 100vh !important;
+    padding-top: max(22px, env(safe-area-inset-top)) !important;
+  }
+}
+
 /* Crew page on a wide screen: show the phone app inside a device frame. */
 @media (min-width: 600px) {
+  .fr-crewmain {
+    padding: 16px;
+  }
   .fr-device {
     position: relative;
     width: 390px;

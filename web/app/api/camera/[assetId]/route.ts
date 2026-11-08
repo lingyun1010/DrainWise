@@ -10,7 +10,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ assetId: strin
     {
       ...r,
       image: `/camera/sample-${r.photo}.jpg`,
-      thumb: `/camera/sample-${r.photo}-thumb.jpg`,
       level_source: readings.level_source,
       data_source: readings.data_source,
       generated_at: readings.generated_at,

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 
@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   title: "DrainWise",
   description: "Clean the right drains before they block. Sample data.",
 };
+
+export const viewport: Viewport = { themeColor: "#0B2233" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
