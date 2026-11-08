@@ -133,10 +133,7 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
               </p>
               <p style={{ margin: 0, lineHeight: 1.5, color: "#B9D6E3", wordBreak: "break-all" }}>
                 {onLocalhost ? (
-                  <>
-                    On the phone, open this computer&apos;s Wi-Fi address (for example http://192.168.1.20:3000/crew),
-                    choose Shared room and join {code}.
-                  </>
+                  <>On the other device, choose Shared room, then join with {code}.</>
                 ) : (
                   <>
                     On the phone, open <strong>{link}</strong> or choose Crew and join room {code}.
