@@ -1,4 +1,5 @@
-import BaseMap from "./BaseMap";
+import { useState } from "react";
+import BaseMap, { type View } from "./BaseMap";
 import { MAP_H, MAP_W, WATERWAYS } from "@/lib/geo";
 import { DEPOT } from "@/lib/seed";
 
@@ -53,6 +54,12 @@ export default function MapView({
   crews: MapCrew[];
   onOpen: (id: string) => void;
 }) {
+  // Pan and zoom: the overlay is drawn in map units; this moves and scales it to follow the basemap.
+  const [view, setView] = useState<View>({ tx: 0, ty: 0, k: 1 });
+  const k = view.k;
+  const T = `translate(${view.tx.toFixed(2)},${view.ty.toFixed(2)}) scale(${k.toFixed(4)})`;
+  // Markers grow a little when zoomed in, but not as fast as the map.
+  const cs = Math.min(Math.max(Math.sqrt(k), 0.7), 2.2) / k;
   const byId = new Map(assets.map((a) => [a.id, a]));
   const stops = route.map((id) => byId.get(id)).filter((a): a is MapAsset => !!a);
   const pts = stops.length ? [DEPOT, ...stops, DEPOT].map((p) => `${p.x},${p.y}`).join(" ") : "";
@@ -79,27 +86,29 @@ export default function MapView({
           overflow: "hidden",
         }}
       >
-        <BaseMap />
+        <BaseMap onView={setView} />
         <svg
           viewBox={`0 0 ${MAP_W} ${MAP_H}`}
           width="100%"
           height="100%"
           role="img"
           aria-label="Map of central Parramatta with its creeks, a sample depot and sample gross pollutant traps coloured and shaped by blockage risk. Select a marker for details."
-          style={{ position: "absolute", inset: 0, display: "block" }}
+          style={{ position: "absolute", inset: 0, display: "block", pointerEvents: "none" }}
         >
-          {WATER_PATHS.map((w) => (
-            <path
-              key={w.key}
-              d={w.d}
-              fill="none"
-              stroke="#2F8FB5"
-              strokeWidth={w.river ? 7 : 4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.85"
-            />
-          ))}
+          <g transform={T}>
+            {WATER_PATHS.map((w) => (
+              <path
+                key={w.key}
+                d={w.d}
+                fill="none"
+                stroke="#2F8FB5"
+                strokeWidth={(w.river ? 7 : 4) / k}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.85"
+              />
+            ))}
+          </g>
 
           <g aria-hidden="true" opacity="0.55">
             <g className="fr-fall">
@@ -130,202 +139,209 @@ export default function MapView({
             </g>
           </g>
 
-          <g transform={`translate(${DEPOT.x},${DEPOT.y})`}>
-            <path
-              d="M-40 -24 L0 -50 L40 -24 Z"
-              fill="#FF8A4C"
-              stroke="#FF8A4C"
-              strokeWidth="8"
-              strokeLinejoin="round"
-            />
-            <rect x="-34" y="-26" width="68" height="52" rx="14" fill="#1E4A63" stroke="#4FC3E8" strokeWidth="3" />
-            <text
-              x="0"
-              y="6"
-              textAnchor="middle"
-              fontFamily="Nunito, sans-serif"
-              fontWeight="800"
-              fontSize="14"
-              fill="#EAF6FB"
-            >
-              Depot
-            </text>
-          </g>
-
-          {pts && (
-            <polyline
-              points={pts}
-              fill="none"
-              stroke="#EAF6FB"
-              strokeWidth="3"
-              strokeDasharray="8 8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.35"
-            />
-          )}
-          {crewPts.map((r) => (
-            <polyline
-              key={r.name}
-              points={r.pts}
-              fill="none"
-              stroke={r.color}
-              strokeWidth="4.5"
-              strokeDasharray="10 7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.95"
-            />
-          ))}
-
-          {sorted.map((a) => {
-            const done = a.state === "done";
-            const busy = a.state === "busy";
-            const sc = a.level === "high" && !done ? 0.95 : a.level === "medium" ? 0.75 : 0.58;
-            const fill = done || a.level === "low" ? "#4FC3E8" : FILL[a.level];
-            const ink = a.level === "high" && !done ? "#2A1208" : "#0B2233";
-            const mouth = done ? MOUTH.low : MOUTH[a.level];
-            const showN = !done && !busy && a.planN;
-            const badge = done || busy || !!showN;
-            return (
-              <g
-                key={a.id}
-                className="fr-mk"
-                role="button"
-                tabIndex={0}
-                aria-label={`${a.id}, ${a.typeLabel}, ${done ? "Low" : cap(a.level)} blockage risk${a.hasCamera ? ", has a camera" : ""}${done ? ", cleaned" : busy ? ", crew assigned" : ""}`}
-                transform={`translate(${a.x},${a.y}) scale(${sc})`}
-                onClick={() => onOpen(a.id)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onOpen(a.id);
-                  }
-                }}
-              >
-                {a.level === "high" && a.state === "idle" && (
-                  <circle r="22" className="fr-pulse" fill="#FF8A4C" opacity="0.5" />
-                )}
-                {a.crewColor && <circle r="29" fill="none" stroke={a.crewColor} strokeWidth="5" />}
-                <path
-                  d="M0 -26 C11 -12 19 -3 19 8 a19 19 0 0 1 -38 0 C-19 -3 -11 -12 0 -26Z"
-                  fill={fill}
-                  stroke="#FFF3EA"
-                  strokeWidth="3.5"
-                  strokeLinejoin="round"
-                />
-                <circle cx="-6.5" cy="5" r="3.2" fill={ink} />
-                <circle cx="6.5" cy="5" r="3.2" fill={ink} />
-                <path d={mouth} fill="none" stroke={ink} strokeWidth="2.6" strokeLinecap="round" />
-                {a.hasCamera && (
-                  <g transform="translate(-16,-14)">
-                    <circle r="11" fill="#0B2233" stroke="#EAF6FB" strokeWidth="2" />
-                    <rect x="-6.5" y="-4.5" width="9" height="9" rx="2.5" fill="#4FC3E8" />
-                    <path d="M3 -1.5 L7 -4 V4 L3 1.5Z" fill="#4FC3E8" strokeLinejoin="round" />
-                    <circle cx="-2" cy="0" r="2" fill="#0B2233" />
-                  </g>
-                )}
-                {a.crewColor && (
-                  <g transform="translate(19,17)">
-                    <circle r="9.5" fill={a.crewColor} stroke="#0B2233" strokeWidth="2" />
-                    <text
-                      y="4"
-                      textAnchor="middle"
-                      fontFamily="Nunito, sans-serif"
-                      fontWeight="800"
-                      fontSize="12"
-                      fill="#0B2233"
-                    >
-                      {a.crewLetter}
-                    </text>
-                  </g>
-                )}
-                {badge && (
-                  <>
-                    <circle
-                      cx="15"
-                      cy="-14"
-                      r="10"
-                      fill={done ? "#FFFFFF" : busy ? "#FFD27A" : "#EAF6FB"}
-                      stroke="#0B2233"
-                      strokeWidth="2.5"
-                    />
-                    {done && (
-                      <path
-                        d="M10 -14 l3.5 3.5 l7 -8"
-                        fill="none"
-                        stroke="#0B2233"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    )}
-                    {busy && (
-                      <>
-                        <circle cx="10" cy="-14" r="1.8" fill="#0B2233" />
-                        <circle cx="15" cy="-14" r="1.8" fill="#0B2233" />
-                        <circle cx="20" cy="-14" r="1.8" fill="#0B2233" />
-                      </>
-                    )}
-                    {showN && (
-                      <text
-                        x="15"
-                        y="-9.5"
-                        textAnchor="middle"
-                        fontFamily="Nunito, sans-serif"
-                        fontWeight="800"
-                        fontSize="14"
-                        fill="#0B2233"
-                      >
-                        {a.planN}
-                      </text>
-                    )}
-                  </>
-                )}
-              </g>
-            );
-          })}
-
-          {crews.map((c) => (
-            <g key={c.name} transform={`translate(${c.x.toFixed(1)},${c.y.toFixed(1)})`} aria-label={c.name}>
-              <circle r="15" fill="#FFE0C2" stroke="#0B2233" strokeWidth="3" />
-              <circle cx="-4.5" cy="2" r="2" fill="#0B2233" />
-              <circle cx="4.5" cy="2" r="2" fill="#0B2233" />
-              <path d="M-4 7 q4 4 8 0" fill="none" stroke="#0B2233" strokeWidth="2" strokeLinecap="round" />
-              <circle cx="-9" cy="6" r="2.5" fill="#FFB38A" />
-              <circle cx="9" cy="6" r="2.5" fill="#FFB38A" />
+          <g transform={T}>
+            <g transform={`translate(${DEPOT.x},${DEPOT.y}) scale(${cs})`}>
               <path
-                d="M-15 -2 a15 14 0 0 1 30 0 Z"
-                fill={c.hat}
-                stroke="#0B2233"
-                strokeWidth="2.5"
+                d="M-40 -24 L0 -50 L40 -24 Z"
+                fill="#FF8A4C"
+                stroke="#FF8A4C"
+                strokeWidth="8"
                 strokeLinejoin="round"
               />
-              <rect x="-18" y="-3" width="36" height="5" rx="2.5" fill={c.hat} stroke="#0B2233" strokeWidth="2" />
-              <circle cx="13" cy="14" r="8" fill="#0B2233" />
+              <rect x="-34" y="-26" width="68" height="52" rx="14" fill="#1E4A63" stroke="#4FC3E8" strokeWidth="3" />
               <text
-                x="13"
-                y="18"
+                x="0"
+                y="6"
                 textAnchor="middle"
                 fontFamily="Nunito, sans-serif"
                 fontWeight="800"
-                fontSize="11"
+                fontSize="14"
                 fill="#EAF6FB"
               >
-                {c.letter}
+                Depot
               </text>
-              {c.working && (
-                <circle
-                  r="25"
-                  fill="none"
-                  stroke="#FFD27A"
-                  strokeWidth="3"
-                  strokeDasharray="20 40"
-                  className="fr-spin"
-                />
-              )}
             </g>
-          ))}
+
+            {pts && (
+              <polyline
+                points={pts}
+                fill="none"
+                stroke="#EAF6FB"
+                strokeWidth={3 / k}
+                strokeDasharray={`${8 / k} ${8 / k}`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.35"
+              />
+            )}
+            {crewPts.map((r) => (
+              <polyline
+                key={r.name}
+                points={r.pts}
+                fill="none"
+                stroke={r.color}
+                strokeWidth={4.5 / k}
+                strokeDasharray={`${10 / k} ${7 / k}`}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.95"
+              />
+            ))}
+
+            {sorted.map((a) => {
+              const done = a.state === "done";
+              const busy = a.state === "busy";
+              const sc = a.level === "high" && !done ? 0.95 : a.level === "medium" ? 0.75 : 0.58;
+              const fill = done || a.level === "low" ? "#4FC3E8" : FILL[a.level];
+              const ink = a.level === "high" && !done ? "#2A1208" : "#0B2233";
+              const mouth = done ? MOUTH.low : MOUTH[a.level];
+              const showN = !done && !busy && a.planN;
+              const badge = done || busy || !!showN;
+              return (
+                <g
+                  key={a.id}
+                  className="fr-mk"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${a.id}, ${a.typeLabel}, ${done ? "Low" : cap(a.level)} blockage risk${a.hasCamera ? ", has a camera" : ""}${done ? ", cleaned" : busy ? ", crew assigned" : ""}`}
+                  transform={`translate(${a.x},${a.y}) scale(${sc * cs})`}
+                  pointerEvents="auto"
+                  onClick={() => onOpen(a.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onOpen(a.id);
+                    }
+                  }}
+                >
+                  {a.level === "high" && a.state === "idle" && (
+                    <circle r="22" className="fr-pulse" fill="#FF8A4C" opacity="0.5" />
+                  )}
+                  {a.crewColor && <circle r="29" fill="none" stroke={a.crewColor} strokeWidth="5" />}
+                  <path
+                    d="M0 -26 C11 -12 19 -3 19 8 a19 19 0 0 1 -38 0 C-19 -3 -11 -12 0 -26Z"
+                    fill={fill}
+                    stroke="#FFF3EA"
+                    strokeWidth="3.5"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="-6.5" cy="5" r="3.2" fill={ink} />
+                  <circle cx="6.5" cy="5" r="3.2" fill={ink} />
+                  <path d={mouth} fill="none" stroke={ink} strokeWidth="2.6" strokeLinecap="round" />
+                  {a.hasCamera && (
+                    <g transform="translate(-16,-14)">
+                      <circle r="11" fill="#0B2233" stroke="#EAF6FB" strokeWidth="2" />
+                      <rect x="-6.5" y="-4.5" width="9" height="9" rx="2.5" fill="#4FC3E8" />
+                      <path d="M3 -1.5 L7 -4 V4 L3 1.5Z" fill="#4FC3E8" strokeLinejoin="round" />
+                      <circle cx="-2" cy="0" r="2" fill="#0B2233" />
+                    </g>
+                  )}
+                  {a.crewColor && (
+                    <g transform="translate(19,17)">
+                      <circle r="9.5" fill={a.crewColor} stroke="#0B2233" strokeWidth="2" />
+                      <text
+                        y="4"
+                        textAnchor="middle"
+                        fontFamily="Nunito, sans-serif"
+                        fontWeight="800"
+                        fontSize="12"
+                        fill="#0B2233"
+                      >
+                        {a.crewLetter}
+                      </text>
+                    </g>
+                  )}
+                  {badge && (
+                    <>
+                      <circle
+                        cx="15"
+                        cy="-14"
+                        r="10"
+                        fill={done ? "#FFFFFF" : busy ? "#FFD27A" : "#EAF6FB"}
+                        stroke="#0B2233"
+                        strokeWidth="2.5"
+                      />
+                      {done && (
+                        <path
+                          d="M10 -14 l3.5 3.5 l7 -8"
+                          fill="none"
+                          stroke="#0B2233"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      )}
+                      {busy && (
+                        <>
+                          <circle cx="10" cy="-14" r="1.8" fill="#0B2233" />
+                          <circle cx="15" cy="-14" r="1.8" fill="#0B2233" />
+                          <circle cx="20" cy="-14" r="1.8" fill="#0B2233" />
+                        </>
+                      )}
+                      {showN && (
+                        <text
+                          x="15"
+                          y="-9.5"
+                          textAnchor="middle"
+                          fontFamily="Nunito, sans-serif"
+                          fontWeight="800"
+                          fontSize="14"
+                          fill="#0B2233"
+                        >
+                          {a.planN}
+                        </text>
+                      )}
+                    </>
+                  )}
+                </g>
+              );
+            })}
+
+            {crews.map((c) => (
+              <g
+                key={c.name}
+                transform={`translate(${c.x.toFixed(1)},${c.y.toFixed(1)}) scale(${cs})`}
+                aria-label={c.name}
+              >
+                <circle r="15" fill="#FFE0C2" stroke="#0B2233" strokeWidth="3" />
+                <circle cx="-4.5" cy="2" r="2" fill="#0B2233" />
+                <circle cx="4.5" cy="2" r="2" fill="#0B2233" />
+                <path d="M-4 7 q4 4 8 0" fill="none" stroke="#0B2233" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="-9" cy="6" r="2.5" fill="#FFB38A" />
+                <circle cx="9" cy="6" r="2.5" fill="#FFB38A" />
+                <path
+                  d="M-15 -2 a15 14 0 0 1 30 0 Z"
+                  fill={c.hat}
+                  stroke="#0B2233"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                />
+                <rect x="-18" y="-3" width="36" height="5" rx="2.5" fill={c.hat} stroke="#0B2233" strokeWidth="2" />
+                <circle cx="13" cy="14" r="8" fill="#0B2233" />
+                <text
+                  x="13"
+                  y="18"
+                  textAnchor="middle"
+                  fontFamily="Nunito, sans-serif"
+                  fontWeight="800"
+                  fontSize="11"
+                  fill="#EAF6FB"
+                >
+                  {c.letter}
+                </text>
+                {c.working && (
+                  <circle
+                    r="25"
+                    fill="none"
+                    stroke="#FFD27A"
+                    strokeWidth="3"
+                    strokeDasharray="20 40"
+                    className="fr-spin"
+                  />
+                )}
+              </g>
+            ))}
+          </g>
         </svg>
       </div>
 
