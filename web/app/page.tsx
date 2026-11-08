@@ -35,6 +35,7 @@ const Map3D = dynamic(() => import("./Map3D"), {
   loading: () => <p style={{ padding: 16 }}>Loading 3D view…</p>,
 });
 import CrewApp, { CameraIcon } from "./CrewApp";
+import { PHOTO_UPLOAD_ON } from "@/lib/uploadPhoto";
 
 type Prediction = { asset_id: string; p_block: number; level: Level; reasons: string[] };
 type Role = null | "manager" | "split";
@@ -432,7 +433,12 @@ export default function Home() {
     <section className="fr-section fr-wide" {...panelProps("records", "Records")}>
       <div className="fr-label">Compliance records</div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <Stat n={photoRecs.filter((r) => r.before).length} color="#FFD27A" l1="Before photos" l2="AI training" />
+        <Stat
+          n={photoRecs.filter((r) => r.before).length}
+          color="#FFD27A"
+          l1="Before photos"
+          l2={PHOTO_UPLOAD_ON ? "for review" : "AI training"}
+        />
         <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
         <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
       </div>
@@ -484,8 +490,9 @@ export default function Home() {
         </div>
       )}
       <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
-        Sample records, metadata only. Photos are not stored by the manager screen. Real photos would carry time and
-        location, be stored with the work order, and be checked for faces and number plates before use in training.
+        {PHOTO_UPLOAD_ON
+          ? "Sample records, metadata only. Crew photos are saved to the sample project for review, not shown here, and not used for training. A face and number-plate check is required before any training use and is not built."
+          : "Sample records, metadata only. Photos are not stored by the manager screen. Real photos would carry time and location, be stored with the work order, and be checked for faces and number plates before use in training."}
       </div>
     </section>
   );
