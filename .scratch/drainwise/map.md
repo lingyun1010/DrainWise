@@ -32,13 +32,16 @@ A **decision-locked build spec** for the DrainWise hackathon MVP: stack, scope, 
 - [Asset data approach](issues/02-asset-data-approach.md): council sample if given, else fictional points in real Parramatta; 36 assets, parameterised; all features simulated in MVP; persistent SAMPLE DATA labelling.
 - [Photo pipeline and privacy](issues/04-photo-pipeline-privacy.md): photos in memory only; metadata-only Job record; minimal human-review page for 7 sample images; face/plate check is a gate before training (not built); honest "designed to become training data" claim.
 
+## Open tickets
+
+- [Pitch and demo script](issues/05-pitch-and-demo-script.md)
+- [Schema and data model](issues/06-schema-and-data-model.md)
+- [Hosting and deploy](issues/07-hosting-and-deploy.md)
+- [Risk model evaluation on simulated data](issues/08-risk-model-evaluation.md)
+
 ## Not yet specified
 
-- Pitch and demo script (what the judges see in 3 minutes, which story).
-- Schema / data model (assets, observations, runs, run_stops, weather, canopy_by_asset) once the data approach is known.
-- Hosting and deploy (Vercel + Supabase + where FastAPI runs).
-- How to evaluate the risk model honestly on simulated data.
-- Presentation layer stretch items: 3D view, Supabase Auth.
+- Presentation layer stretch items: 3D view (built), Supabase Auth.
 
 ## Out of scope
 
