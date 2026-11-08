@@ -11,9 +11,9 @@ FEATURES = [
     "is_gpt", "canopy_pct", "leaf_index", "rain_mm_7d",
     "rain_forecast_mm", "days_since_clean", "has_camera",
 ]
-# Domain constraint: more canopy / leaf fall / recent rain / days since clean never lowers risk.
+# Domain constraint: more canopy / leaf fall / recent rain / forecast rain / days since clean never lowers risk.
 # Order matches FEATURES: is_gpt, canopy, leaf, rain_7d, rain_forecast, days_since_clean, has_camera.
-MONOTONIC_CST = [0, 1, 1, 1, 0, 1, 0]
+MONOTONIC_CST = [0, 1, 1, 1, 1, 1, 0]
 DEFAULT_PATH = Path(__file__).parent / "model.joblib"
 DATA_SOURCE = "simulated (ml/simulate.py) - SAMPLE DATA, not observed council records"
 
