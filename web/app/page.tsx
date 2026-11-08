@@ -12,6 +12,8 @@ import { resolveScores, type LiveResult } from "../../planner/src/resolveScores"
 import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
 import riskModel from "@/lib/riskModel.json";
 import precomputed from "@/lib/precomputedScores.json";
+import CrewToggles from "./CrewToggles";
+import { lastReturn, openStops, reasonLabel, recentReturners, type Returned } from "../../planner/src/runActions";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
 import {
   DEFAULT_CREWS,
@@ -94,6 +96,7 @@ export default function Home() {
   const [offline, setOffline] = useState(false); // true when the scores come from the precomputed file
   const [st, setSt] = useState<SavedState>({ crews: DEFAULT_CREWS, runs: {}, records: [], log: [] });
   const [logOpen, setLogOpen] = useState(false);
+  const [hiddenLogCrews, setHiddenLogCrews] = useState<string[]>([]); // crews unticked in the Activity log
   const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
   const [resetAsk, setResetAsk] = useState(false); // confirm before clearing the sample session
   const [choose, setChoose] = useState<RunStop[] | null>(null); // stops waiting for the manager to pick a crew
@@ -339,15 +342,14 @@ export default function Home() {
   // Which crew holds each open stop, in run order, for the coloured rings and routes on the map.
   const crewRoutes: MapRoute[] = st.crews.flatMap((c, i) => {
     const r = st.runs[c.id];
-    const ids = r && !hiddenCrews.includes(c.id) ? r.stops.filter((s) => !r.done.includes(s.id)).map((s) => s.id) : [];
+    const ids = r && !hiddenCrews.includes(c.id) ? openStops(r).map((s) => s.id) : [];
     return ids.length ? [{ name: c.name, color: HATS[i % HATS.length], ids }] : [];
   });
   const stopCrew = new Map<string, { color: string; letter: string }>();
   st.crews.forEach((c, i) => {
     const r = hiddenCrews.includes(c.id) ? undefined : st.runs[c.id];
-    r?.stops
-      .filter((s) => !r.done.includes(s.id))
-      .forEach((s) => stopCrew.set(s.id, { color: HATS[i % HATS.length], letter: crewLetter(c.name) }));
+    if (r)
+      openStops(r).forEach((s) => stopCrew.set(s.id, { color: HATS[i % HATS.length], letter: crewLetter(c.name) }));
   });
 
   const mapAssets: MapAsset[] = rows.map(({ p, a, state }) => ({
@@ -368,7 +370,7 @@ export default function Home() {
 
   const mapCrews: MapCrew[] = st.crews.map((c, i) => {
     const r = st.runs[c.id];
-    const next = r && r.accepted && isBusy(r) ? r.stops.find((x) => !r.done.includes(x.id)) : undefined;
+    const next = r && r.accepted && isBusy(r) ? openStops(r)[0] : undefined;
     const spot = next ? byId.get(next.id) : undefined;
     return {
       id: c.id,
@@ -431,7 +433,7 @@ export default function Home() {
     const r = st.runs[crewId];
     const crew = st.crews.find((c) => c.id === crewId);
     if (!r || !crew || !isBusy(r)) return;
-    const left = r.stops.filter((s) => !r.done.includes(s.id));
+    const left = openStops(r);
     const kept = r.stops.filter((s) => r.done.includes(s.id));
     const msg = `${crew.name} withdrawn from ${left.map((s) => s.id).join(", ")}. Back in the queue.`;
     save({
@@ -499,6 +501,23 @@ export default function Home() {
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
   const planPct = Math.min(100, Math.round((plan.totalLoad / capacity) * 100));
   const photoRecs = records.filter((r) => r.method === "photos");
+  // One row per decline, skip or early end (a run that ends sends several stops back at once).
+  const returnEvents = (() => {
+    const out: (Returned & { key: string; crew: string; stopIds: string[] })[] = [];
+    for (const r of st.returns ?? []) {
+      const key = `${r.runId}|${r.kind}|${r.at}`;
+      const hit = out.find((o) => o.key === key);
+      if (hit) hit.stopIds.push(r.stopId);
+      else
+        out.push({
+          ...r,
+          key,
+          crew: st.crews.find((c) => c.id === r.crewId)?.name ?? "A crew",
+          stopIds: [r.stopId],
+        });
+    }
+    return out;
+  })();
 
   const confirmCrew = confirm ? st.crews.find((c) => c.id === confirm.crewId) : undefined;
   const confirmRun = confirmCrew ? st.runs[confirmCrew.id] : undefined;
@@ -507,7 +526,7 @@ export default function Home() {
     const name = confirmCrew.name;
     const cleanedBy = records.filter((r) => r.crewId === name).length;
     if (confirm.kind === "withdraw") {
-      const left = confirmRun ? confirmRun.stops.filter((x) => !confirmRun.done.includes(x.id)) : [];
+      const left = confirmRun ? openStops(confirmRun) : [];
       if (left.length === 0) return null;
       return (
         <ConfirmDialog
@@ -637,6 +656,65 @@ export default function Home() {
             ))}
         </ul>
       )}
+      {returnEvents.length > 0 && (
+        <>
+          <div className="fr-label" style={{ marginTop: 16 }}>
+            Sent back to the queue
+          </div>
+          <ul
+            style={{
+              listStyle: "none",
+              margin: "10px 0 0",
+              padding: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {returnEvents.slice(0, 3).map((e) => {
+              const ci = st.crews.findIndex((c) => c.id === e.crewId);
+              return (
+                <li
+                  key={e.key}
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    alignItems: "center",
+                    background: "#0B2233",
+                    borderRadius: 12,
+                    padding: "8px 10px",
+                    fontSize: 13,
+                    lineHeight: 1.35,
+                    color: "#CFE6F0",
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 999,
+                      flex: "none",
+                      background: ci >= 0 ? HATS[ci % HATS.length] : "transparent",
+                      border: ci >= 0 ? "2px solid #0B2233" : "2px dashed #2D6182",
+                      boxShadow: ci >= 0 ? "0 0 0 1px #EAF6FB" : undefined,
+                    }}
+                  />
+                  <div>
+                    <b>
+                      {e.kind === "declined" ? "Declined" : e.kind === "skipped" ? "Skipped" : "Ended early"}:{" "}
+                      {reasonLabel(e.reason)}
+                    </b>
+                    {e.note ? ` (${e.note})` : ""}
+                    <br />
+                    {e.crew} · {e.stopIds.join(", ")}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
       {records.length > 3 && (
         <div style={{ marginTop: 8, fontSize: 13, color: "#B9D6E3" }}>
           Showing the latest 3 of {records.length} records.
@@ -666,6 +744,12 @@ export default function Home() {
         {st.crews.map((c, i) => {
           const r = st.runs[c.id];
           const status = !isBusy(r) ? "Ready" : r?.accepted ? "Cleaning" : "Dispatched";
+          // Latest early end or decline by this crew, shown until a newer run replaces it.
+          const sent = (st.returns ?? []).find((x) => x.crewId === c.id && x.kind !== "skipped");
+          const sentNote =
+            !isBusy(r) && sent && (!r || r.runId === sent.runId)
+              ? `${sent.kind === "declined" ? "Declined" : "Ended early"}: ${reasonLabel(sent.reason)}`
+              : "";
           return (
             <li
               key={c.id}
@@ -706,6 +790,9 @@ export default function Home() {
               />
               <span style={{ color: status === "Ready" ? "#8FB8CC" : "#FFD27A", fontWeight: 600, fontSize: 14 }}>
                 {status}
+                {sentNote && (
+                  <span style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#FFB38A" }}>{sentNote}</span>
+                )}
               </span>
               {isBusy(r) ? (
                 <button
@@ -747,10 +834,25 @@ export default function Home() {
     </section>
   );
 
-  const logRows = [...st.log, { t: "13:00", x: "Shift started. Risk scores update with leaf fall and rain." }];
+  const allLogRows = [...st.log, { t: "13:00", x: "Shift started. Risk scores update with leaf fall and rain." }];
+  // Entries without a crew (shift start, manager actions) always stay; the toggles only hide crew entries.
+  const logRows = allLogRows.filter((l) => !l.crewId || !hiddenLogCrews.includes(l.crewId));
+  const allLogCrewsHidden = st.crews.length > 0 && st.crews.every((c) => hiddenLogCrews.includes(c.id));
   const logPanel = (
     <section className="fr-section" hidden={tabbed && tab !== "crews"} aria-label="Activity log">
       <div className="fr-label">Activity log</div>
+      <div style={{ marginTop: 6, fontSize: 14, color: "#B9D6E3" }}>
+        <CrewToggles
+          crews={st.crews.map((c, i) => ({ id: c.id, name: c.name, hat: HATS[i % HATS.length] }))}
+          hidden={hiddenLogCrews}
+          onToggle={(id) => setHiddenLogCrews((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]))}
+          label="Show in log:"
+          suffix="in the log"
+        />
+      </div>
+      {allLogCrewsHidden && (
+        <div style={{ marginTop: 6, fontSize: 13, color: "#8FB8CC" }}>All crews hidden. Showing shift events only.</div>
+      )}
       <ol
         style={{
           listStyle: "none",
@@ -828,6 +930,7 @@ export default function Home() {
     <div style={{ minHeight: "100dvh", position: "relative", background: "#0B2233", color: "#EAF6FB" }}>
       {role === "manager" || role === "split" ? (
         <div
+          data-fr-header
           style={{
             display: "flex",
             flexWrap: "wrap",
@@ -1181,6 +1284,16 @@ export default function Home() {
                       <div style={{ fontSize: 13, color: "#B9D6E3", lineHeight: 1.35 }}>
                         {p.reasons.slice(0, 2).join(" · ")}
                       </div>
+                      {(() => {
+                        const back = lastReturn(st.returns, a.id);
+                        if (!back) return null;
+                        const who = st.crews.find((c) => c.id === back.crewId)?.name ?? "A crew";
+                        return (
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#FFB38A", lineHeight: 1.35 }}>
+                            Returned by {who}: {reasonLabel(back.reason)}
+                          </div>
+                        );
+                      })()}
                     </div>
                     <button
                       type="button"
@@ -1610,6 +1723,11 @@ export default function Home() {
           crews={st.crews}
           runs={st.runs}
           count={choose.length}
+          avoid={recentReturners(
+            st.returns,
+            choose.map((x) => x.id),
+            Date.now(),
+          )}
           onCancel={() => setChoose(null)}
           onPick={(id) => {
             const c = st.crews.find((x) => x.id === id);
@@ -1668,19 +1786,24 @@ function CrewChooser({
   crews,
   runs,
   count,
+  avoid,
   onPick,
   onCancel,
 }: {
   crews: SavedState["crews"];
   runs: SavedState["runs"];
   count: number;
+  avoid: Set<string>; // crews that sent one of these stops back in the last 24 hours: not pre-selected
   onPick: (id: string) => void;
   onCancel: () => void;
 }) {
   const list = crews
     .map((c, i) => ({ c, color: HATS[i % HATS.length], isBusy: isBusy(runs[c.id]) }))
     .sort((m, n) => m.c.name.localeCompare(n.c.name, undefined, { sensitivity: "base", numeric: true }));
-  const firstFree = list.findIndex((x) => !x.isBusy);
+  const firstFree = (() => {
+    const i = list.findIndex((x) => !x.isBusy && !avoid.has(x.c.id));
+    return i >= 0 ? i : list.findIndex((x) => !x.isBusy);
+  })();
   return (
     <Dialog
       label="Choose a crew"
@@ -1731,7 +1854,7 @@ function CrewChooser({
               />
               <span style={{ flex: 1, textAlign: "left" }}>{c.name}</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: out ? "#FFD27A" : "#8FB8CC" }}>
-                {out ? "Out on a run" : "Available"}
+                {out ? "Out on a run" : avoid.has(c.id) ? "Sent this back" : "Available"}
               </span>
             </button>
           </li>

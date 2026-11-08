@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import BaseMap, { type View } from "./BaseMap";
+import CrewToggles from "./CrewToggles";
 import { MAP_H, MAP_W, WATERWAYS } from "@/lib/geo";
 import { DEPOT } from "@/lib/seed";
 
@@ -62,18 +63,27 @@ export default function MapView({
   const box = useRef<HTMLDivElement>(null);
   const exitBtn = useRef<HTMLButtonElement>(null);
   const [full, setFull] = useState(false); // map fills the window (in this page, no navigation)
+  const [headTop, setHeadTop] = useState(0); // full screen on a wide window starts below the dashboard header
   useEffect(() => {
     if (!full) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !document.querySelector("[role=dialog]")) setFull(false); // Esc closes an open dialog first
     };
     window.addEventListener("keydown", onKey);
+    const place = () => {
+      const h = document.querySelector("[data-fr-header]");
+      setHeadTop(h && window.innerWidth >= 900 ? Math.max(0, Math.round(h.getBoundingClientRect().bottom)) : 0);
+    };
+    window.scrollTo(0, 0); // so the header is in view and its height is the offset
+    place();
+    window.addEventListener("resize", place);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     document.body.classList.add("fr-map-full"); // lifts the map column above the other columns
     exitBtn.current?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", place);
       document.body.style.overflow = prev;
       document.body.classList.remove("fr-map-full");
     };
@@ -115,7 +125,15 @@ export default function MapView({
     <div
       style={
         full
-          ? { position: "fixed", inset: 0, zIndex: 15, display: "flex", flexDirection: "column", background: "#0B2233" }
+          ? {
+              position: "fixed",
+              inset: 0,
+              top: headTop,
+              zIndex: 15,
+              display: "flex",
+              flexDirection: "column",
+              background: "#0B2233",
+            }
           : undefined
       }
     >
@@ -478,49 +496,13 @@ export default function MapView({
           </svg>
           crew at work
         </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          Show on map:
-          {crews.map((c) => {
-            const key = c.id ?? c.name;
-            const shown = !hiddenCrews.includes(key);
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={shown}
-                aria-label={`${c.name} on the map`}
-                title={shown ? `Hide ${c.name}` : `Show ${c.name}`}
-                onClick={() => onToggleCrew?.(key)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  minHeight: 40,
-                  padding: "2px 8px",
-                  background: "transparent",
-                  border: 0,
-                  borderRadius: 999,
-                  color: shown ? "#EAF6FB" : "#8FB8CC",
-                  cursor: "pointer",
-                  font: "inherit",
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: 999,
-                    background: shown ? c.hat : "transparent",
-                    border: `3px solid ${c.hat}`,
-                    flex: "none",
-                  }}
-                />
-                {c.name}
-              </button>
-            );
-          })}
-        </span>
+        <CrewToggles
+          crews={crews.map((c) => ({ id: c.id ?? c.name, name: c.name, hat: c.hat }))}
+          hidden={hiddenCrews}
+          onToggle={(id) => onToggleCrew?.(id)}
+          label="Show on map:"
+          suffix="on the map"
+        />
         <span>
           Real map, sample GPT and depot positions (not council assets). Map data{" "}
           <a

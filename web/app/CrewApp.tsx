@@ -2,9 +2,19 @@
 
 import Image from "next/image";
 
+import ReasonDialog, { type ReasonKind } from "./ReasonDialog";
 import RoomChip from "./RoomChip";
 import { useEffect, useState } from "react";
 import { canComplete } from "../../planner/src/canComplete";
+import {
+  declineRun,
+  endRunEarly,
+  isOpen,
+  openStops,
+  reasonLabel,
+  skipStop,
+  type Reason,
+} from "../../planner/src/runActions";
 import { mockSuggestion } from "../../planner/src/mockSuggestion";
 import type { Suggestion } from "../../planner/src/parseSuggestion";
 import {
@@ -39,6 +49,8 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
   >({});
 
   // Mock "AI check" results, per stop like the photos (see planner/src/mockSuggestion.ts).
+  const [asking, setAsking] = useState<ReasonKind | null>(null);
+  const [notice, setNotice] = useState("");
   const [mocks, setMocks] = useState<Record<string, Suggestion | undefined>>({});
 
   useEffect(() => {
@@ -59,7 +71,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     saveState(next);
   }
 
-  const idx = run ? run.stops.findIndex((s) => !run.done.includes(s.id)) : -1;
+  const idx = run ? run.stops.findIndex((s) => isOpen(run, s.id)) : -1;
   const stop = run && idx >= 0 ? run.stops[idx] : undefined;
   const total = run?.stops.length ?? 0;
   const photoKey = crew && run && stop ? `${crew.id}/${run.runId}/${stop.id}` : "";
@@ -81,6 +93,42 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
       { ...run, accepted: true },
       { log: addLog(state.log, sydneyClock(), `${crewName} accepted and is on the way to ${stop.id}.`, meta) },
     );
+  }
+
+  // Decline, skip or end early. Re-reads the shared state first so a withdrawn run is never overwritten.
+  function leave(kind: ReasonKind, reason: Reason, note?: string) {
+    setAsking(null);
+    if (!crew || !stop) return;
+    const now = loadState();
+    const live = now.runs[crew.id];
+    if (!live || live.runId !== run?.runId) {
+      setState(now);
+      setNotice("Run was withdrawn by the manager.");
+      return;
+    }
+    const at = new Date().toISOString();
+    const why = `${reasonLabel(reason)}${note ? ` (${note})` : ""}`;
+    const t = sydneyClock();
+    let next = now;
+    let text: string;
+    if (kind === "decline") {
+      next = declineRun(now, crew.id, reason, at, note);
+      text = `${crewName} declined the run: ${why}. Back in the queue.`;
+    } else if (kind === "skip") {
+      next = skipStop(now, crew.id, stop.id, reason, at, note);
+      text =
+        next.runs[crew.id]?.ended || !next.runs[crew.id]
+          ? `${crewName} ended the run early: ${why}. Back in the queue.`
+          : `${crewName} skipped ${stop.id}: ${why}. Back in the queue.`;
+    } else {
+      next = endRunEarly(now, crew.id, reason, at, note);
+      text = `${crewName} ended the run early: ${why}. Back in the queue.`;
+    }
+    if (next === now) return;
+    next = { ...next, log: addLog(next.log, t, text, { ...meta, runId: live.runId }) };
+    setState(next);
+    saveState(next);
+    setNotice(text);
   }
 
   function finish() {
@@ -135,7 +183,13 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     : { ok: false, missing: [] as string[] };
   const loadAll = run ? run.stops.reduce((n, s) => n + s.load, 0) : 0;
   const loadDone = run ? run.stops.filter((s) => run.done.includes(s.id)).reduce((n, s) => n + s.load, 0) : 0;
-  const nextNames = run && idx >= 0 ? run.stops.slice(idx + 1).map((s) => s.id) : [];
+  const nextNames =
+    run && idx >= 0
+      ? run.stops
+          .slice(idx + 1)
+          .filter((s) => isOpen(run, s.id))
+          .map((s) => s.id)
+      : [];
 
   return (
     <aside
@@ -219,8 +273,17 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
           </svg>
           <div style={{ fontWeight: 700, fontSize: 20, color: "#EAF6FB", marginTop: 10 }}>All clear</div>
           <div style={{ fontSize: 15, marginTop: 6 }}>
-            {run && total > 0 ? "Run finished. Drive back to the depot." : "Waiting for the next task."}
+            {run?.ended
+              ? `Run ended early: ${reasonLabel(run.ended.reason)}. Drive back to the depot.`
+              : run && total > 0
+                ? "Run finished. Drive back to the depot."
+                : "Waiting for the next task."}
           </div>
+          {notice && (
+            <div role="status" style={{ fontSize: 13, marginTop: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
+              {notice}
+            </div>
+          )}
         </div>
       ) : (
         <div
@@ -268,9 +331,14 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
           )}
 
           {!run!.accepted ? (
-            <button className="fr-btn fr-pri" type="button" onClick={accept} style={{ width: "100%" }}>
-              Accept task
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button className="fr-btn fr-pri" type="button" onClick={accept} style={{ width: "100%" }}>
+                Accept task
+              </button>
+              <button className="fr-btn fr-ghost" type="button" onClick={() => setAsking("decline")}>
+                Decline run
+              </button>
+            </div>
           ) : !stop.photosNeeded ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div
@@ -410,9 +478,57 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
               </div>
             </div>
           )}
+          {run!.accepted && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                marginTop: 16,
+                paddingTop: 14,
+                borderTop: "2px solid #1E4A63",
+              }}
+            >
+              <button
+                className="fr-btn fr-sec"
+                type="button"
+                style={{ flex: 1, minHeight: 44 }}
+                onClick={() => setAsking("skip")}
+              >
+                Skip this stop
+              </button>
+              <button
+                className="fr-btn fr-ghost"
+                type="button"
+                style={{ flex: 1, minHeight: 44 }}
+                onClick={() => setAsking("end")}
+              >
+                End run early
+              </button>
+            </div>
+          )}
+          {(run!.skipped ?? []).length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
+              {run!.skipped!.map((k) => (
+                <div key={k.stopId}>
+                  Skipped {k.stopId}: {reasonLabel(k.reason)}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <p style={{ marginTop: 16, fontSize: 12, color: "#8FB8CC" }}>Sample data. Signed in as {crewName}.</p>
+      {asking && run && stop && (
+        <ReasonDialog
+          kind={asking}
+          stopId={stop.id}
+          doneCount={run.done.length}
+          openCount={openStops(run).length}
+          onConfirm={(reason, note) => leave(asking, reason, note)}
+          onCancel={() => setAsking(null)}
+        />
+      )}
     </aside>
   );
 }
