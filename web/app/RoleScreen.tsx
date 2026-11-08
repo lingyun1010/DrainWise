@@ -21,6 +21,7 @@ export default function RoleScreen({
 }) {
   return (
     <div
+      className="fr-role"
       style={{
         position: "absolute",
         inset: 0,
@@ -35,7 +36,15 @@ export default function RoleScreen({
       }}
     >
       <div style={{ textAlign: "center", maxWidth: 720 }}>
-        <Image src="/brand-mascot.png" alt="" width={110} height={95} unoptimized style={{ margin: "0 auto" }} />
+        <Image
+          className="fr-rolemascot"
+          src="/brand-mascot.png"
+          alt=""
+          width={110}
+          height={95}
+          unoptimized
+          style={{ margin: "0 auto" }}
+        />
         <h1 style={{ margin: "8px 0 6px" }}>
           <Image
             src="/brand-wordmark.png"
@@ -47,13 +56,16 @@ export default function RoleScreen({
           />
         </h1>
         <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
-        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
+        <p className="fr-intro" style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
           Leaves block gross pollutant traps (GPTs), and most of them have no camera. DrainWise predicts which ones are
           about to block and tells crews where to go first. Crews fill the truck on one run, and every job is closed
           with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.
         </p>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", maxWidth: 1000 }}>
+      <div
+        className="fr-cards"
+        style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", maxWidth: 1000 }}
+      >
         <button type="button" className="fr-card" onClick={onManager}>
           <svg width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
             {FACE}
