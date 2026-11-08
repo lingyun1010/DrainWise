@@ -42,9 +42,9 @@ export default function RoleScreen({
         <h1 style={{ margin: "8px 0 6px", fontSize: 40, fontWeight: 700 }}>DrainWise</h1>
         <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
-          Leaves block drain inlets and gross pollutant traps, and most of them have no camera. DrainWise predicts which
-          ones are about to block and tells crews where to go first. Crews fill the truck on one run, and every job is
-          closed with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.
+          Leaves block gross pollutant traps (GPTs), and most of them have no camera. DrainWise predicts which ones are
+          about to block and tells crews where to go first. Crews fill the truck on one run, and every job is closed
+          with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.
         </p>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", maxWidth: 1000 }}>

@@ -1,7 +1,7 @@
-// SAMPLE DATA: invented for the demo. Not real council assets.
+// SAMPLE DATA: invented for the demo. Not real council assets. Every asset is a gross pollutant trap (GPT).
 // Same generator and map units (800 x 500) as reference/demo-Main.dc.html so the map matches.
 export type SeedAsset = {
-  id: string; // display name, unique (DR-001, GPT-01)
+  id: string; // display name, unique (GPT-001)
   type: "inlet" | "gpt";
   typeLabel: string;
   x: number; // 0..800 map units
@@ -10,6 +10,8 @@ export type SeedAsset = {
   daysSinceClean: number;
   hasCamera: boolean;
 };
+
+export const ASSET_COUNT = 36; // demo size; the real network is expected to be about 200 GPTs (later)
 
 export const DEPOT = { x: 70, y: 445 };
 
@@ -31,19 +33,17 @@ export function makeSeedAssets(): SeedAsset[] {
     return cy[cy.length - 1];
   };
   const out: SeedAsset[] = [];
-  let nd = 0;
-  let ng = 0;
-  while (out.length < 36) {
+  let tries = 0;
+  while (out.length < ASSET_COUNT && tries++ < 50000) {
     const x = 50 + rnd() * 700;
     const y = creekY(x) + (rnd() < 0.5 ? -1 : 1) * (18 + rnd() * 105);
     if (y < 45 || y > 470 || (x < 150 && y > 380)) continue;
     if (out.some((q) => Math.abs(q.x - x) < 30 && Math.abs(q.y - y) < 30)) continue;
-    const gpt = rnd() < 0.28;
-    const cam = rnd() < (gpt ? 0.55 : 0.2);
+    const cam = rnd() < 0.3; // only some sites have a camera
     out.push({
-      id: gpt ? "GPT-" + String(++ng).padStart(2, "0") : "DR-" + String(++nd).padStart(3, "0"),
-      type: gpt ? "gpt" : "inlet",
-      typeLabel: gpt ? "Gross pollutant trap" : "Drain inlet",
+      id: "GPT-" + String(out.length + 1).padStart(3, "0"),
+      type: "gpt",
+      typeLabel: "Gross pollutant trap",
       x: Math.round(x),
       y: Math.round(y),
       canopyPct: Math.round(8 + rnd() * 62),

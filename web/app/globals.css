@@ -271,6 +271,37 @@ body {
     grid-row: auto;
   }
 }
+/* Manager dashboard: every panel visible at once, using the full screen width. */
+.fr-dash {
+  max-width: none;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+}
+.fr-dash .fr-side {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-content: start;
+  gap: 14px;
+  max-height: calc(100vh - 100px);
+}
+.fr-dash .fr-mapcol {
+  position: relative;
+}
+.fr-below {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+  align-items: start;
+}
+.fr-dash .fr-sim {
+  grid-column: 1 / -1;
+}
+@media (max-width: 899px) {
+  .fr-dash .fr-side {
+    display: flex;
+    max-height: none;
+  }
+}
 .fr-tabs {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -357,6 +388,13 @@ body {
   font-weight: 700;
   padding: 8px 14px;
   border-radius: 10px;
+}
+.fr-skip:not(:focus) {
+  clip-path: inset(50%);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  padding: 0;
 }
 .fr-skip:focus {
   top: 8px;
