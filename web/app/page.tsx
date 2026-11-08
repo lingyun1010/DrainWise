@@ -148,7 +148,11 @@ export default function Home() {
 
   // Cleaned assets get days_since_clean = 0, so the model itself shows the risk reset.
   const hz = horizonInputs(day, extra);
+  // The scores on screen belong to scoredKey. While it differs from the inputs now chosen, new scores are on the way.
+  const [scoredKey, setScoredKey] = useState<string | null>(null);
   const rainForecast = hz.rain_forecast_mm;
+  const scoreKey = `${leaf}|${rainForecast}|${hz.days_added}|${hz.rain_mm_7d}|${[...cleaned].sort().join(",")}`;
+  const scoring = scoredKey !== scoreKey;
   useEffect(() => {
     const t = setTimeout(async () => {
       let live: LiveResult<Prediction>;
@@ -182,6 +186,7 @@ export default function Home() {
         live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
       }
       const r = resolveScores(live, precomputed.scores as Prediction[]);
+      setScoredKey(scoreKey);
       if (r.status === "error") {
         setPreds(null);
         setError(r.error);
@@ -199,7 +204,7 @@ export default function Home() {
       }
     }, 250);
     return () => clearTimeout(t);
-  }, [seed, leaf, rainForecast, hz.days_added, hz.rain_mm_7d, cleaned]);
+  }, [seed, leaf, rainForecast, hz.days_added, hz.rain_mm_7d, cleaned, scoreKey]);
 
   const byId = useMemo(() => new Map(seed.map((a) => [a.id, a])), [seed]);
   const rows = useMemo(
@@ -916,6 +921,12 @@ export default function Home() {
                   }
                   onOpen={openAsset}
                 />
+              )}
+              {scoring && (
+                <div role="status" className="fr-wait">
+                  <i aria-hidden="true" />
+                  Updating risk scores…
+                </div>
               )}
               <div role="status" className="fr-sr">
                 {toast}
