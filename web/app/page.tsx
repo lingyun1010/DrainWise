@@ -201,6 +201,8 @@ export default function Home() {
     level: state === "done" ? "low" : p.level,
     state,
     planN: planN.get(a.id),
+    pct: state === "done" ? undefined : Math.min(99, Math.round(p.p_block * 100)),
+    daysSinceClean: state === "done" ? 0 : a.daysSinceClean,
   }));
 
   const mapCrews: MapCrew[] = st.crews.map((c, i) => {
@@ -404,7 +406,7 @@ export default function Home() {
         } as const);
 
   const recordsPanel = (
-    <section className="fr-section" {...panelProps("records", "Records")}>
+    <section className="fr-section fr-wide" {...panelProps("records", "Records")}>
       <div className="fr-label">Compliance records</div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <Stat n={photoRecs.filter((r) => r.before).length} color="#FFD27A" l1="Before photos" l2="AI training" />
@@ -816,7 +818,6 @@ export default function Home() {
               <div className="fr-below">
                 {crewsPanel}
                 {logPanel}
-                {recordsPanel}
               </div>
             )}
           </section>
@@ -1142,6 +1143,7 @@ export default function Home() {
                 </div>
               </section>
             </details>
+            {!tabbed && recordsPanel}
           </aside>
 
           {showPhone && (
