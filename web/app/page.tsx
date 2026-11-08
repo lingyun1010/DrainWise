@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
 import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
+import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
+import riskModel from "@/lib/riskModel.json";
 import precomputed from "@/lib/precomputedScores.json";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
 import {
@@ -12,7 +14,7 @@ import {
   HATS,
   addLog,
   crewLetter,
-  fmtClock,
+  sydneyClock,
   isBusy,
   loadState,
   openStopIds,
@@ -83,6 +85,7 @@ export default function Home() {
   const [cur, setCur] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [minute, setMinute] = useState(0);
+  const [clock, setClock] = useState("--:--"); // real Sydney time; set after mount so server and browser HTML match
   const [view, setView] = useState<"2d" | "3d">("2d");
   // Before photos a person has already confirmed on /review, as "runId:stopId". Those no longer wait for review.
   const [reviewed, setReviewed] = useState<ReadonlySet<string>>(new Set());
@@ -116,7 +119,11 @@ export default function Home() {
     const read = () => setSt(loadState());
     read();
     const un = subscribeRun(read);
-    const tick = setInterval(() => setMinute(simMinute()), 400);
+    const tick = setInterval(() => {
+      setMinute(simMinute());
+      setClock(sydneyClock());
+      setClock(sydneyClock());
+    }, 400);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sim clock lives in localStorage, only readable in the browser
     setMinute(simMinute());
     return () => {
@@ -141,28 +148,31 @@ export default function Home() {
     const t = setTimeout(async () => {
       let live: LiveResult<Prediction>;
       try {
-        if (PUBLIC_BUILD) throw new Error("public build: no live risk-api");
-        const res = await fetch("/api/risk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            seed.map((a) => ({
-              asset_id: a.id,
-              type: a.type,
-              canopy_pct: a.canopyPct,
-              leaf_index: leaf,
-              rain_mm_7d: 20,
-              rain_forecast_mm: rainForecast,
-              days_since_clean: cleaned.has(a.id) ? 0 : a.daysSinceClean,
-              has_camera: a.hasCamera,
-            })),
-          ),
-        });
-        const data = await res.json();
-        live =
-          res.ok && Array.isArray(data)
-            ? { ok: true, scores: data }
-            : { ok: false, error: data.error ?? "request failed" };
+        const inputs = seed.map((a) => ({
+          asset_id: a.id,
+          type: a.type,
+          canopy_pct: a.canopyPct,
+          leaf_index: leaf,
+          rain_mm_7d: 20,
+          rain_forecast_mm: rainForecast,
+          days_since_clean: cleaned.has(a.id) ? 0 : a.daysSinceClean,
+          has_camera: a.hasCamera,
+        }));
+        if (PUBLIC_BUILD) {
+          // No risk-api on the public build: run the exported trees in the browser (same answers, see riskModel.test.ts).
+          live = { ok: true, scores: predictLocal(riskModel as unknown as ModelJson, inputs) };
+        } else {
+          const res = await fetch("/api/risk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(inputs),
+          });
+          const data = await res.json();
+          live =
+            res.ok && Array.isArray(data)
+              ? { ok: true, scores: data }
+              : { ok: false, error: data.error ?? "request failed" };
+        }
       } catch (e) {
         live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
       }
@@ -293,7 +303,7 @@ export default function Home() {
       return;
     }
     const total = stops.reduce((n, s) => n + s.load, 0);
-    const t = fmtClock(simMinute());
+    const t = sydneyClock();
     const msg =
       stops.length > 1
         ? `${target.name} sent on a run: ${stops.length} stops, ${total.toFixed(1)} of ${capacity.toFixed(1)} m³ (estimated).`
@@ -330,7 +340,7 @@ export default function Home() {
     save({
       ...st,
       runs: { ...st.runs, [crewId]: kept.length ? { ...r, stops: kept } : undefined },
-      log: addLog(st.log, fmtClock(simMinute()), msg, { crewId }),
+      log: addLog(st.log, sydneyClock(), msg, { crewId }),
     });
     setToast(msg);
   }
@@ -761,21 +771,21 @@ export default function Home() {
             </span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-            <div className="fr-tile">
-              <div>TIME</div>
-              <div>{fmtClock(minute)}</div>
+            <div className="fr-tile" style={{ width: 132 }}>
+              <div>SYDNEY TIME</div>
+              <div>{clock}</div>
             </div>
-            <div className="fr-tile">
+            <div className="fr-tile" style={{ width: 132 }}>
               <div>RAIN NOW</div>
               <div>{Math.round(rainNow(minute))} mm/h</div>
             </div>
-            <div className="fr-tile">
+            <div className="fr-tile" style={{ width: 132 }}>
               <div>HIGH RISK</div>
               <div>
                 {high} of {seed.length}
               </div>
             </div>
-            <div className="fr-tile">
+            <div className="fr-tile" style={{ width: 164 }}>
               <div>CLEANED TODAY</div>
               <div>{records.length}</div>
             </div>
@@ -821,22 +831,11 @@ export default function Home() {
                   lineHeight: 1.4,
                 }}
               >
-                <strong>
-                  {PUBLIC_BUILD
-                    ? "Public demo: showing precomputed sample scores"
-                    : "Offline: showing precomputed sample scores (risk-api offline)"}
-                </strong>
+                <strong>Offline: showing precomputed sample scores (risk-api offline)</strong>
                 <div style={{ color: "#CFE6F0", fontSize: 13, marginTop: 2 }}>
                   SAMPLE DATA · generated {precomputed.generated_at.slice(0, 16).replace("T", " ")} UTC · model{" "}
                   {precomputed.model_version}. The what-if sliders are off, and cleaned assets keep their precomputed
-                  score.{" "}
-                  {PUBLIC_BUILD ? (
-                    "Run the project locally to try what-if."
-                  ) : (
-                    <>
-                      Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
-                    </>
-                  )}
+                  score. Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
                 </div>
               </div>
             )}
@@ -1161,7 +1160,11 @@ export default function Home() {
               <section className="fr-group">
                 <div className="fr-label">
                   What if · demo controls
-                  {PUBLIC_BUILD ? " · run locally to try what-if" : offline ? " · off while risk-api is offline" : ""}
+                  {PUBLIC_BUILD
+                    ? " · scored in your browser from the sample model"
+                    : offline
+                      ? " · off while risk-api is offline"
+                      : ""}
                 </div>
                 <label
                   htmlFor="fr-leaf"

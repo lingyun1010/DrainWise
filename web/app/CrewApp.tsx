@@ -10,10 +10,9 @@ import type { Suggestion } from "../../planner/src/parseSuggestion";
 import {
   addLog,
   crewLetter,
-  fmtClock,
+  sydneyClock,
   loadState,
   saveState,
-  simMinute,
   subscribeRun,
   type CrewRun,
   type JobRecord,
@@ -80,13 +79,13 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     if (!run || !stop) return;
     update(
       { ...run, accepted: true },
-      { log: addLog(state.log, fmtClock(simMinute()), `${crewName} accepted and is on the way to ${stop.id}.`, meta) },
+      { log: addLog(state.log, sydneyClock(), `${crewName} accepted and is on the way to ${stop.id}.`, meta) },
     );
   }
 
   function finish() {
     if (!run || !stop) return;
-    const t = fmtClock(simMinute());
+    const t = sydneyClock();
     const rec: JobRecord = {
       stopId: stop.id,
       runId: run.runId,
@@ -113,7 +112,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
         const text = saved
           ? `${crewName} photos of ${stopId} saved for review.`
           : `${crewName} photos of ${stopId} could not be saved. They stay on this device only.`;
-        saveState({ ...now, log: addLog(now.log, fmtClock(simMinute()), text, who) });
+        saveState({ ...now, log: addLog(now.log, sydneyClock(), text, who) });
       });
     }
     log = addLog(log, t, `${crewName} cleaned ${stop.id}. Risk reset.`, meta);

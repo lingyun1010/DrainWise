@@ -136,6 +136,9 @@ body {
   border: 2px solid var(--fr-line);
   border-radius: 14px;
   padding: 8px 16px;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums; /* digits keep one width, so tiles do not jiggle */
+  white-space: nowrap;
 }
 .fr-tile > :first-child {
   font-size: 12px;

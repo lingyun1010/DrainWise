@@ -5,3 +5,5 @@ node_modules/
 .venv/
 web/lib/parramattaWaterways.json
 web/lib/precomputedScores.json
+web/lib/riskModel.json
+planner/src/riskModel.parity.json
