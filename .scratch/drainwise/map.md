@@ -32,12 +32,14 @@ A **decision-locked build spec** for the DrainWise hackathon MVP: stack, scope, 
 - [Asset data approach](issues/02-asset-data-approach.md): council sample if given, else fictional points in real Parramatta; 36 assets, parameterised; all features simulated in MVP; persistent SAMPLE DATA labelling.
 - [Photo pipeline and privacy](issues/04-photo-pipeline-privacy.md): photos in memory only; metadata-only Job record; minimal human-review page for 7 sample images; face/plate check is a gate before training (not built); honest "designed to become training data" claim.
 
+- [Pitch and demo script](issues/05-pitch-and-demo-script.md): Action story (which drains to clean, plan the truck run, photo proof); 3-min path queue > run > crew > records; honesty line said at the start of the demo; challenge 5 primary, 1 secondary; live core with a recorded fallback.
+- [Schema and data model](issues/06-schema-and-data-model.md): no database in the MVP; schema is a design doc (`docs/schema.md`); PostGIS point; `source` column marks sample vs council vs crew; `risk_scores` read path handed to 07.
+- [Hosting and deploy](issues/07-hosting-and-deploy.md): live demo local, Vercel public link; public build reads baked precomputed scores JSON, local build calls risk-api and falls back to the JSON with a banner; vision key only in env vars and off on the public build.
+- [Risk model evaluation on simulated data](issues/08-risk-model-evaluation.md): simulator rules ~ demo formula, so metrics are only a pipeline recovery check (`ml/evaluate.py`, not shown to judges); real result = beats formula and days-since-clean baselines on a time-split recent period.
+
 ## Open tickets
 
-- [Pitch and demo script](issues/05-pitch-and-demo-script.md)
-- [Schema and data model](issues/06-schema-and-data-model.md)
-- [Hosting and deploy](issues/07-hosting-and-deploy.md)
-- [Risk model evaluation on simulated data](issues/08-risk-model-evaluation.md)
+None. Stage 2 gate passed 2026-11-08; remaining unknowns wait for the 9 and 13 Nov expert answers (see 01-expert-questions.md).
 
 ## Not yet specified
 
