@@ -1,7 +1,7 @@
 # 17: Camera GPT popup with a sample photo and an image-model result
 
 Type: task
-Status: ready-for-agent
+Status: done (PR pending; levels are a mock placeholder, owner choice)
 Blocked by: None (can start immediately). Better with 18, but does not need it.
 Spec: `.scratch/drainwise/spec.md` (tickets 04, 13 and 16)
 
