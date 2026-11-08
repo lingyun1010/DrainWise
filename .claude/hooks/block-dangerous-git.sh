@@ -9,7 +9,6 @@ if [ $? -ne 0 ]; then
 fi
 
 DANGEROUS_PATTERNS=(
-  "git push"
   "git reset --hard"
   "git clean -fd"
   "git clean -f"
