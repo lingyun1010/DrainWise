@@ -36,6 +36,7 @@ const Map3D = dynamic(() => import("./Map3D"), {
   ssr: false,
   loading: () => <p style={{ padding: 16 }}>Loading 3D view…</p>,
 });
+import Image from "next/image";
 import CrewApp, { CameraIcon } from "./CrewApp";
 import { PHOTO_UPLOAD_ON } from "@/lib/uploadPhoto";
 
@@ -725,11 +726,8 @@ export default function Home() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <svg width="34" height="34" viewBox="0 0 36 36" aria-hidden="true">
-              <path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8" />
-              <path d="M18 15 C18 15 12.5 20 12.5 24 a5.5 5.5 0 0 0 11 0 C23.5 20 18 15 18 15Z" fill="#FF8A4C" />
-            </svg>
-            <span style={{ fontWeight: 700, fontSize: 22 }}>DrainWise</span>
+            <Image src="/brand-mascot.png" alt="" width={46} height={40} unoptimized />
+            <Image src="/brand-wordmark.png" alt="DrainWise" width={120} height={27} unoptimized />
             <span
               style={{
                 fontSize: 13,
