@@ -152,6 +152,23 @@ export default function Home() {
     return planRun(assets, capacity, DEPOT, MIN_RUN_RISK);
   }, [idle, capacity]);
   const planN = new Map(plan.stops.map((s, i) => [s.id, i + 1]));
+  const busy = isBusy(run);
+  // Highest-risk assets the plan skipped, so the manager sees why a top item is missing.
+  const leftOut = useMemo(() => {
+    const inPlan = new Set(plan.stops.map((s) => s.id));
+    return idle
+      .filter(({ p, a }) => p.p_block >= MIN_RUN_RISK && !inPlan.has(a.id))
+      .slice(0, 3)
+      .map(({ p, a }) => {
+        const one = planRun(
+          [{ id: a.id, type: a.type, risk: p.p_block, x: a.x, y: a.y, hasCamera: a.hasCamera }],
+          4,
+          DEPOT,
+          0,
+        ).stops[0];
+        return { id: a.id, pct: Math.min(99, Math.round(p.p_block * 100)), load: one.load };
+      });
+  }, [idle, plan]);
 
   const mapAssets: MapAsset[] = rows.map(({ p, a, state }) => ({
     id: a.id,
@@ -313,6 +330,16 @@ export default function Home() {
       {showMap && (
         <div className={`fr-shell${showPhone ? " fr-split" : ""}`}>
           <section className="fr-mapcol">
+            <a
+              className="fr-skip"
+              href="#fr-tab-queue"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById(`fr-tab-${tab}`)?.focus();
+              }}
+            >
+              Skip map, go to panels
+            </a>
             <div
               style={{
                 position: "absolute",
@@ -367,9 +394,12 @@ export default function Home() {
             ) : (
               <MapView assets={mapAssets} route={plan.stops.map((s) => s.id)} crews={mapCrews} onOpen={openAsset} />
             )}
+            <div role="status" className="fr-sr">
+              {toast}
+            </div>
             {toast && (
               <div
-                role="status"
+                aria-hidden="true"
                 style={{
                   position: "absolute",
                   left: 20,
@@ -480,6 +510,8 @@ export default function Home() {
                       className="fr-btn fr-pri"
                       style={{ padding: "6px 14px", minHeight: 40, fontSize: 14 }}
                       onClick={() => dispatchOne(a.id)}
+                      disabled={busy}
+                      aria-label={`Send crew to ${a.id}`}
                     >
                       Send crew
                     </button>
@@ -587,16 +619,175 @@ export default function Home() {
                     type="button"
                     style={{ width: "100%" }}
                     onClick={() => startRun(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
+                    disabled={busy}
                   >
-                    Send a crew on this run
+                    {busy ? "Crew A is on a run" : "Send a crew on this run"}
                   </button>
+                  {busy && (
+                    <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
+                      This is the next possible run. It can be sent when Crew A is back at the depot.
+                    </div>
+                  )}
                 </>
+              )}
+              {leftOut.length > 0 && (
+                <div style={{ marginTop: 10, fontSize: 13, color: "#B9D6E3", lineHeight: 1.4 }}>
+                  Not in this run: {leftOut.map((o) => `${o.id} (${o.pct}%, about ${o.load.toFixed(1)} m³)`).join(", ")}
+                  . The run picks the set with the most total risk that fits the truck, so a large asset can lose to
+                  several small ones. Send it on its own from Check next.
+                </div>
               )}
               <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
                 Only Medium and High risk assets (30% or more) are considered. Stops maximise total risk within
                 capacity, then are ordered nearest-first from the depot. Load sizes are sample estimates. Real truck and
                 bin volumes come from council.
               </div>
+            </section>
+
+            <section
+              className="fr-section"
+              role="tabpanel"
+              id="fr-panel-records"
+              aria-labelledby="fr-tab-records"
+              hidden={tab !== "records"}
+            >
+              <div className="fr-label">Compliance records</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <Stat
+                  n={photoRecs.filter((r) => r.before).length}
+                  color="#FFD27A"
+                  l1="Before photos"
+                  l2="AI training"
+                />
+                <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
+                <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
+              </div>
+              {records.length === 0 ? (
+                <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
+                  No completed jobs yet. Sites with a camera are checked by the camera. All other sites need a before
+                  and an after photo before the job can be closed.
+                </div>
+              ) : (
+                <ul
+                  style={{
+                    listStyle: "none",
+                    margin: "12px 0 0",
+                    padding: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                  }}
+                >
+                  {[...records]
+                    .reverse()
+                    .slice(0, 3)
+                    .map((e) => (
+                      <li
+                        key={e.stopId + e.at}
+                        style={{
+                          display: "flex",
+                          gap: 10,
+                          alignItems: "center",
+                          background: "#0B2233",
+                          borderRadius: 12,
+                          padding: "8px 10px",
+                        }}
+                      >
+                        {e.method === "camera" ? <CameraIcon w={48} /> : <PhotoPair />}
+                        <div style={{ fontSize: 13, lineHeight: 1.35, color: "#CFE6F0" }}>
+                          <b>{e.stopId}</b> · {e.method === "camera" ? "checked by camera" : "verified by photos"}
+                          <br />
+                          {e.crewId} · {e.clock}
+                          {e.pct != null ? ` · risk was ${e.pct}%` : ""}
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+              )}
+              {records.length > 3 && (
+                <div style={{ marginTop: 8, fontSize: 13, color: "#B9D6E3" }}>
+                  Showing the latest 3 of {records.length} records.
+                </div>
+              )}
+              <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
+                Sample records, metadata only. Photos are not stored by the manager screen. Real photos would carry time
+                and location, be stored with the work order, and be checked for faces and number plates before use in
+                training.
+              </div>
+            </section>
+
+            <section
+              className="fr-section"
+              role="tabpanel"
+              id="fr-panel-crews"
+              aria-labelledby="fr-tab-crews"
+              hidden={tab !== "crews"}
+            >
+              <div className="fr-label">Crews</div>
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: "10px 0 18px",
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                {CREWS.map((c) => {
+                  const status =
+                    c.name !== "Crew A" ? "Ready" : !isBusy(run) ? "Ready" : run?.accepted ? "Cleaning" : "Dispatched";
+                  return (
+                    <li
+                      key={c.name}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        background: "#0B2233",
+                        borderRadius: 12,
+                        padding: "10px 14px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <span>{c.name}</span>
+                      <span style={{ color: status === "Ready" ? "#8FB8CC" : "#FFD27A" }}>{status}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="fr-label">Activity log</div>
+              <ol
+                style={{
+                  listStyle: "none",
+                  margin: "10px 0 0",
+                  padding: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  fontSize: 15,
+                  lineHeight: 1.4,
+                }}
+              >
+                {[...(run?.log ?? []), { t: "13:00", x: "Shift started. Risk scores update with leaf fall and rain." }]
+                  .slice(0, 8)
+                  .map((l, i) => (
+                    <li key={i} style={{ background: "#0B2233", borderRadius: 12, padding: "10px 14px" }}>
+                      <b style={{ color: "#8FB8CC" }}>{l.t}</b> &nbsp;{l.x}
+                    </li>
+                  ))}
+              </ol>
+              <button
+                type="button"
+                className="fr-btn fr-ghost"
+                style={{ marginTop: 8, padding: "6px 0", minHeight: 40, fontSize: 14 }}
+                onClick={() => {
+                  resetAll();
+                  setCur(null);
+                }}
+              >
+                Reset sample session
+              </button>
             </section>
 
             <details className="fr-sim">
@@ -701,147 +892,6 @@ export default function Home() {
                 </div>
               </section>
             </details>
-
-            <section
-              className="fr-section"
-              role="tabpanel"
-              id="fr-panel-records"
-              aria-labelledby="fr-tab-records"
-              hidden={tab !== "records"}
-            >
-              <div className="fr-label">Compliance records</div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <Stat
-                  n={photoRecs.filter((r) => r.before).length}
-                  color="#FFD27A"
-                  l1="Before photos"
-                  l2="AI training"
-                />
-                <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
-                <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
-              </div>
-              {records.length === 0 ? (
-                <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
-                  No completed jobs yet. Sites with a camera are checked by the camera. All other sites need a before
-                  and an after photo before the job can be closed.
-                </div>
-              ) : (
-                <ul
-                  style={{
-                    listStyle: "none",
-                    margin: "12px 0 0",
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  {[...records]
-                    .reverse()
-                    .slice(0, 3)
-                    .map((e) => (
-                      <li
-                        key={e.stopId + e.at}
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          alignItems: "center",
-                          background: "#0B2233",
-                          borderRadius: 12,
-                          padding: "8px 10px",
-                        }}
-                      >
-                        {e.method === "camera" ? <CameraIcon w={48} /> : <PhotoPair />}
-                        <div style={{ fontSize: 13, lineHeight: 1.35, color: "#CFE6F0" }}>
-                          <b>{e.stopId}</b> · {e.method === "camera" ? "checked by camera" : "verified by photos"}
-                          <br />
-                          {e.crewId} · {e.clock}
-                          {e.pct != null ? ` · risk was ${e.pct}%` : ""}
-                        </div>
-                      </li>
-                    ))}
-                </ul>
-              )}
-              <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
-                Sample records, metadata only. Photos are not stored by the manager screen. Real photos would carry time
-                and location, be stored with the work order, and be checked for faces and number plates before use in
-                training.
-              </div>
-            </section>
-
-            <section
-              className="fr-section"
-              role="tabpanel"
-              id="fr-panel-crews"
-              aria-labelledby="fr-tab-crews"
-              hidden={tab !== "crews"}
-            >
-              <div className="fr-label">Crews</div>
-              <ul
-                style={{
-                  listStyle: "none",
-                  margin: "10px 0 18px",
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {CREWS.map((c) => {
-                  const status =
-                    c.name !== "Crew A" ? "Ready" : !isBusy(run) ? "Ready" : run?.accepted ? "Cleaning" : "Dispatched";
-                  return (
-                    <li
-                      key={c.name}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        background: "#0B2233",
-                        borderRadius: 12,
-                        padding: "10px 14px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span>{c.name}</span>
-                      <span style={{ color: status === "Ready" ? "#8FB8CC" : "#FFD27A" }}>{status}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div className="fr-label">Activity log</div>
-              <ol
-                style={{
-                  listStyle: "none",
-                  margin: "10px 0 0",
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  fontSize: 15,
-                  lineHeight: 1.4,
-                }}
-              >
-                {[...(run?.log ?? []), { t: "13:00", x: "Shift started. Risk scores update with leaf fall and rain." }]
-                  .slice(0, 8)
-                  .map((l, i) => (
-                    <li key={i} style={{ background: "#0B2233", borderRadius: 12, padding: "10px 14px" }}>
-                      <b style={{ color: "#8FB8CC" }}>{l.t}</b> &nbsp;{l.x}
-                    </li>
-                  ))}
-              </ol>
-              <button
-                type="button"
-                className="fr-btn fr-ghost"
-                style={{ marginTop: 8, padding: "6px 0", minHeight: 40, fontSize: 14 }}
-                onClick={() => {
-                  resetAll();
-                  setCur(null);
-                }}
-              >
-                Reset sample session
-              </button>
-            </section>
           </aside>
 
           {showPhone && (

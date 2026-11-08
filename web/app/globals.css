@@ -338,3 +338,26 @@ body {
 .fr-group + .fr-group {
   border-top: 1px solid var(--fr-line);
 }
+
+.fr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.fr-skip {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 10;
+  background: #ffd27a;
+  color: #06202e;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 10px;
+}
+.fr-skip:focus {
+  top: 8px;
+}
