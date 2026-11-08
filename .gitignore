@@ -10,3 +10,6 @@ node_modules/
 next-env.d.ts
 .claude/settings.local.json
 .claude/.state/
+
+# local-only copies (sample photos for the review page); never commit
+.local/
