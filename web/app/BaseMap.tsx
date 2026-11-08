@@ -35,7 +35,6 @@ export default function BaseMap({ onView }: { onView: (v: View) => void }) {
         fitBoundsOptions: { padding: 0, animate: false },
         maxBounds: BOUNDS,
         maxZoom: 17,
-        cooperativeGestures: true, // Ctrl or Cmd + scroll to zoom, two fingers to pan on touch; keeps page scroll working
         dragRotate: false,
         pitchWithRotate: false,
         touchPitch: false,
