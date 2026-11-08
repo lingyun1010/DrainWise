@@ -35,13 +35,14 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
 
   const typedCode = cleanRoomCode(typed);
 
-  async function run(action: () => ReturnType<typeof createRoom>) {
+  // After creating, the dialog stays open and shows the new code; after joining it closes.
+  async function run(action: () => ReturnType<typeof createRoom>, closeAfter: boolean) {
     setBusy(true);
     setError(null);
     const r = await action();
     setBusy(false);
     if (r.ok) {
-      setOpen(false);
+      if (closeAfter) setOpen(false);
       setTyped("");
     } else setError(r.error);
   }
@@ -100,16 +101,16 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
               </>
             ) : (
               <>
-                <button type="button" className="fr-btn fr-pri" disabled={busy} onClick={() => run(createRoom)}>
-                  Start a new room
+                <button type="button" className="fr-btn fr-pri" disabled={busy} onClick={() => run(createRoom, false)}>
+                  Start a new room (code is made for you)
                 </button>
                 <button
                   type="button"
                   className="fr-btn fr-sec"
                   disabled={busy || !typedCode}
-                  onClick={() => typedCode && run(() => joinRoom(typedCode))}
+                  onClick={() => typedCode && run(() => joinRoom(typedCode), true)}
                 >
-                  Join room
+                  Join with this code
                 </button>
                 <button type="button" className="fr-btn fr-ghost" onClick={() => setOpen(false)}>
                   Cancel
@@ -120,6 +121,12 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
         >
           {code ? (
             <>
+              <p
+                aria-label={`Room code ${code}`}
+                style={{ margin: "0 0 12px", fontSize: 44, fontWeight: 700, letterSpacing: 8, textAlign: "center" }}
+              >
+                {code}
+              </p>
               <p style={{ margin: "0 0 10px", lineHeight: 1.5 }}>
                 This device shares its sample session with every device in room {code}. Runs, records and the log sync
                 about every 2 seconds. Photos already go to the server on their own.
@@ -139,13 +146,17 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
             </>
           ) : (
             <>
-              <p style={{ margin: "0 0 12px", lineHeight: 1.5 }}>
-                Start a room on one device, then join it from the other with the 4-letter code. Both devices then share
-                the same sample session. Anyone with the code can see and change it. Rooms are removed after 24 hours
-                without changes.
+              <p style={{ margin: "0 0 14px", lineHeight: 1.5 }}>
+                Two devices (for example a laptop as Manager and a phone as Crew) can share one sample session. Anyone
+                with the room code can see and change it. Rooms are removed after 24 hours without changes.
               </p>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>1. Start a new room</h3>
+              <p style={{ margin: "0 0 14px", lineHeight: 1.5, color: "#B9D6E3" }}>
+                Do this on the first device. You do not type anything: the app makes a 4-letter code and shows it here.
+              </p>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>2. Join a room</h3>
               <label style={{ display: "block", fontSize: 14, color: "#B9D6E3", marginBottom: 6 }}>
-                Room code to join
+                On the second device, type the code the first device shows
                 <input
                   value={typed}
                   onChange={(e) => setTyped(e.target.value.slice(0, 5))}
