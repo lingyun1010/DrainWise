@@ -1,5 +1,5 @@
 // Server-only helpers for the local photo review page (ticket 13).
-// The review page and its routes exist whenever this is not the public build. With OPENAI_API_KEY in
+// The review page and its routes exist in every build (owner decision 2026-11-08: public too). With OPENAI_API_KEY in
 // the local, gitignored web/.env.local the suggestion comes from the vision service; without a key a
 // built-in MOCK stands in (no AI, no network). The key is read here and never sent to the browser.
 import "server-only";
@@ -13,7 +13,7 @@ const MODEL = process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini";
 const BASE_URL = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 
 export function reviewEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_PUBLIC_BUILD !== "1";
+  return true;
 }
 
 // True when no vision key is set: suggestions are fake and must be labelled as such.
