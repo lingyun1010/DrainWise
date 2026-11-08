@@ -477,6 +477,9 @@ export default function Home() {
           Review before photos
         </Link>
         <span style={{ marginLeft: 10, fontSize: 13, color: "#8FB8CC" }}>Mock AI unless a key is set.</span>
+        <Link className="fr-btn fr-sec" href="/model" style={{ textDecoration: "none", marginLeft: 10 }}>
+          How the model works
+        </Link>
       </div>
       {records.length === 0 ? (
         <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
