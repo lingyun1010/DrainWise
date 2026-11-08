@@ -127,7 +127,8 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 - `python -m ml.simulate` then `python -m ml.train` -> writes `ml/model.joblib`
 - `uvicorn risk_api.main:app --reload` -> serves /predict
 - `python -m risk_api.export_scores` -> writes `web/lib/precomputedScores.json` (default scenario, 36 sample assets, stamped with data source, time, model version). Reads `ml/sample_assets.json`, a snapshot of `web/lib/seed.ts`; a planner test fails if the two drift. Regenerate after retraining or changing seed assets.
-- `python -m risk_api.export_model` -> writes `web/lib/riskModel.json` (the trees) and `planner/src/riskModel.parity.json` (Python answers). `planner/src/riskModel.ts` walks the trees in TypeScript; the public build uses it so what-if works with no risk-api. `riskModel.test.ts` fails if TS and Python disagree. Re-run after every retrain, together with `export_scores`.
+- - Rain forecast: the Manager page reads the real BoM precis forecast (IDN11060, Parramatta) through `web/app/api/bom/route.ts` (server side, kept 1 h; parser `planner/src/bomPrecis.ts`). It gives a daily chance of rain and a rain range (75% / 25% chance of at least the first / second amount); there is no 3-hourly rain in this free product, so the 3-hourly strip is SAMPLE. The unofficial `api.weather.bom.gov.au` says "You must not use, copy or share it": do not use it. BoM free text products are not for commercial use; forecast grids need the paid real-time service.
+    `python -m risk_api.export_model` -> writes `web/lib/riskModel.json` (the trees) and `planner/src/riskModel.parity.json` (Python answers). `planner/src/riskModel.ts` walks the trees in TypeScript; the public build uses it so what-if works with no risk-api. `riskModel.test.ts` fails if TS and Python disagree. Re-run after every retrain, together with `export_scores`.
 - Keep results reproducible: fixed random seed, log the data source and version in each run.
 
 ### Working agreements

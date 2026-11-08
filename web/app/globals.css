@@ -569,3 +569,10 @@ body {
   outline: 2px solid #eaf6fb;
   outline-offset: 2px;
 }
+
+.fr-sub {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cfe6f0;
+}

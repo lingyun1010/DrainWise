@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
 import { DAYS, DAY_RAIN_MM, horizonInputs } from "../../planner/src/horizon";
+import { dayRainMm, sydneyDate, type BomDay } from "../../planner/src/bomPrecis";
 import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
 import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
 import riskModel from "@/lib/riskModel.json";
@@ -146,7 +147,40 @@ export default function Home() {
   const assigned = useMemo(() => openStopIds(st), [st]);
 
   // Cleaned assets get days_since_clean = 0, so the model itself shows the risk reset.
-  const hz = horizonInputs(day, extra);
+  // Real BoM forecast for Parramatta (server route /api/bom). Until it arrives, or if it fails, the sample rain is used.
+  const [bom, setBom] = useState<{
+    source: string;
+    copyright: string;
+    fetchedAt: string;
+    issuedAt: string;
+    days: BomDay[];
+  } | null>(null);
+  const [bomFailed, setBomFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/bom")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bom"))))
+      .then((d) => live && setBom(d))
+      .catch(() => live && setBomFailed(true));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const dayRain = useMemo(
+    () => (bom ? DAYS.map((_, k) => dayRainMm(bom.days.find((d) => d.date === sydneyDate(k))) ?? 0) : DAY_RAIN_MM),
+    [bom],
+  );
+  const hz = horizonInputs(day, extra, dayRain);
+  // Sample rain per 3-hour block of the day (mm), starting at the current block in Sydney. Not BoM data.
+  const threeHourly = useMemo(() => {
+    const SAMPLE = [0, 0, 1, 2, 5, 3, 1, 0];
+    const hour = Number(clock.slice(0, 2));
+    const startBlock = Number.isNaN(hour) ? 0 : Math.floor(hour / 3);
+    return Array.from({ length: 8 }, (_, k) => {
+      const blk = (startBlock + k) % 8;
+      return { label: `${String(blk * 3).padStart(2, "0")}:00`, mm: SAMPLE[blk] };
+    });
+  }, [clock]);
   // The scores on screen belong to scoredKey. While it differs from the inputs now chosen, new scores are on the way.
   const [scoredKey, setScoredKey] = useState<string | null>(null);
   const rainForecast = hz.rain_forecast_mm;
@@ -1301,8 +1335,9 @@ export default function Home() {
 
               <section className="fr-group">
                 <div className="fr-label">
-                  Rain forecast · {day === 0 ? "today" : `today to ${DAYS[day].toLowerCase()}`} (mm per day)
+                  Rain forecast · {day === 0 ? "today" : `today to ${DAYS[day].toLowerCase()}`}
                 </div>
+                <div className="fr-sub">By day · Bureau of Meteorology{bom ? "" : " (not loaded, sample values)"}</div>
                 <div
                   className="fr-scroll"
                   tabIndex={0}
@@ -1311,17 +1346,18 @@ export default function Home() {
                 >
                   <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginTop: 26 }}>
                     {DAYS.slice(0, day + 1).map((name, i) => {
-                      const v = i === day ? hz.rain_forecast_mm : DAY_RAIN_MM[i];
+                      const v = i === day ? hz.rain_forecast_mm : dayRain[i];
+                      const top = Math.max(20, ...dayRain, hz.rain_forecast_mm);
                       return (
                         <div
                           key={name}
                           style={{
-                            flex: "0 0 52px",
+                            flex: "0 0 64px",
                             minHeight: 4,
                             borderRadius: "8px 8px 3px 3px",
                             position: "relative",
                             background: v >= 20 ? "#FF8A4C" : "#4FC3E8",
-                            height: `${Math.max(4, Math.round((v / 80) * 100))}%`,
+                            height: `${Math.max(4, Math.round((v / top) * 100))}%`,
                             outline: i === day ? "2px solid #EAF6FB" : undefined,
                           }}
                         >
@@ -1337,25 +1373,106 @@ export default function Home() {
                               color: "#CFE6F0",
                             }}
                           >
-                            {v}
+                            {Math.round(v * 10) / 10}
                           </span>
                         </div>
                       );
                     })}
                   </div>
                   <div
-                    style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 13, fontWeight: 600, color: "#8FB8CC" }}
+                    style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 12, lineHeight: 1.3, color: "#8FB8CC" }}
                   >
-                    {DAYS.slice(0, day + 1).map((name, i) => (
-                      <span key={name} style={{ flex: "0 0 52px", textAlign: "center" }}>
-                        {i === 0 ? "Today" : `+${i} d`}
+                    {DAYS.slice(0, day + 1).map((name, i) => {
+                      const d = bom?.days.find((x) => x.date === sydneyDate(i));
+                      const wd = new Intl.DateTimeFormat("en-AU", {
+                        timeZone: "Australia/Sydney",
+                        weekday: "short",
+                        day: "numeric",
+                      }).format(new Date(`${sydneyDate(i)}T12:00:00Z`));
+                      return (
+                        <span key={name} style={{ flex: "0 0 64px", textAlign: "center" }}>
+                          <b style={{ display: "block", fontSize: 13 }}>{i === 0 ? "Today" : wd}</b>
+                          {bom
+                            ? d
+                              ? d.lowMm === null
+                                ? "no rain range"
+                                : `${d.lowMm} to ${d.highMm} mm`
+                              : "no data"
+                            : "sample"}
+                          {bom && d?.popPct != null && <span style={{ display: "block" }}>{d.popPct}% chance</span>}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="fr-sub" style={{ marginTop: 12 }}>
+                  Next 24 hours, every 3 hours · SAMPLE (BoM 3-hourly rain is not connected)
+                </div>
+                <div
+                  className="fr-scroll"
+                  tabIndex={0}
+                  role="group"
+                  aria-label="Sample rain every 3 hours. Scroll sideways."
+                >
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 60, marginTop: 22 }}>
+                    {threeHourly.map((b) => (
+                      <div
+                        key={b.label}
+                        style={{
+                          flex: "0 0 40px",
+                          minHeight: 4,
+                          borderRadius: "6px 6px 3px 3px",
+                          position: "relative",
+                          border: "2px dashed #4FC3E8",
+                          background: "transparent",
+                          height: `${Math.max(6, Math.round((b.mm / 8) * 100))}%`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: "absolute",
+                            top: -20,
+                            left: 0,
+                            right: 0,
+                            textAlign: "center",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "#CFE6F0",
+                          }}
+                        >
+                          {b.mm}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 12, fontWeight: 600, color: "#8FB8CC" }}
+                  >
+                    {threeHourly.map((b) => (
+                      <span key={b.label} style={{ flex: "0 0 40px", textAlign: "center" }}>
+                        {b.label}
                       </span>
                     ))}
                   </div>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
-                  Sample forecast. Not a Bureau of Meteorology feed yet. The outlined bar is the day shown on the map
-                  and includes the Extra rain slider.
+                <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
+                  {bom ? (
+                    <>
+                      Source:{" "}
+                      <a href={bom.copyright} target="_blank" rel="noreferrer" style={{ color: "#8FD8F0" }}>
+                        Australian Government Bureau of Meteorology
+                      </a>
+                      , precis forecast for Parramatta, issued {bom.issuedAt.slice(0, 16).replace("T", " ")} Sydney
+                      time, read {bom.fetchedAt.slice(11, 16)} UTC. A forecast is a chance, not a fact: the range means
+                      a 75% chance of at least the first amount and a 25% chance of at least the second. The model uses
+                      the middle of the range; no range means no rain expected (0 mm).
+                    </>
+                  ) : bomFailed ? (
+                    "The Bureau of Meteorology forecast could not be loaded, so sample rain is used. Not a forecast."
+                  ) : (
+                    "Loading the Bureau of Meteorology forecast. Sample rain until it arrives."
+                  )}{" "}
+                  The outlined bar is the day shown on the map and includes the Extra rain slider.
                 </div>
               </section>
             </details>
