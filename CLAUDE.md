@@ -126,6 +126,7 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 
 - `python -m ml.simulate` then `python -m ml.train` -> writes `ml/model.joblib`
 - `uvicorn risk_api.main:app --reload` -> serves /predict
+- `python -m risk_api.export_scores` -> writes `web/lib/precomputedScores.json` (default scenario, 36 sample assets, stamped with data source, time, model version). Reads `ml/sample_assets.json`, a snapshot of `web/lib/seed.ts`; a planner test fails if the two drift. Regenerate after retraining or changing seed assets.
 - Keep results reproducible: fixed random seed, log the data source and version in each run.
 
 ### Working agreements

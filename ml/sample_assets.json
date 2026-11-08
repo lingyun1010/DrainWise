@@ -1,0 +1,254 @@
+[
+  {
+    "asset_id": "GPT-001",
+    "type": "gpt",
+    "canopy_pct": 25,
+    "days_since_clean": 42,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-002",
+    "type": "gpt",
+    "canopy_pct": 45,
+    "days_since_clean": 99,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-003",
+    "type": "gpt",
+    "canopy_pct": 20,
+    "days_since_clean": 103,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-004",
+    "type": "gpt",
+    "canopy_pct": 67,
+    "days_since_clean": 129,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-005",
+    "type": "gpt",
+    "canopy_pct": 9,
+    "days_since_clean": 167,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-006",
+    "type": "gpt",
+    "canopy_pct": 15,
+    "days_since_clean": 69,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-007",
+    "type": "gpt",
+    "canopy_pct": 31,
+    "days_since_clean": 151,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-008",
+    "type": "gpt",
+    "canopy_pct": 59,
+    "days_since_clean": 67,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-009",
+    "type": "gpt",
+    "canopy_pct": 57,
+    "days_since_clean": 153,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-010",
+    "type": "gpt",
+    "canopy_pct": 56,
+    "days_since_clean": 69,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-011",
+    "type": "gpt",
+    "canopy_pct": 23,
+    "days_since_clean": 58,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-012",
+    "type": "gpt",
+    "canopy_pct": 35,
+    "days_since_clean": 131,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-013",
+    "type": "gpt",
+    "canopy_pct": 8,
+    "days_since_clean": 92,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-014",
+    "type": "gpt",
+    "canopy_pct": 63,
+    "days_since_clean": 52,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-015",
+    "type": "gpt",
+    "canopy_pct": 9,
+    "days_since_clean": 163,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-016",
+    "type": "gpt",
+    "canopy_pct": 46,
+    "days_since_clean": 41,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-017",
+    "type": "gpt",
+    "canopy_pct": 39,
+    "days_since_clean": 60,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-018",
+    "type": "gpt",
+    "canopy_pct": 65,
+    "days_since_clean": 58,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-019",
+    "type": "gpt",
+    "canopy_pct": 47,
+    "days_since_clean": 65,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-020",
+    "type": "gpt",
+    "canopy_pct": 10,
+    "days_since_clean": 126,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-021",
+    "type": "gpt",
+    "canopy_pct": 23,
+    "days_since_clean": 35,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-022",
+    "type": "gpt",
+    "canopy_pct": 43,
+    "days_since_clean": 29,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-023",
+    "type": "gpt",
+    "canopy_pct": 63,
+    "days_since_clean": 135,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-024",
+    "type": "gpt",
+    "canopy_pct": 67,
+    "days_since_clean": 173,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-025",
+    "type": "gpt",
+    "canopy_pct": 28,
+    "days_since_clean": 27,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-026",
+    "type": "gpt",
+    "canopy_pct": 15,
+    "days_since_clean": 23,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-027",
+    "type": "gpt",
+    "canopy_pct": 30,
+    "days_since_clean": 172,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-028",
+    "type": "gpt",
+    "canopy_pct": 19,
+    "days_since_clean": 65,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-029",
+    "type": "gpt",
+    "canopy_pct": 35,
+    "days_since_clean": 126,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-030",
+    "type": "gpt",
+    "canopy_pct": 59,
+    "days_since_clean": 124,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-031",
+    "type": "gpt",
+    "canopy_pct": 22,
+    "days_since_clean": 68,
+    "has_camera": true
+  },
+  {
+    "asset_id": "GPT-032",
+    "type": "gpt",
+    "canopy_pct": 30,
+    "days_since_clean": 89,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-033",
+    "type": "gpt",
+    "canopy_pct": 51,
+    "days_since_clean": 34,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-034",
+    "type": "gpt",
+    "canopy_pct": 42,
+    "days_since_clean": 133,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-035",
+    "type": "gpt",
+    "canopy_pct": 13,
+    "days_since_clean": 55,
+    "has_camera": false
+  },
+  {
+    "asset_id": "GPT-036",
+    "type": "gpt",
+    "canopy_pct": 62,
+    "days_since_clean": 65,
+    "has_camera": false
+  }
+]

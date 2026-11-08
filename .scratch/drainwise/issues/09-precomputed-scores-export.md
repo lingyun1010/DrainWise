@@ -1,7 +1,7 @@
 # 09: Precomputed scores export
 
 Type: task
-Status: ready-for-agent
+Status: done (2026-11-08)
 Blocked by: None (can start immediately)
 Spec: `.scratch/drainwise/spec.md` (hosting decision, ticket 07)
 
@@ -11,8 +11,8 @@ A command that runs the default scenario for all sample assets through the risk 
 
 ## Acceptance criteria
 
-- [ ] One command regenerates the file from the current model and the sample assets; fixed seed, so two runs give the same scores.
-- [ ] Every sample asset has a probability, a level (low, medium, high) and its reasons.
-- [ ] The file carries the data source, generation time and model version.
-- [ ] A pytest checks the three points above through the command's output, not its internals.
-- [ ] The file is small and safe to commit (no photos, no secrets).
+- [x] One command regenerates the file from the current model and the sample assets; fixed seed, so two runs give the same scores.
+- [x] Every sample asset has a probability, a level (low, medium, high) and its reasons.
+- [x] The file carries the data source, generation time and model version.
+- [x] A pytest checks the three points above through the command's output, not its internals.
+- [x] The file is small and safe to commit (no photos, no secrets).
