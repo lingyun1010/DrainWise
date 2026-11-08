@@ -559,3 +559,13 @@ body {
     min-height: 100% !important;
   }
 }
+
+/* Rain bars: fixed-width bars, extra days scroll sideways. */
+.fr-scroll {
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.fr-scroll:focus-visible {
+  outline: 2px solid #eaf6fb;
+  outline-offset: 2px;
+}

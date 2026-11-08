@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
-import { DAYS, horizonInputs } from "../../planner/src/horizon";
+import { DAYS, DAY_RAIN_MM, horizonInputs } from "../../planner/src/horizon";
 import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
 import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
 import riskModel from "@/lib/riskModel.json";
@@ -11,7 +11,6 @@ import precomputed from "@/lib/precomputedScores.json";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
 import {
   DEFAULT_CREWS,
-  FORECAST,
   HATS,
   addLog,
   crewLetter,
@@ -411,7 +410,6 @@ export default function Home() {
   const high = idle.filter((r) => r.p.level === "high").length;
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
   const planPct = Math.min(100, Math.round((plan.totalLoad / capacity) * 100));
-  const forecastHour = Math.min(5, Math.floor(minute / 60));
   const photoRecs = records.filter((r) => r.method === "photos");
 
   const confirmCrew = confirm ? st.crews.find((c) => c.id === confirm.crewId) : undefined;
@@ -1283,46 +1281,62 @@ export default function Home() {
               </section>
 
               <section className="fr-group">
-                <div className="fr-label">Rain forecast · next 6 hours</div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginTop: 26 }}>
-                  {FORECAST.map((v, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        flex: 1,
-                        borderRadius: "8px 8px 3px 3px",
-                        position: "relative",
-                        background: v >= 20 ? "#FF8A4C" : "#4FC3E8",
-                        height: `${Math.round((v / 31) * 100)}%`,
-                        outline: i === forecastHour ? "2px solid #EAF6FB" : undefined,
-                      }}
-                    >
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: -20,
-                          left: 0,
-                          right: 0,
-                          textAlign: "center",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: "#CFE6F0",
-                        }}
-                      >
-                        {v}
-                      </span>
-                    </div>
-                  ))}
+                <div className="fr-label">
+                  Rain forecast · {day === 0 ? "today" : `today to ${DAYS[day].toLowerCase()}`} (mm per day)
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 13, fontWeight: 600, color: "#8FB8CC" }}>
-                  {[13, 14, 15, 16, 17, 18].map((h) => (
-                    <span key={h} style={{ flex: 1 }}>
-                      {h}
-                    </span>
-                  ))}
+                <div
+                  className="fr-scroll"
+                  tabIndex={0}
+                  role="group"
+                  aria-label="Rain forecast by day. Scroll sideways to see more days."
+                >
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginTop: 26 }}>
+                    {DAYS.slice(0, day + 1).map((name, i) => {
+                      const v = i === day ? hz.rain_forecast_mm : DAY_RAIN_MM[i];
+                      return (
+                        <div
+                          key={name}
+                          style={{
+                            flex: "0 0 52px",
+                            minHeight: 4,
+                            borderRadius: "8px 8px 3px 3px",
+                            position: "relative",
+                            background: v >= 20 ? "#FF8A4C" : "#4FC3E8",
+                            height: `${Math.max(4, Math.round((v / 80) * 100))}%`,
+                            outline: i === day ? "2px solid #EAF6FB" : undefined,
+                          }}
+                        >
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: -20,
+                              left: 0,
+                              right: 0,
+                              textAlign: "center",
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: "#CFE6F0",
+                            }}
+                          >
+                            {v}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div
+                    style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 13, fontWeight: 600, color: "#8FB8CC" }}
+                  >
+                    {DAYS.slice(0, day + 1).map((name, i) => (
+                      <span key={name} style={{ flex: "0 0 52px", textAlign: "center" }}>
+                        {i === 0 ? "Today" : `+${i} d`}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
-                  Sample forecast (mm/h). Not a Bureau of Meteorology feed yet.
+                  Sample forecast. Not a Bureau of Meteorology feed yet. The outlined bar is the day shown on the map
+                  and includes the Extra rain slider.
                 </div>
               </section>
             </details>
