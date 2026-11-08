@@ -1,4 +1,4 @@
-// Rain over the chosen period as 3-hour blocks (or 6-hour blocks when the period is long), plus a running total.
+// Rain over the chosen period as 3-hour blocks (6 or 12 hours when the period is long), plus a running total.
 // BoM's free forecast only gives a total per day. The daily totals are real; HOW the day's rain is spread across its
 // 3-hour blocks is an ASSUMPTION (a fixed sample pattern, most rain in the afternoon). The page says so.
 
@@ -18,7 +18,7 @@ export function rainBlocks(opts: {
   days: number; // how many days from today, 1 or more
   extraMm: number; // extra mm over the whole period, shared evenly between the days
   nowHour: number; // Sydney hour now, 0 to 23
-  unitHours: 3 | 6;
+  unitHours: 3 | 6 | 12;
 }): RainBlock[] {
   const { dayRain, days, extraMm, nowHour, unitHours } = opts;
   const per = unitHours / 3; // 3-hour blocks per output block
@@ -40,5 +40,5 @@ export function rainBlocks(opts: {
   return out;
 }
 
-// Short blocks for a short period, longer blocks when the period gets long.
-export const unitFor = (days: number): 3 | 6 => (days <= 3 ? 3 : 6);
+// Short blocks for a short period, 6-hour blocks when it gets long (the chart then scrolls sideways).
+export const unitFor = (days: number): 3 | 6 | 12 => (days <= 3 ? 3 : 6);

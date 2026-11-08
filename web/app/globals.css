@@ -576,3 +576,12 @@ body {
   font-weight: 600;
   color: #cfe6f0;
 }
+
+/* Scrolls sideways but shows no scroll bar. */
+.fr-noscrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.fr-noscrollbar::-webkit-scrollbar {
+  display: none;
+}

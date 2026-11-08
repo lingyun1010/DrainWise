@@ -29,12 +29,19 @@ it("extra rain is spread over the period and added to the running total", () => 
   expect(b.at(-1)!.cumMm).toBeCloseTo(36, 10);
 });
 
-it("long periods use 6-hour blocks that cover the same rain", () => {
-  expect(unitFor(3)).toBe(3);
-  expect(unitFor(4)).toBe(6);
-  const b = rainBlocks({ dayRain: [1, 2, 3, 4, 5, 6], days: 6, extraMm: 0, nowHour: 22, unitHours: 6 });
-  expect(b.at(-1)!.cumMm).toBeCloseTo(21, 10);
-  expect(b.filter((x) => x.dayIdx === 1)).toHaveLength(4);
+it("short periods use 3-hour blocks, long ones 6-hour blocks, and the rain adds up either way", () => {
+  expect([1, 2, 3, 4, 7].map(unitFor)).toEqual([3, 3, 3, 6, 6]);
+  const rain = [1, 2, 3, 4, 5, 6, 7];
+  for (let days = 1; days <= 7; days++) {
+    const b = rainBlocks({ dayRain: rain, days, extraMm: 0, nowHour: 22, unitHours: unitFor(days) });
+    expect(b.at(-1)!.cumMm).toBeCloseTo(
+      rain.slice(0, days).reduce((x, y) => x + y, 0),
+      10,
+    );
+  }
+  expect(
+    rainBlocks({ dayRain: rain, days: 4, extraMm: 0, nowHour: 22, unitHours: 6 }).filter((x) => x.dayIdx === 1),
+  ).toHaveLength(4);
 });
 
 it("works at midnight and with no rain", () => {

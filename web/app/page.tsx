@@ -7,6 +7,7 @@ import { DAYS, DAY_RAIN_MM, horizonInputs } from "../../planner/src/horizon";
 import { dayRainMm, sydneyDate, type BomDay } from "../../planner/src/bomPrecis";
 import { rainBlocks, unitFor } from "../../planner/src/rainBlocks";
 import RainChart from "./RainChart";
+import Tip from "./Tip";
 import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
 import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
 import riskModel from "@/lib/riskModel.json";
@@ -865,18 +866,31 @@ export default function Home() {
               <div>SYDNEY TIME</div>
               <div>{clock}</div>
             </div>
-            <div
+            <Tip
               className="fr-tile"
               style={{ width: 160 }}
-              title={
-                obs
-                  ? `Observed ${obs.observedAt.slice(11, 16)} Sydney time at ${obs.station}. Source: Bureau of Meteorology.`
-                  : "Latest Bureau of Meteorology rain reading"
+              tip={
+                obs ? (
+                  <>
+                    <b>Rain since 9am</b>
+                    <span className="fr-tip-sub">{obs.station}</span>
+                    <span>
+                      {obs.rainMm} mm · read {obs.observedAt.slice(11, 16)} Sydney time
+                    </span>
+                    <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
+                  </>
+                ) : (
+                  <>
+                    <b>Rain since 9am</b>
+                    <span>{obsFailed ? "No reading available right now" : "Loading the latest reading"}</span>
+                    <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
+                  </>
+                )
               }
             >
               <div>RAIN SINCE 9AM</div>
               <div>{obs ? `${obs.rainMm} mm` : obsFailed ? "no data" : "…"}</div>
-            </div>
+            </Tip>
             <div className="fr-tile" style={{ width: 132 }}>
               <div>HIGH RISK</div>
               <div>
@@ -1264,14 +1278,10 @@ export default function Home() {
               <section className="fr-group">
                 <div className="fr-label">
                   What if · demo controls
-                  {PUBLIC_BUILD
-                    ? " · scored in your browser from the sample model"
-                    : offline
-                      ? " · off while risk-api is offline"
-                      : ""}
+                  {offline ? " · off while risk-api is offline" : ""}
                 </div>
-                <div className="fr-label" style={{ marginTop: 12 }} id="fr-day-label">
-                  Forecast day · sample rain
+                <div className="fr-label" style={{ marginTop: 16, marginBottom: 12 }} id="fr-day-label">
+                  Forecast day
                 </div>
                 <div role="group" aria-labelledby="fr-day-label" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {DAYS.map((name, i) => (
@@ -1365,54 +1375,35 @@ export default function Home() {
               <section className="fr-group">
                 <div className="fr-label">Rain forecast · {day === 0 ? "rest of today" : `next ${day + 1} days`}</div>
                 <div className="fr-sub">
-                  Every {unitFor(day + 1)} hours · solid bars = rain in the block, line = running total
+                  Every {unitFor(day + 1)} hours (hour of day, Sydney time) · bars = rain in the block, line = running
+                  total. Under each day: BoM rain range and chance of rain
                 </div>
                 <RainChart
                   blocks={blocks}
                   unitHours={unitFor(day + 1)}
-                  dayNames={DAYS.map((_, i) =>
-                    i === 0
-                      ? "Today"
-                      : new Intl.DateTimeFormat("en-AU", {
-                          timeZone: "Australia/Sydney",
-                          weekday: "short",
-                          day: "numeric",
-                        }).format(new Date(`${sydneyDate(i)}T12:00:00Z`)),
-                  )}
+                  days={DAYS.slice(0, day + 1).map((_, i) => {
+                    const d = bom?.days.find((x) => x.date === sydneyDate(i));
+                    const name =
+                      i === 0
+                        ? "Today"
+                        : new Intl.DateTimeFormat("en-AU", {
+                            timeZone: "Australia/Sydney",
+                            weekday: "short",
+                            day: "numeric",
+                          }).format(new Date(`${sydneyDate(i)}T12:00:00Z`));
+                    return {
+                      name,
+                      range: !bom
+                        ? "sample"
+                        : !d
+                          ? "no data"
+                          : d.lowMm === null
+                            ? "no rain"
+                            : `${d.lowMm}–${d.highMm} mm`,
+                      chance: bom && d?.popPct != null ? `${d.popPct}% chance` : "",
+                    };
+                  })}
                 />
-                <div className="fr-scroll" tabIndex={0} role="group" aria-label="Daily forecast. Scroll sideways.">
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {DAYS.slice(0, day + 1).map((name, i) => {
-                      const d = bom?.days.find((x) => x.date === sydneyDate(i));
-                      return (
-                        <span
-                          key={name}
-                          style={{
-                            flex: "0 0 auto",
-                            border: "1px solid #2D6182",
-                            borderRadius: 10,
-                            padding: "4px 10px",
-                            fontSize: 12,
-                            lineHeight: 1.35,
-                            color: "#CFE6F0",
-                          }}
-                        >
-                          <b style={{ display: "block", fontSize: 13 }}>{i === 0 ? "Today" : name}</b>
-                          {bom
-                            ? d
-                              ? d.lowMm === null
-                                ? "no rain range"
-                                : `${d.lowMm} to ${d.highMm} mm`
-                              : "no data"
-                            : "sample"}
-                          {bom && d?.popPct != null && (
-                            <span style={{ display: "block" }}>{d.popPct}% chance of rain</span>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
                 <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
                   {bom ? (
                     <>
