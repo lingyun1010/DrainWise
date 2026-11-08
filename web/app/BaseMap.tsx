@@ -26,8 +26,9 @@ export default function BaseMap({ onView }: { onView: (v: View) => void }) {
     let map: import("maplibre-gl").Map | undefined;
     let dead = false;
     (async () => {
-      const maplibregl = (await import("maplibre-gl")).default;
+      const maplibregl = await import("maplibre-gl");
       if (dead || !host.current) return;
+      maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
       const m = new maplibregl.Map({
         container: host.current,
         style: STYLE,
