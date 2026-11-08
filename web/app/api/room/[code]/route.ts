@@ -15,26 +15,26 @@ const missesNow = (client: string) => (misses.get(client) ?? []).filter((t) => D
 
 export async function GET(request: Request, { params }: { params: Promise<{ code: string }> }) {
   await connection();
-  if (!storageConfigured()) return Response.json({ error: "shared rooms are not configured" }, { status: 503 });
+  if (!storageConfigured()) return Response.json({ error: "shared teams are not configured" }, { status: 503 });
   const code = cleanRoomCode((await params).code);
-  if (!code) return Response.json({ error: "invalid room code" }, { status: 400 });
+  if (!code) return Response.json({ error: "invalid team code" }, { status: 400 });
   const client = clientOf(request);
   if (missesNow(client).length >= MISS_LIMIT) {
-    return Response.json({ error: "too many unknown rooms, try again later" }, { status: 429 });
+    return Response.json({ error: "too many unknown teams, try again later" }, { status: 429 });
   }
   const room = await getRoom(code);
-  if (room === "error") return Response.json({ error: "room storage is not reachable" }, { status: 502 });
+  if (room === "error") return Response.json({ error: "team storage is not reachable" }, { status: 502 });
   if (!room) {
     misses.set(client, [...missesNow(client), Date.now()]);
-    return Response.json({ error: "room not found" }, { status: 404 });
+    return Response.json({ error: "team not found" }, { status: 404 });
   }
   return Response.json(room);
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ code: string }> }) {
-  if (!storageConfigured()) return Response.json({ error: "shared rooms are not configured" }, { status: 503 });
+  if (!storageConfigured()) return Response.json({ error: "shared teams are not configured" }, { status: 503 });
   const code = cleanRoomCode((await params).code);
-  if (!code) return Response.json({ error: "invalid room code" }, { status: 400 });
+  if (!code) return Response.json({ error: "invalid team code" }, { status: 400 });
   const client = clientOf(request);
   if (!allowRequest(hits, client, Date.now(), 1200)) {
     return Response.json({ error: "too many updates, slow down" }, { status: 429 });
@@ -45,7 +45,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ code
   if (!check.ok) return Response.json({ error: check.error }, { status: check.status });
 
   const updatedAt = await saveRoom(code, body!.state);
-  if (updatedAt === "error") return Response.json({ error: "room storage is not reachable" }, { status: 502 });
-  if (!updatedAt) return Response.json({ error: "room not found" }, { status: 404 });
+  if (updatedAt === "error") return Response.json({ error: "team storage is not reachable" }, { status: 502 });
+  if (!updatedAt) return Response.json({ error: "team not found" }, { status: 404 });
   return Response.json({ updatedAt });
 }

@@ -48,7 +48,7 @@ function saveLabels(v: Record<string, Label>) {
   }
 }
 
-export default function ReviewClient({ count }: { count: number }) {
+export default function ReviewClient({ count, mock }: { count: number; mock: boolean }) {
   const [labels, setLabels] = useState<Record<string, Label>>({});
   const [asks, setAsks] = useState<Record<string, Ask>>({});
   const [picked, setPicked] = useState<Record<string, Level>>({});
@@ -279,7 +279,7 @@ export default function ReviewClient({ count }: { count: number }) {
   return (
     <main style={{ minHeight: "100vh", background: "var(--fr-bg)", padding: "20px 16px 48px" }}>
       <div style={{ maxWidth: 1040, margin: "0 auto" }}>
-        <div className="fr-label">Local prototype · sample data</div>
+        <div className="fr-label">Prototype · sample data</div>
         <h1 style={{ margin: "4px 0 12px", fontSize: 32, fontFamily: "var(--font-fredoka)" }}>Photo review</h1>
 
         <section
@@ -287,6 +287,18 @@ export default function ReviewClient({ count }: { count: number }) {
           className="fr-section"
           style={{ border: "2px dashed var(--fr-yellow)", marginBottom: 20, fontSize: 15, lineHeight: 1.5 }}
         >
+          {process.env.NEXT_PUBLIC_PUBLIC_BUILD === "1" && (
+            <p style={{ margin: "0 0 8px", fontWeight: 700 }}>
+              Public demo: anyone with this address can see and delete the crew photos below. Photos are deleted after
+              24 hours. Do not upload faces, people or number plates.
+            </p>
+          )}
+          {mock && (
+            <p style={{ margin: "0 0 8px", fontWeight: 700 }}>
+              Mock AI: no vision key is set, so suggestions are fake (picked from the file bytes). Add OPENAI_API_KEY to
+              web/.env.local for real ones.
+            </p>
+          )}
           <strong>Prototype. Human review required. No accuracy claim.</strong>
           <ul style={{ margin: "8px 0 0", paddingLeft: 20, listStyle: "disc", color: "var(--fr-soft)" }}>
             <li>

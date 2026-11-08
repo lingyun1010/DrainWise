@@ -158,7 +158,7 @@ export async function createRoom(): Promise<RoomResult> {
       body: JSON.stringify({ state: loadState() }),
     });
     const data = (await res.json().catch(() => ({}))) as { code?: string; updatedAt?: string; error?: string };
-    if (!res.ok || !data.code) return { ok: false, error: data.error ?? "could not start a room" };
+    if (!res.ok || !data.code) return { ok: false, error: data.error ?? "could not start a team" };
     setRoomCode(data.code);
     lastSeen = data.updatedAt ?? null;
     return { ok: true, code: data.code };
@@ -172,8 +172,8 @@ export async function joinRoom(code: string): Promise<RoomResult> {
   try {
     const res = await fetch(`/api/room/${code}`, { cache: "no-store" });
     const data = (await res.json().catch(() => ({}))) as { state?: SavedState; updatedAt?: string; error?: string };
-    if (res.status === 404) return { ok: false, error: `No room ${code}. Check the code or start a new room.` };
-    if (!res.ok || !data.state) return { ok: false, error: data.error ?? "could not join the room" };
+    if (res.status === 404) return { ok: false, error: `No team ${code}. Check the code or start a new team.` };
+    if (!res.ok || !data.state) return { ok: false, error: data.error ?? "could not join the team" };
     setRoomCode(code);
     applyRemote(data.state, data.updatedAt ?? null);
     return { ok: true, code };

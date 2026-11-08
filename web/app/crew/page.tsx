@@ -7,7 +7,9 @@ export default function Crew() {
   const router = useRouter();
   return (
     <main style={{ minHeight: "100vh", background: "#0B2233", padding: 16 }}>
-      <CrewApp standalone onSwitchRole={() => router.push("/")} />
+      <div className="fr-device">
+        <CrewApp standalone onSwitchRole={() => router.push("/")} />
+      </div>
     </main>
   );
 }

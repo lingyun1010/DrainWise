@@ -1,14 +1,12 @@
-// Local-only photo review page (ticket 13). It does not exist unless a vision key is set locally
-// and this is not the public build: without both, this route is a plain 404.
-// The key is checked when the page is built or, with `npm run dev`, on each request. The public
-// build has no key, so its 404 is fixed at build time.
+// Photo review page (ticket 13), open in the public build too. Without a key it works
+// without a key too: suggestions then come from a labelled MOCK, not an AI.
 import { notFound } from "next/navigation";
-import { SAMPLE_COUNT, reviewEnabled } from "@/lib/review";
+import { SAMPLE_COUNT, mockMode, reviewEnabled } from "@/lib/review";
 import ReviewClient from "./ReviewClient";
 
-export const metadata = { title: "Photo review · DrainWise (local prototype)" };
+export const metadata = { title: "Photo review · DrainWise (prototype)" };
 
 export default function ReviewPage() {
   if (!reviewEnabled()) notFound();
-  return <ReviewClient count={SAMPLE_COUNT} />;
+  return <ReviewClient count={SAMPLE_COUNT} mock={mockMode()} />;
 }

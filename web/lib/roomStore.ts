@@ -40,9 +40,9 @@ export type Created = { ok: true; updatedAt: string } | { ok: false; status: num
 export async function createRoom(code: string, state: unknown): Promise<Created> {
   await deleteExpiredRooms();
   const count = await call("select=code&limit=1", { headers: { Prefer: "count=exact", Range: "0-0" } });
-  if (!count || !count.res.ok) return { ok: false, status: 502, error: "room storage is not reachable" };
+  if (!count || !count.res.ok) return { ok: false, status: 502, error: "team storage is not reachable" };
   const total = Number(count.res.headers.get("content-range")?.split("/")[1] ?? 0);
-  if (total >= MAX_ROOMS) return { ok: false, status: 507, error: "too many rooms for this demo, try later" };
+  if (total >= MAX_ROOMS) return { ok: false, status: 507, error: "too many teams for this demo, try later" };
 
   const now = Date.now();
   const r = await call("select=updated_at", {
@@ -50,9 +50,9 @@ export async function createRoom(code: string, state: unknown): Promise<Created>
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({ code, state, updated_at: new Date(now).toISOString(), expires_at: roomExpiry(now) }),
   });
-  if (!r) return { ok: false, status: 502, error: "room storage is not reachable" };
+  if (!r) return { ok: false, status: 502, error: "team storage is not reachable" };
   if (r.res.status === 409) return { ok: false, status: 409, error: "code taken" };
-  if (!r.res.ok) return { ok: false, status: 502, error: "could not create the room" };
+  if (!r.res.ok) return { ok: false, status: 502, error: "could not create the team" };
   return { ok: true, updatedAt: parse(r.text)[0].updated_at };
 }
 

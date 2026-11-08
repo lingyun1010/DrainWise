@@ -1,6 +1,7 @@
 // Server-only helpers for the local photo review page (ticket 13).
-// The review page and its routes exist only when OPENAI_API_KEY is set in the local, gitignored
-// web/.env.local and this is not the public build. The key is read here and never sent to the browser.
+// The review page and its routes exist in every build (owner decision 2026-11-08: public too). With OPENAI_API_KEY in
+// the local, gitignored web/.env.local the suggestion comes from the vision service; without a key a
+// built-in MOCK stands in (no AI, no network). The key is read here and never sent to the browser.
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -12,7 +13,29 @@ const MODEL = process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini";
 const BASE_URL = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 
 export function reviewEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_PUBLIC_BUILD !== "1" && !!process.env.OPENAI_API_KEY;
+  return true;
+}
+
+// True when no vision key is set: suggestions are fake and must be labelled as such.
+export function mockMode(): boolean {
+  return !process.env.OPENAI_API_KEY;
+}
+
+// Deterministic fake suggestion from the image bytes. Not a model: it only lets the review flow be
+// tried without a key. Same image, same answer.
+export function mockSuggestion(image: Buffer): ParsedSuggestion {
+  let h = 0;
+  for (let i = 0; i < image.length; i += 97) h = (h * 31 + image[i]) >>> 0;
+  const level = (h % 4) as 0 | 1 | 2 | 3;
+  const names = ["clear", "light debris", "about half blocked", "blocked"];
+  return {
+    ok: true,
+    suggestion: {
+      level,
+      confidence: 0.5,
+      rationale: `MOCK, not an AI: picked "${names[level]}" from the file bytes so you can try the review flow.`,
+    },
+  };
 }
 
 // n is checked as an integer 1..7, so it can never build a path outside the sample folder.
@@ -42,7 +65,7 @@ const PROMPT = [
 
 export async function suggestLevel(image: Buffer): Promise<ParsedSuggestion> {
   const key = process.env.OPENAI_API_KEY;
-  if (!key) return { ok: false, error: "no vision key configured" };
+  if (!key) return mockSuggestion(image);
   let res: Response;
   try {
     res = await fetch(`${BASE_URL}/chat/completions`, {

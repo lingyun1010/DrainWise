@@ -8,10 +8,10 @@ import { storageConfigured } from "@/lib/photoStore";
 const hits = new Map<string, number[]>();
 
 export async function POST(request: Request) {
-  if (!storageConfigured()) return Response.json({ error: "shared rooms are not configured" }, { status: 503 });
+  if (!storageConfigured()) return Response.json({ error: "shared teams are not configured" }, { status: 503 });
   const client = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (!allowRequest(hits, client, Date.now(), 20)) {
-    return Response.json({ error: "too many rooms, try again later" }, { status: 429 });
+    return Response.json({ error: "too many teams, try again later" }, { status: 429 });
   }
 
   const body = (await request.json().catch(() => null)) as { state?: unknown } | null;

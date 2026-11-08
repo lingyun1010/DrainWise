@@ -279,6 +279,23 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".06em", color: "#8FB8CC" }}>
                 PROOF OF WORK · 2 PHOTOS REQUIRED
               </div>
+              {PHOTO_UPLOAD_ON && (
+                <div
+                  role="note"
+                  style={{
+                    border: "2px dashed #FFD27A",
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    fontSize: 13,
+                    color: "#CFE6F0",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <b>Photo policy.</b> Do not photograph faces, people or number plates. Photos are saved in a database
+                  {IS_PUBLIC_DEMO ? " (deleted after 24 hours on this public demo)" : ""}. If one slips in, retake it
+                  before you submit.
+                </div>
+              )}
               {!before ? (
                 <>
                   <div style={{ fontSize: 14, color: "#CFE6F0", lineHeight: 1.4 }}>
