@@ -111,18 +111,22 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     const t = sydneyClock();
     let next = now;
     let text: string;
+    const left = openStops(live)
+      .map((s) => s.id)
+      .join(", "); // GPT numbers still not cleaned
+    const done = live.done.length ? ` Already cleaned: ${live.done.join(", ")}.` : "";
     if (kind === "decline") {
       next = declineRun(now, crew.id, reason, at, note);
-      text = `${crewName} declined the run: ${why}. Back in the queue.`;
+      text = `${crewName} declined the run (${left}): ${why}. Back in the queue.`;
     } else if (kind === "skip") {
       next = skipStop(now, crew.id, stop.id, reason, at, note);
       text =
         next.runs[crew.id]?.ended || !next.runs[crew.id]
-          ? `${crewName} ended the run early: ${why}. Back in the queue.`
+          ? `${crewName} ended the run early: ${why}. Not cleaned, back in the queue: ${left}.${done}`
           : `${crewName} skipped ${stop.id}: ${why}. Back in the queue.`;
     } else {
       next = endRunEarly(now, crew.id, reason, at, note);
-      text = `${crewName} ended the run early: ${why}. Back in the queue.`;
+      text = `${crewName} ended the run early: ${why}. Not cleaned, back in the queue: ${left}.${done}`;
     }
     if (next === now) return;
     next = { ...next, log: addLog(next.log, t, text, { ...meta, runId: live.runId }) };

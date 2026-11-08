@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Clean the right drains before they block. Sample data.",
 };
 
-export const viewport: Viewport = { themeColor: "#0B2233" };
+export const viewport: Viewport = { themeColor: "#0B2233", viewportFit: "cover", colorScheme: "dark" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

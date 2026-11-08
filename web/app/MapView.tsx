@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import BaseMap, { type View } from "./BaseMap";
 import CrewToggles from "./CrewToggles";
@@ -63,11 +63,24 @@ export default function MapView({
   const box = useRef<HTMLDivElement>(null);
   const exitBtn = useRef<HTMLButtonElement>(null);
   const [full, setFull] = useState(false); // map fills the window (in this page, no navigation)
-  const [headTop, setHeadTop] = useState(0); // full screen on a wide window starts below the dashboard header
+  // Opening or closing full screen resizes the map box; the basemap re-fits a moment later. Keep the box
+  // hidden until that re-fit has landed, so it never shows the old zoom stretched to the new size.
+  const [settling, setSettling] = useState(false);
+  const toggleFull = (on: boolean) => {
+    setSettling(true);
+    setFull(on);
+  };
   useEffect(() => {
+    if (!settling) return;
+    const id = window.setTimeout(() => setSettling(false), 350); // fallback if no resize event arrives
+    return () => window.clearTimeout(id);
+  }, [settling]);
+  const [headTop, setHeadTop] = useState(0); // full screen on a wide window starts below the dashboard header
+  // Layout effect: the header offset is set before the first paint, so the map opens at its final size (no zoom-out flash).
+  useLayoutEffect(() => {
     if (!full) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !document.querySelector("[role=dialog]")) setFull(false); // Esc closes an open dialog first
+      if (e.key === "Escape" && !document.querySelector("[role=dialog]")) toggleFull(false); // Esc closes an open dialog first
     };
     window.addEventListener("keydown", onKey);
     const place = () => {
@@ -92,6 +105,7 @@ export default function MapView({
   const [tip, setTip] = useState<{ id: string; x: number; top: number; bottom: number } | null>(null);
   const setView = (v: View) => {
     setViewRaw(v);
+    requestAnimationFrame(() => setSettling(false));
     setTip(null);
   };
   const showTip = (id: string, el: Element) => {
@@ -147,6 +161,8 @@ export default function MapView({
           borderBottom: 0,
           background: "#12384F",
           overflow: "hidden",
+          opacity: settling ? 0 : 1,
+          transition: settling ? "none" : "opacity 120ms",
         }}
       >
         <BaseMap onView={setView} />
@@ -155,7 +171,7 @@ export default function MapView({
           type="button"
           className="fr-btn fr-sec"
           aria-pressed={full}
-          onClick={() => setFull((f) => !f)}
+          onClick={() => toggleFull(!full)}
           style={{ position: "absolute", left: 10, top: 10, minHeight: 40, zIndex: 10 }}
         >
           {full ? "Exit full screen" : "Full screen"}
