@@ -21,10 +21,8 @@ import {
   isBusy,
   loadState,
   openStopIds,
-  rainNow,
   resetAll,
   saveState,
-  simMinute,
   subscribeRun,
   type RunStop,
   type SavedState,
@@ -90,7 +88,6 @@ export default function Home() {
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [minute, setMinute] = useState(0);
   const [clock, setClock] = useState("--:--"); // real Sydney time; set after mount so server and browser HTML match
   const [view, setView] = useState<"2d" | "3d">("2d");
   // Before photos a person has already confirmed on /review, as "runId:stopId". Those no longer wait for review.
@@ -125,13 +122,9 @@ export default function Home() {
     const read = () => setSt(loadState());
     read();
     const un = subscribeRun(read);
-    const tick = setInterval(() => {
-      setMinute(simMinute());
-      setClock(sydneyClock());
-      setClock(sydneyClock());
-    }, 400);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sim clock lives in localStorage, only readable in the browser
-    setMinute(simMinute());
+    const tick = setInterval(() => setClock(sydneyClock()), 400);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is read after mount so server and browser HTML match
+    setClock(sydneyClock());
     return () => {
       un();
       clearInterval(tick);
@@ -168,6 +161,28 @@ export default function Home() {
       live = false;
     };
   }, []);
+  // Real rain reading so far today (BoM, Sydney Olympic Park AWS), refreshed every 10 minutes.
+  const [obs, setObs] = useState<{ station: string; observedAt: string; rainMm: number } | null>(null);
+  const [obsFailed, setObsFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const load = () =>
+      fetch("/api/rain-obs")
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error("obs"))))
+        .then((d) => {
+          if (live) {
+            setObs(d);
+            setObsFailed(false);
+          }
+        })
+        .catch(() => live && setObsFailed(true));
+    load();
+    const t = setInterval(load, 10 * 60 * 1000);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, []);
   const dayRain = useMemo(
     () => (bom ? DAYS.map((_, k) => dayRainMm(bom.days.find((d) => d.date === sydneyDate(k))) ?? 0) : DAY_RAIN_MM),
     [bom],
@@ -185,6 +200,8 @@ export default function Home() {
       unitHours: unitFor(day + 1),
     });
   }, [dayRain, day, extra, clock]);
+  // Rain intensity for the 3D water picture: the first block of the chart, in mm per hour (forecast, not a reading).
+  const rainRate = blocks.length ? (blocks[0].baseMm + blocks[0].extraMm) / unitFor(day + 1) : 0;
   // The scores on screen belong to scoredKey. While it differs from the inputs now chosen, new scores are on the way.
   const [scoredKey, setScoredKey] = useState<string | null>(null);
   const rainForecast = hz.rain_forecast_mm;
@@ -848,9 +865,17 @@ export default function Home() {
               <div>SYDNEY TIME</div>
               <div>{clock}</div>
             </div>
-            <div className="fr-tile" style={{ width: 132 }}>
-              <div>RAIN NOW</div>
-              <div>{Math.round(rainNow(minute))} mm/h</div>
+            <div
+              className="fr-tile"
+              style={{ width: 160 }}
+              title={
+                obs
+                  ? `Observed ${obs.observedAt.slice(11, 16)} Sydney time at ${obs.station}. Source: Bureau of Meteorology.`
+                  : "Latest Bureau of Meteorology rain reading"
+              }
+            >
+              <div>RAIN SINCE 9AM</div>
+              <div>{obs ? `${obs.rainMm} mm` : obsFailed ? "no data" : "…"}</div>
             </div>
             <div className="fr-tile" style={{ width: 132 }}>
               <div>HIGH RISK</div>
@@ -963,7 +988,7 @@ export default function Home() {
                 </button>
               </div>
               {view === "3d" ? (
-                <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainNow(minute)} extra={extra} onOpen={openAsset} />
+                <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainRate} extra={extra} onOpen={openAsset} />
               ) : (
                 <MapView
                   assets={mapAssets}
@@ -1355,9 +1380,6 @@ export default function Home() {
                         }).format(new Date(`${sydneyDate(i)}T12:00:00Z`)),
                   )}
                 />
-                <div className="fr-sub" style={{ marginTop: 12 }}>
-                  Bureau of Meteorology, by day{bom ? "" : " (not loaded, sample values)"}
-                </div>
                 <div className="fr-scroll" tabIndex={0} role="group" aria-label="Daily forecast. Scroll sideways.">
                   <div style={{ display: "flex", gap: 8 }}>
                     {DAYS.slice(0, day + 1).map((name, i) => {
@@ -1408,6 +1430,12 @@ export default function Home() {
                   ) : (
                     "Loading the Bureau of Meteorology forecast. Sample rain until it arrives."
                   )}{" "}
+                  {obs && (
+                    <>
+                      Rain so far today: {obs.rainMm} mm since 9am, measured at {obs.station} (a few km east of
+                      Parramatta), read at {obs.observedAt.slice(11, 16)} Sydney time.{" "}
+                    </>
+                  )}
                   The free BoM forecast has no 3-hourly rain, so how each day&apos;s rain is split into blocks is an
                   assumption (a fixed sample pattern, most rain in the afternoon). Light blue on top of a bar is what-if
                   rain from the Extra rain slider.
