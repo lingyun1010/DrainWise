@@ -29,6 +29,9 @@ A **decision-locked build spec** for the DrainWise hackathon MVP: stack, scope, 
 
 - [Prepare for the 9 Nov council expert session](issues/01-expert-meeting-prep.md): ask all 7 questions on 9 Nov in build-blocking order, fall back to smallest usable data, no demo shown; sheet in [01-expert-questions.md](01-expert-questions.md).
 
+- [Asset data approach](issues/02-asset-data-approach.md): council sample if given, else fictional points in real Parramatta; 36 assets, parameterised; all features simulated in MVP; persistent SAMPLE DATA labelling.
+- [Photo pipeline and privacy](issues/04-photo-pipeline-privacy.md): photos in memory only; metadata-only Job record; minimal human-review page for 7 sample images; face/plate check is a gate before training (not built); honest "designed to become training data" claim.
+
 ## Not yet specified
 
 - Pitch and demo script (what the judges see in 3 minutes, which story).
@@ -43,6 +46,7 @@ A **decision-locked build spec** for the DrainWise hackathon MVP: stack, scope, 
 - Real-time flood warning: already covered by FloodSmart/FLASH (BoM forecast + 3Di); we do not compete with it.
 
 ## Progress 2026-11-08
+
 - Seam C `planner/src/planRun.ts` (TS + vitest, `cd planner && npm test`): 3 tests pass (capacity, risk-first, photosNeeded). Greedy by risk only; nearest-neighbour ordering / route still open under ticket 03. Load formula is the made-up demo placeholder.
 - CLAUDE.md train command fixed to `python -m ml.train`.
 - Seam D `planner/src/canComplete.ts`: 4 tests pass (camera direct; before+after required otherwise; reports which photo is missing). Ticket 03 resolved: knapsack + nearest-neighbour (see issues/03). Next: implement it in planRun, then 9 Nov expert answers.
