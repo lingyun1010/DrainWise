@@ -42,3 +42,6 @@ next-env.d.ts
 
 # copied from node_modules by scripts-copy-maplibre-worker.mjs
 /public/maplibre/
+
+# keep the example env file committable
+!.env.sample

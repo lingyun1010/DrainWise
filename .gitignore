@@ -13,3 +13,5 @@ next-env.d.ts
 
 # local-only copies (sample photos for the review page); never commit
 .local/
+!.env.sample
+!web/.env.sample
