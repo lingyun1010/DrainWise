@@ -109,7 +109,7 @@ export default function MapView({
         .join(" "),
     }))
     .filter((r) => r.ids.length > 0);
-  const sorted = [...assets].sort((p, q) => order(p) - order(q)); // high risk drawn last (on top)
+  const sorted = [...assets].sort((p, q) => order(p) - order(q)); // planned stops last, then high risk (on top)
 
   return (
     <div
@@ -532,6 +532,7 @@ export default function MapView({
 }
 
 function order(a: MapAsset) {
+  if (a.state === "idle" && a.planN) return 4; // stops in the proposed run are drawn above every other GPT
   return a.state === "done" ? 0 : { low: 1, medium: 2, high: 3 }[a.level];
 }
 function cap(s: string) {
