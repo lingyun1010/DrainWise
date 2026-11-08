@@ -13,7 +13,7 @@ export function isUuid(raw: unknown): raw is string {
   return typeof raw === "string" && UUID.test(raw);
 }
 
-function config() {
+export function config() {
   const url = process.env.SUPABASE_URL?.replace(/\/$/, "");
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return url && key ? { url, key } : null;
@@ -23,7 +23,7 @@ export function storageConfigured(): boolean {
   return config() !== null;
 }
 
-function auth(key: string): Record<string, string> {
+export function auth(key: string): Record<string, string> {
   return { apikey: key, Authorization: `Bearer ${key}` };
 }
 

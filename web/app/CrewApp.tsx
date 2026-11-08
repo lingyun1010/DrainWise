@@ -1,5 +1,6 @@
 "use client";
 
+import RoomChip from "./RoomChip";
 import { useEffect, useState } from "react";
 import { canComplete } from "../../planner/src/canComplete";
 import { mockSuggestion } from "../../planner/src/mockSuggestion";
@@ -154,6 +155,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
         <span style={{ fontWeight: 700, fontSize: 18 }}>Crew app</span>
+        <RoomChip compact />
         <button
           className="fr-btn fr-ghost"
           type="button"

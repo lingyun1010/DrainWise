@@ -1,3 +1,5 @@
+import RoomChip from "./RoomChip";
+
 const FACE = (
   <>
     <circle r="19" fill="#FFE0C2" stroke="#0B2233" strokeWidth="3" />
@@ -90,6 +92,7 @@ export default function RoleScreen({
           <span className="fr-cd">Manager map and crew phone together. Best for judges.</span>
         </button>
       </div>
+      <RoomChip />
       <p style={{ margin: 0, fontSize: 14, color: "#B9D6E3", maxWidth: "60ch", textAlign: "center" }}>
         Sample data only. Real deployment would use council single sign-on and audit logs.
       </p>

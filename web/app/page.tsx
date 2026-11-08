@@ -26,6 +26,7 @@ import {
 } from "@/lib/runStore";
 import MapView, { type Level, type MapAsset, type MapCrew, type MapRoute } from "./MapView";
 import RoleScreen from "./RoleScreen";
+import RoomChip from "./RoomChip";
 import Dialog, { ConfirmDialog } from "./Dialog";
 import dynamic from "next/dynamic";
 
@@ -727,6 +728,7 @@ export default function Home() {
               <div>CLEANED TODAY</div>
               <div>{records.length}</div>
             </div>
+            <RoomChip />
             <button
               className="fr-btn fr-sec"
               type="button"

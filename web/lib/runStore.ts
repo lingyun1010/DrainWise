@@ -1,4 +1,6 @@
-// Demo-only handoff between the manager and crew screens (same browser, localStorage).
+// Demo-only handoff between the manager and crew screens. localStorage is the local copy; when a shared room
+// is joined (see the Shared room section below) every save is also sent to the server and polled back, so a
+// laptop and a phone see the same session.
 // Photos are NOT stored here: they live in memory only and are never persisted.
 export type RunStop = {
   id: string;
@@ -74,6 +76,7 @@ export function saveState(state: SavedState): void {
     /* storage unavailable: demo handoff just won't persist */
   }
   window.dispatchEvent(new Event(EVT)); // same-tab listeners (split view)
+  queuePush(state);
 }
 
 export function resetAll(): void {
@@ -85,17 +88,178 @@ export function resetAll(): void {
     /* ignore */
   }
   window.dispatchEvent(new Event(EVT));
+  queuePush(EMPTY);
 }
 
 export function subscribeRun(fn: () => void): () => void {
   window.addEventListener(EVT, fn);
   window.addEventListener("storage", fn);
   window.addEventListener("focus", fn);
+  window.addEventListener("focus", pullRoom);
+  startPolling();
   return () => {
     window.removeEventListener(EVT, fn);
     window.removeEventListener("storage", fn);
     window.removeEventListener("focus", fn);
+    window.removeEventListener("focus", pullRoom);
+    stopPolling();
   };
+}
+
+// ---- Shared room (two devices, one sample session) ----
+// A room is a 4-letter code kept in localStorage. Saves are pushed to /api/room/<code> and the server copy is
+// polled every 2 s. Last write wins: fine for one manager and a few crews, not a real sync engine.
+const ROOM_KEY = "drainwise.room";
+const ROOM_EVT = "drainwise-room";
+const POLL_MS = 2000;
+let lastSeen: string | null = null; // updated_at of the last server copy applied or pushed
+let pushing = false;
+let pending: SavedState | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let subscribers = 0;
+
+export function getRoomCode(): string | null {
+  try {
+    return localStorage.getItem(ROOM_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setRoomCode(code: string | null): void {
+  try {
+    if (code) localStorage.setItem(ROOM_KEY, code);
+    else localStorage.removeItem(ROOM_KEY);
+  } catch {
+    /* ignore */
+  }
+  lastSeen = null;
+  pending = null;
+  window.dispatchEvent(new Event(ROOM_EVT));
+}
+
+export function subscribeRoom(fn: () => void): () => void {
+  window.addEventListener(ROOM_EVT, fn);
+  window.addEventListener("storage", fn);
+  return () => {
+    window.removeEventListener(ROOM_EVT, fn);
+    window.removeEventListener("storage", fn);
+  };
+}
+
+export type RoomResult = { ok: true; code: string } | { ok: false; error: string };
+
+// Starts a room seeded with this device's current session.
+export async function createRoom(): Promise<RoomResult> {
+  try {
+    const res = await fetch("/api/room", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: loadState() }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { code?: string; updatedAt?: string; error?: string };
+    if (!res.ok || !data.code) return { ok: false, error: data.error ?? "could not start a room" };
+    setRoomCode(data.code);
+    lastSeen = data.updatedAt ?? null;
+    return { ok: true, code: data.code };
+  } catch {
+    return { ok: false, error: "could not reach the server" };
+  }
+}
+
+// Joins an existing room; the room's session replaces this device's local one.
+export async function joinRoom(code: string): Promise<RoomResult> {
+  try {
+    const res = await fetch(`/api/room/${code}`, { cache: "no-store" });
+    const data = (await res.json().catch(() => ({}))) as { state?: SavedState; updatedAt?: string; error?: string };
+    if (res.status === 404) return { ok: false, error: `No room ${code}. Check the code or start a new room.` };
+    if (!res.ok || !data.state) return { ok: false, error: data.error ?? "could not join the room" };
+    setRoomCode(code);
+    applyRemote(data.state, data.updatedAt ?? null);
+    return { ok: true, code };
+  } catch {
+    return { ok: false, error: "could not reach the server" };
+  }
+}
+
+export function leaveRoom(): void {
+  setRoomCode(null);
+}
+
+function applyRemote(state: SavedState, updatedAt: string | null): void {
+  lastSeen = updatedAt;
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event(EVT)); // readers reload from localStorage; this does not push back
+}
+
+function queuePush(state: SavedState): void {
+  if (!getRoomCode()) return;
+  pending = state;
+  if (!pushing) void flushPush();
+}
+
+async function flushPush(): Promise<void> {
+  pushing = true;
+  try {
+    while (pending) {
+      const code = getRoomCode();
+      const state = pending;
+      pending = null;
+      if (!code) break;
+      try {
+        const res = await fetch(`/api/room/${code}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ state }),
+        });
+        if (res.status === 404) {
+          setRoomCode(null); // room expired on the server
+          break;
+        }
+        if (res.ok) lastSeen = ((await res.json()) as { updatedAt?: string }).updatedAt ?? lastSeen;
+      } catch {
+        /* offline: the next save or poll tries again */
+      }
+    }
+  } finally {
+    pushing = false;
+  }
+}
+
+async function pullRoom(): Promise<void> {
+  const code = getRoomCode();
+  if (!code || pushing || pending) return;
+  try {
+    const res = await fetch(`/api/room/${code}`, { cache: "no-store" });
+    if (res.status === 404) return setRoomCode(null);
+    if (!res.ok) return;
+    const data = (await res.json()) as { state: SavedState; updatedAt: string };
+    if (pushing || pending || data.updatedAt === lastSeen) return;
+    applyRemote(data.state, data.updatedAt);
+  } catch {
+    /* offline: keep the local copy */
+  }
+}
+
+function startPolling(): void {
+  subscribers += 1;
+  if (pollTimer) return;
+  pollTimer = setInterval(() => {
+    if (document.visibilityState === "visible") void pullRoom();
+  }, POLL_MS);
+}
+
+function stopPolling(): void {
+  subscribers -= 1;
+  if (subscribers <= 0 && pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+    subscribers = 0;
+  }
 }
 
 export function addLog(
