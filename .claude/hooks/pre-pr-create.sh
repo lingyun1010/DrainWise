@@ -1,5 +1,6 @@
 #!/bin/bash
 source "$(dirname "$0")/lib.sh"
+only_if 'gh pr create'
 missing=""
 [ -f "$STATE_DIR/$SESSION.planner" ] || missing="$missing planner (cd planner && npm test)"
 [ -f "$STATE_DIR/$SESSION.pytest" ] || missing="$missing python (.venv/bin/pytest -q)"
