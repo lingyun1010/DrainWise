@@ -5,21 +5,26 @@ import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
 import {
+  DEFAULT_CREWS,
   FORECAST,
+  HATS,
   addLog,
+  crewLetter,
   fmtClock,
   isBusy,
-  loadRun,
+  loadState,
+  openStopIds,
   rainNow,
   resetAll,
-  saveRun,
+  saveState,
   simMinute,
   subscribeRun,
   type RunStop,
-  type SavedRun,
+  type SavedState,
 } from "@/lib/runStore";
-import MapView, { type Level, type MapAsset, type MapCrew } from "./MapView";
+import MapView, { type Level, type MapAsset, type MapCrew, type MapRoute } from "./MapView";
 import RoleScreen from "./RoleScreen";
+import Dialog, { ConfirmDialog } from "./Dialog";
 import dynamic from "next/dynamic";
 
 // three.js is only loaded when the 3D view is opened.
@@ -31,6 +36,7 @@ import CrewApp, { CameraIcon } from "./CrewApp";
 
 type Prediction = { asset_id: string; p_block: number; level: Level; reasons: string[] };
 type Role = null | "manager" | "split";
+const LOG_PREVIEW = 5; // rows shown before "Show today's full log"
 type PanelTab = "queue" | "plan" | "records" | "crews";
 const TABS: { id: PanelTab; label: string }[] = [
   { id: "queue", label: "Check next" },
@@ -47,11 +53,7 @@ const TIER_STYLE: Record<Level, React.CSSProperties> = {
   medium: { background: "#FFD27A", color: "#0B2233" },
   low: { background: "#4FC3E8", color: "#0B2233" },
 };
-const CREWS = [
-  { name: "Crew A", letter: "A", hat: "#FFD27A" },
-  { name: "Crew B", letter: "B", hat: "#FF8A4C" },
-  { name: "Crew C", letter: "C", hat: "#7ED9A3" },
-];
+const MAX_CREWS = HATS.length;
 
 export default function Home() {
   const router = useRouter();
@@ -63,14 +65,18 @@ export default function Home() {
   const [capacity, setCapacity] = useState(2);
   const [preds, setPreds] = useState<Prediction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [run, setRun] = useState<SavedRun | null>(null);
+  const [st, setSt] = useState<SavedState>({ crews: DEFAULT_CREWS, runs: {}, records: [], log: [] });
+  const [logOpen, setLogOpen] = useState(false);
+  const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
+  const [choose, setChoose] = useState<RunStop[] | null>(null); // stops waiting for the manager to pick a crew
+  const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [minute, setMinute] = useState(0);
   const [view, setView] = useState<"2d" | "3d">("2d");
 
   useEffect(() => {
-    const read = () => setRun(loadRun());
+    const read = () => setSt(loadState());
     read();
     const un = subscribeRun(read);
     const tick = setInterval(() => setMinute(simMinute()), 400);
@@ -88,12 +94,9 @@ export default function Home() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const records = useMemo(() => run?.records ?? [], [run]);
+  const records = st.records;
   const cleaned = useMemo(() => new Set(records.map((r) => r.stopId)), [records]);
-  const assigned = useMemo(
-    () => new Set(run ? run.stops.filter((s) => !run.done.includes(s.id)).map((s) => s.id) : []),
-    [run],
-  );
+  const assigned = useMemo(() => openStopIds(st), [st]);
 
   // Cleaned assets get days_since_clean = 0, so the model itself shows the risk reset.
   const rainForecast = Math.min(80, Math.round(10 + extra * 0.7));
@@ -131,10 +134,11 @@ export default function Home() {
   const byId = useMemo(() => new Map(seed.map((a) => [a.id, a])), [seed]);
   const rows = useMemo(
     () =>
-      (preds ?? []).map((p) => {
-        const a = byId.get(p.asset_id)!;
+      (preds ?? []).flatMap((p) => {
+        const a = byId.get(p.asset_id);
+        if (!a) return []; // stale scores for an asset that no longer exists (for example after a hot reload)
         const state: MapAsset["state"] = cleaned.has(a.id) ? "done" : assigned.has(a.id) ? "busy" : "idle";
-        return { p, a, state };
+        return [{ p, a, state }];
       }),
     [preds, byId, cleaned, assigned],
   );
@@ -152,7 +156,8 @@ export default function Home() {
     return planRun(assets, capacity, DEPOT, MIN_RUN_RISK);
   }, [idle, capacity]);
   const planN = new Map(plan.stops.map((s, i) => [s.id, i + 1]));
-  const busy = isBusy(run);
+  // The manager picks a crew in a dialog after pressing a send button; busy crews are listed but disabled.
+  const busy = st.crews.every((c) => isBusy(st.runs[c.id]));
   // Highest-risk assets the plan skipped, so the manager sees why a top item is missing.
   const leftOut = useMemo(() => {
     const inPlan = new Set(plan.stops.map((s) => s.id));
@@ -170,7 +175,23 @@ export default function Home() {
       });
   }, [idle, plan]);
 
+  // Which crew holds each open stop, in run order, for the coloured rings and routes on the map.
+  const crewRoutes: MapRoute[] = st.crews.flatMap((c, i) => {
+    const r = st.runs[c.id];
+    const ids = r && !hiddenCrews.includes(c.id) ? r.stops.filter((s) => !r.done.includes(s.id)).map((s) => s.id) : [];
+    return ids.length ? [{ name: c.name, color: HATS[i % HATS.length], ids }] : [];
+  });
+  const stopCrew = new Map<string, { color: string; letter: string }>();
+  st.crews.forEach((c, i) => {
+    const r = hiddenCrews.includes(c.id) ? undefined : st.runs[c.id];
+    r?.stops
+      .filter((s) => !r.done.includes(s.id))
+      .forEach((s) => stopCrew.set(s.id, { color: HATS[i % HATS.length], letter: crewLetter(c.name) }));
+  });
+
   const mapAssets: MapAsset[] = rows.map(({ p, a, state }) => ({
+    crewColor: stopCrew.get(a.id)?.color,
+    crewLetter: stopCrew.get(a.id)?.letter,
     id: a.id,
     type: a.type,
     typeLabel: a.typeLabel,
@@ -182,18 +203,18 @@ export default function Home() {
     planN: planN.get(a.id),
   }));
 
-  const accepted = !!run?.accepted && isBusy(run);
-  const current = run && isBusy(run) ? run.stops.find((s) => !run.done.includes(s.id)) : undefined;
-  const cur1 = current ? byId.get(current.id) : undefined;
-  const mapCrews: MapCrew[] = CREWS.map((c, i) => {
-    const away = c.name === "Crew A" && accepted && cur1;
+  const mapCrews: MapCrew[] = st.crews.map((c, i) => {
+    const r = st.runs[c.id];
+    const next = r && r.accepted && isBusy(r) ? r.stops.find((x) => !r.done.includes(x.id)) : undefined;
+    const spot = next ? byId.get(next.id) : undefined;
     return {
+      id: c.id,
       name: c.name,
-      hat: c.hat,
-      letter: c.letter,
-      x: away ? cur1!.x + 24 : 70 + (i - 1) * 22 + 22,
-      y: away ? cur1!.y + 26 : 475,
-      working: !!away,
+      hat: HATS[i % HATS.length],
+      letter: crewLetter(c.name),
+      x: spot ? spot.x + 24 : 70 + (i - 1) * 22 + 22,
+      y: spot ? spot.y + 26 : 475,
+      working: !!spot,
     };
   });
 
@@ -210,30 +231,78 @@ export default function Home() {
     };
   }
 
-  function startRun(stops: RunStop[]) {
-    if (isBusy(run)) {
-      setToast("All crews are busy. Try again soon.");
+  function startRun(stops: RunStop[], target: { id: string; name: string }) {
+    if (isBusy(st.runs[target.id])) {
+      setToast(`${target.name} is busy. Pick another crew.`);
       return;
     }
     const total = stops.reduce((n, s) => n + s.load, 0);
     const t = fmtClock(simMinute());
     const msg =
       stops.length > 1
-        ? `Crew A sent on a run: ${stops.length} stops, ${total.toFixed(1)} of ${capacity.toFixed(1)} m³ (estimated).`
-        : `Crew A sent to ${stops[0].id}.`;
-    saveRun({
-      // eslint-disable-next-line react-hooks/purity -- startRun only runs from click handlers, never during render
-      runId: `run-${Date.now()}`,
-      crew: "Crew A",
-      stops,
-      capacity,
-      accepted: false,
-      done: [],
-      records: run?.records ?? [],
-      log: addLog(run?.log, t, msg),
+        ? `${target.name} sent on a run: ${stops.length} stops, ${total.toFixed(1)} of ${capacity.toFixed(1)} m³ (estimated).`
+        : `${target.name} sent to ${stops[0].id}.`;
+    // eslint-disable-next-line react-hooks/purity -- startRun only runs from click handlers, never during render
+    const runId = `run-${Date.now()}`;
+    save({
+      ...st,
+      runs: {
+        ...st.runs,
+        [target.id]: {
+          runId,
+          crew: target.id,
+          stops,
+          capacity,
+          accepted: false,
+          done: [],
+        },
+      },
+      log: addLog(st.log, t, msg, { crewId: target.id, runId }),
     });
     setToast(msg);
     setCur(null);
+  }
+
+  // Take back a run that was sent by mistake. Stops already cleaned (and their records) stay; the rest return to the queue.
+  function withdrawRun(crewId: string) {
+    const r = st.runs[crewId];
+    const crew = st.crews.find((c) => c.id === crewId);
+    if (!r || !crew || !isBusy(r)) return;
+    const left = r.stops.filter((s) => !r.done.includes(s.id));
+    const kept = r.stops.filter((s) => r.done.includes(s.id));
+    const msg = `${crew.name} withdrawn from ${left.map((s) => s.id).join(", ")}. Back in the queue.`;
+    save({
+      ...st,
+      runs: { ...st.runs, [crewId]: kept.length ? { ...r, stops: kept } : undefined },
+      log: addLog(st.log, fmtClock(simMinute()), msg, { crewId }),
+    });
+    setToast(msg);
+  }
+
+  function save(next: SavedState) {
+    setSt(next);
+    saveState(next);
+  }
+
+  function renameCrew(id: string, name: string) {
+    save({ ...st, crews: st.crews.map((c) => (c.id === id ? { ...c, name } : c)) });
+  }
+
+  function addCrew() {
+    if (st.crews.length >= MAX_CREWS) return;
+    const used = new Set(st.crews.map((c) => c.name));
+    let n = st.crews.length;
+    let name = `Crew ${String.fromCharCode(65 + n)}`;
+    while (used.has(name)) name = `Crew ${String.fromCharCode(65 + ++n)}`;
+    // eslint-disable-next-line react-hooks/purity -- only called from a click handler
+    save({ ...st, crews: [...st.crews, { id: `c${Date.now()}`, name }] });
+  }
+
+  function removeCrew(id: string) {
+    if (st.crews.length <= 1 || isBusy(st.runs[id])) return;
+    const runs = { ...st.runs };
+    delete runs[id];
+    save({ ...st, crews: st.crews.filter((c) => c.id !== id), runs });
   }
 
   function dispatchOne(id: string) {
@@ -244,7 +313,8 @@ export default function Home() {
     const one =
       p ??
       planRun([{ id, type: a.type, risk: r.p.p_block, x: a.x, y: a.y, hasCamera: a.hasCamera }], 4, DEPOT, 0).stops[0];
-    startRun([stopFor(id, one.load, one.photosNeeded)]);
+    setCur(null);
+    setChoose([stopFor(id, one.load, one.photosNeeded)]);
   }
 
   const openAsset = (id: string) => {
@@ -253,11 +323,324 @@ export default function Home() {
 
   const showMap = role === "manager" || role === "split";
   const showPhone = role === "split";
+  const tabbed = showPhone; // Manager shows every panel at once; side-by-side keeps tabs to save room
   const high = idle.filter((r) => r.p.level === "high").length;
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
   const planPct = Math.min(100, Math.round((plan.totalLoad / capacity) * 100));
   const forecastHour = Math.min(5, Math.floor(minute / 60));
   const photoRecs = records.filter((r) => r.method === "photos");
+
+  const confirmCrew = confirm ? st.crews.find((c) => c.id === confirm.crewId) : undefined;
+  const confirmRun = confirmCrew ? st.runs[confirmCrew.id] : undefined;
+  const confirmView = (() => {
+    if (!confirm || !confirmCrew) return null;
+    const name = confirmCrew.name;
+    const cleanedBy = records.filter((r) => r.crewId === name).length;
+    if (confirm.kind === "withdraw") {
+      const left = confirmRun ? confirmRun.stops.filter((x) => !confirmRun.done.includes(x.id)) : [];
+      if (left.length === 0) return null;
+      return (
+        <ConfirmDialog
+          label={`Withdraw ${name}`}
+          eyebrow="Withdraw run"
+          title={`Withdraw ${name}?`}
+          confirmLabel="Withdraw run"
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => {
+            withdrawRun(confirm.crewId);
+            setConfirm(null);
+          }}
+        >
+          <p style={{ margin: "0 0 10px" }}>
+            {confirmRun?.accepted
+              ? `${name} has accepted this run and may already be on the way.`
+              : `${name} has been sent but has not accepted yet.`}
+          </p>
+          <p style={{ margin: "0 0 10px" }}>
+            <b>Going back to the queue ({left.length}):</b> {left.map((x) => x.id).join(", ")}.
+            {confirmRun && confirmRun.done.length > 0
+              ? ` ${confirmRun.done.length} already cleaned stop(s) stay in the records.`
+              : ""}
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>
+            The crew app will show &quot;Waiting for the next task&quot;. You can send the stops to any available crew
+            afterwards.
+          </p>
+        </ConfirmDialog>
+      );
+    }
+    return (
+      <ConfirmDialog
+        label={`Remove ${name}`}
+        eyebrow="Remove crew"
+        title={`Remove ${name}?`}
+        confirmLabel="Remove crew"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          removeCrew(confirm.crewId);
+          setConfirm(null);
+        }}
+      >
+        <p style={{ margin: "0 0 10px" }}>
+          {name} has no run right now, so no job is in progress.
+          {cleanedBy > 0 ? ` They cleaned ${cleanedBy} job(s) today.` : " They have not cleaned any job today."}
+        </p>
+        <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>
+          Their records stay in Compliance records. The crew disappears from the crew list, the map and the &quot;Who
+          should go?&quot; list. You can add a new crew later, but not bring this one back.
+        </p>
+      </ConfirmDialog>
+    );
+  })();
+
+  const panelProps = (id: PanelTab, label: string) =>
+    tabbed
+      ? ({ role: "tabpanel", id: `fr-panel-${id}`, "aria-labelledby": `fr-tab-${id}`, hidden: tab !== id } as const)
+      : ({
+          role: "region",
+          id: `fr-panel-${id}`,
+          "aria-label": label,
+          tabIndex: id === "queue" ? -1 : undefined,
+        } as const);
+
+  const recordsPanel = (
+    <section className="fr-section" {...panelProps("records", "Records")}>
+      <div className="fr-label">Compliance records</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <Stat n={photoRecs.filter((r) => r.before).length} color="#FFD27A" l1="Before photos" l2="AI training" />
+        <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
+        <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
+      </div>
+      {records.length === 0 ? (
+        <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
+          No completed jobs yet. Sites with a camera are checked by the camera. All other sites need a before and an
+          after photo before the job can be closed.
+        </div>
+      ) : (
+        <ul
+          style={{
+            listStyle: "none",
+            margin: "12px 0 0",
+            padding: 0,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          {[...records]
+            .reverse()
+            .slice(0, 3)
+            .map((e) => (
+              <li
+                key={e.stopId + e.at}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  background: "#0B2233",
+                  borderRadius: 12,
+                  padding: "8px 10px",
+                }}
+              >
+                {e.method === "camera" ? <CameraIcon w={48} /> : <PhotoPair />}
+                <div style={{ fontSize: 13, lineHeight: 1.35, color: "#CFE6F0" }}>
+                  <b>{e.stopId}</b> · {e.method === "camera" ? "checked by camera" : "verified by photos"}
+                  <br />
+                  {e.crewId} · {e.clock}
+                  {e.pct != null ? ` · risk was ${e.pct}%` : ""}
+                </div>
+              </li>
+            ))}
+        </ul>
+      )}
+      {records.length > 3 && (
+        <div style={{ marginTop: 8, fontSize: 13, color: "#B9D6E3" }}>
+          Showing the latest 3 of {records.length} records.
+        </div>
+      )}
+      <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
+        Sample records, metadata only. Photos are not stored by the manager screen. Real photos would carry time and
+        location, be stored with the work order, and be checked for faces and number plates before use in training.
+      </div>
+    </section>
+  );
+
+  const crewsPanel = (
+    <section className="fr-section" {...panelProps("crews", "Crews")}>
+      <div className="fr-label">Crews · rename, add or remove</div>
+      <ul
+        style={{
+          listStyle: "none",
+          margin: "10px 0 10px",
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        {st.crews.map((c, i) => {
+          const r = st.runs[c.id];
+          const status = !isBusy(r) ? "Ready" : r?.accepted ? "Cleaning" : "Dispatched";
+          return (
+            <li
+              key={c.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: "#0B2233",
+                borderRadius: 12,
+                padding: "6px 10px",
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{ width: 14, height: 14, borderRadius: 999, background: HATS[i % HATS.length], flex: "none" }}
+              />
+              <input
+                aria-label={`Name of crew ${i + 1}`}
+                value={c.name}
+                maxLength={24}
+                onChange={(e) => renameCrew(c.id, e.target.value)}
+                onBlur={(e) => {
+                  if (!e.target.value.trim()) renameCrew(c.id, `Crew ${String.fromCharCode(65 + i)}`);
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  minHeight: 40,
+                  background: "transparent",
+                  color: "#EAF6FB",
+                  border: "1px solid #2D6182",
+                  borderRadius: 8,
+                  padding: "4px 8px",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  fontFamily: "inherit",
+                }}
+              />
+              <span style={{ color: status === "Ready" ? "#8FB8CC" : "#FFD27A", fontWeight: 600, fontSize: 14 }}>
+                {status}
+              </span>
+              {isBusy(r) ? (
+                <button
+                  type="button"
+                  className="fr-btn fr-sec"
+                  aria-label={`Withdraw ${c.name} from the run`}
+                  title="Take this run back. Stops not yet cleaned return to the queue."
+                  onClick={() => setConfirm({ kind: "withdraw", crewId: c.id })}
+                  style={{ padding: "4px 10px", minHeight: 40, fontSize: 14 }}
+                >
+                  Withdraw
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="fr-btn fr-ghost"
+                  aria-label={`Remove ${c.name}`}
+                  disabled={st.crews.length <= 1}
+                  title="Remove crew"
+                  onClick={() => setConfirm({ kind: "remove", crewId: c.id })}
+                  style={{ padding: "4px 10px", minHeight: 40, fontSize: 14 }}
+                >
+                  Remove
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <button
+        type="button"
+        className="fr-btn fr-sec"
+        disabled={st.crews.length >= MAX_CREWS}
+        onClick={addCrew}
+        style={{ padding: "6px 16px", minHeight: 40, fontSize: 14, marginBottom: 18 }}
+      >
+        Add crew
+      </button>
+    </section>
+  );
+
+  const logRows = [...st.log, { t: "13:00", x: "Shift started. Risk scores update with leaf fall and rain." }];
+  const logPanel = (
+    <section className="fr-section" hidden={tabbed && tab !== "crews"} aria-label="Activity log">
+      <div className="fr-label">Activity log</div>
+      <ol
+        style={{
+          listStyle: "none",
+          margin: "10px 0 0",
+          padding: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          fontSize: 15,
+          lineHeight: 1.4,
+          maxHeight: logOpen ? 420 : undefined,
+          overflowY: logOpen ? "auto" : undefined,
+        }}
+        tabIndex={logOpen ? 0 : undefined}
+        aria-label="Activity log entries"
+      >
+        {logRows.slice(0, logOpen ? undefined : LOG_PREVIEW).map((l, i) => (
+          <li
+            key={i}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: "#0B2233",
+              borderRadius: 12,
+              padding: "10px 14px",
+            }}
+          >
+            {(() => {
+              const ci = st.crews.findIndex((c) => c.id === l.crewId);
+              return (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: 999,
+                    flex: "none",
+                    background: ci >= 0 ? HATS[ci % HATS.length] : "transparent",
+                    border: ci >= 0 ? "2px solid #0B2233" : "2px dashed #2D6182",
+                    boxShadow: ci >= 0 ? "0 0 0 1px #EAF6FB" : undefined,
+                  }}
+                />
+              );
+            })()}
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <b style={{ color: "#8FB8CC" }}>{l.t}</b> &nbsp;{l.x}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {logRows.length > LOG_PREVIEW && (
+        <button
+          type="button"
+          className="fr-btn fr-sec"
+          aria-expanded={logOpen}
+          onClick={() => setLogOpen((o) => !o)}
+          style={{ marginTop: 10, padding: "6px 16px", minHeight: 40, fontSize: 14 }}
+        >
+          {logOpen ? "Show less" : `Show today's full log (${logRows.length})`}
+        </button>
+      )}
+      <button
+        type="button"
+        className="fr-btn fr-ghost"
+        style={{ marginTop: 8, padding: "6px 0", minHeight: 40, fontSize: 14 }}
+        onClick={() => {
+          resetAll();
+          setCur(null);
+        }}
+      >
+        Reset sample session
+      </button>
+    </section>
+  );
 
   return (
     <div style={{ minHeight: 900, position: "relative", background: "#0B2233", color: "#EAF6FB" }}>
@@ -328,140 +711,155 @@ export default function Home() {
       ) : null}
 
       {showMap && (
-        <div className={`fr-shell${showPhone ? " fr-split" : ""}`}>
+        <div className={`fr-shell${showPhone ? " fr-split" : " fr-dash"}`}>
           <section className="fr-mapcol">
             <a
               className="fr-skip"
-              href="#fr-tab-queue"
+              href="#fr-panel-queue"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById(`fr-tab-${tab}`)?.focus();
+                document.getElementById(tabbed ? `fr-tab-${tab}` : "fr-panel-queue")?.focus();
               }}
             >
               Skip map, go to panels
             </a>
-            <div
-              style={{
-                position: "absolute",
-                top: 14,
-                right: 14,
-                zIndex: 5,
-                display: "flex",
-                gap: 6,
-                background: "#102F45",
-                border: "2px solid #2D6182",
-                borderRadius: 999,
-                padding: 4,
-              }}
-            >
-              <button
-                type="button"
-                className={`fr-btn ${view === "2d" ? "fr-pri" : "fr-sec"}`}
-                aria-pressed={view === "2d"}
-                onClick={() => setView("2d")}
-                style={{ padding: "6px 16px", minHeight: 40 }}
-              >
-                2D map
-              </button>
-              <button
-                type="button"
-                className={`fr-btn ${view === "3d" ? "fr-pri" : "fr-sec"}`}
-                aria-pressed={view === "3d"}
-                onClick={() => setView("3d")}
-                style={{ padding: "6px 16px", minHeight: 40 }}
-              >
-                3D water
-              </button>
-            </div>
-            {error && (
-              <p
-                role="alert"
-                style={{
-                  margin: "0 0 12px",
-                  background: "#3A1A12",
-                  border: "2px solid #FF8A4C",
-                  borderRadius: 14,
-                  padding: "10px 14px",
-                  fontSize: 14,
-                }}
-              >
-                Could not get risk scores: {error}. Start the risk API with <code>uvicorn risk_api.main:app</code> from
-                the project root.
-              </p>
-            )}
-            {view === "3d" ? (
-              <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainNow(minute)} extra={extra} onOpen={openAsset} />
-            ) : (
-              <MapView assets={mapAssets} route={plan.stops.map((s) => s.id)} crews={mapCrews} onOpen={openAsset} />
-            )}
-            <div role="status" className="fr-sr">
-              {toast}
-            </div>
-            {toast && (
+            <div style={{ position: "relative" }}>
               <div
-                aria-hidden="true"
                 style={{
                   position: "absolute",
-                  left: 20,
-                  bottom: 70,
-                  maxWidth: "70%",
+                  top: 14,
+                  right: 14,
+                  zIndex: 5,
+                  display: "flex",
+                  gap: 6,
                   background: "#102F45",
-                  border: "2px solid #4FC3E8",
-                  borderRadius: 14,
-                  padding: "10px 16px",
-                  fontWeight: 600,
-                  fontSize: 15,
-                  zIndex: 6,
+                  border: "2px solid #2D6182",
+                  borderRadius: 999,
+                  padding: 4,
                 }}
               >
+                <button
+                  type="button"
+                  className={`fr-btn ${view === "2d" ? "fr-pri" : "fr-sec"}`}
+                  aria-pressed={view === "2d"}
+                  onClick={() => setView("2d")}
+                  style={{ padding: "6px 16px", minHeight: 40 }}
+                >
+                  2D map
+                </button>
+                <button
+                  type="button"
+                  className={`fr-btn ${view === "3d" ? "fr-pri" : "fr-sec"}`}
+                  aria-pressed={view === "3d"}
+                  onClick={() => setView("3d")}
+                  style={{ padding: "6px 16px", minHeight: 40 }}
+                >
+                  3D water
+                </button>
+              </div>
+              {error && (
+                <p
+                  role="alert"
+                  style={{
+                    margin: "0 0 12px",
+                    background: "#3A1A12",
+                    border: "2px solid #FF8A4C",
+                    borderRadius: 14,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                  }}
+                >
+                  Could not get risk scores: {error}. Start the risk API with <code>uvicorn risk_api.main:app</code>{" "}
+                  from the project root.
+                </p>
+              )}
+              {view === "3d" ? (
+                <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainNow(minute)} extra={extra} onOpen={openAsset} />
+              ) : (
+                <MapView
+                  assets={mapAssets}
+                  route={plan.stops.map((s) => s.id)}
+                  routes={crewRoutes}
+                  crews={mapCrews}
+                  hiddenCrews={hiddenCrews}
+                  onToggleCrew={(id) =>
+                    setHiddenCrews((h) => (h.includes(id) ? h.filter((x) => x !== id) : [...h, id]))
+                  }
+                  onOpen={openAsset}
+                />
+              )}
+              <div role="status" className="fr-sr">
                 {toast}
+              </div>
+              {toast && (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "absolute",
+                    left: 20,
+                    top: 14,
+                    maxWidth: "55%",
+                    background: "#102F45",
+                    border: "2px solid #4FC3E8",
+                    borderRadius: 14,
+                    padding: "10px 16px",
+                    fontWeight: 600,
+                    fontSize: 15,
+                    zIndex: 6,
+                  }}
+                >
+                  {toast}
+                </div>
+              )}
+            </div>
+            {!tabbed && (
+              <div className="fr-below">
+                {crewsPanel}
+                {logPanel}
+                {recordsPanel}
               </div>
             )}
           </section>
 
           <aside className="fr-side" aria-label="Manager panels">
-            <div
-              role="tablist"
-              aria-label="Manager tabs"
-              className="fr-tabs"
-              onKeyDown={(e) => {
-                const n = TABS.length;
-                const i = TABS.findIndex((x) => x.id === tab);
-                const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
-                let next = -1;
-                if (step) next = (i + step + n) % n;
-                else if (e.key === "Home") next = 0;
-                else if (e.key === "End") next = n - 1;
-                if (next < 0) return;
-                e.preventDefault();
-                setTab(TABS[next].id);
-                document.getElementById(`fr-tab-${TABS[next].id}`)?.focus();
-              }}
-            >
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  id={`fr-tab-${t.id}`}
-                  aria-selected={tab === t.id}
-                  aria-controls={`fr-panel-${t.id}`}
-                  tabIndex={tab === t.id ? 0 : -1}
-                  className={`fr-tab${tab === t.id ? " fr-tab-on" : ""}`}
-                  onClick={() => setTab(t.id)}
-                >
-                  {t.label}
-                  {t.id === "plan" && plan.stops.length > 0 ? ` · ${plan.stops.length}` : ""}
-                </button>
-              ))}
-            </div>
-            <section
-              className="fr-section"
-              role="tabpanel"
-              id="fr-panel-queue"
-              aria-labelledby="fr-tab-queue"
-              hidden={tab !== "queue"}
-            >
+            {tabbed && (
+              <div
+                role="tablist"
+                aria-label="Manager tabs"
+                className="fr-tabs"
+                onKeyDown={(e) => {
+                  const n = TABS.length;
+                  const i = TABS.findIndex((x) => x.id === tab);
+                  const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+                  let next = -1;
+                  if (step) next = (i + step + n) % n;
+                  else if (e.key === "Home") next = 0;
+                  else if (e.key === "End") next = n - 1;
+                  if (next < 0) return;
+                  e.preventDefault();
+                  setTab(TABS[next].id);
+                  document.getElementById(`fr-tab-${TABS[next].id}`)?.focus();
+                }}
+              >
+                {TABS.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    role="tab"
+                    id={`fr-tab-${t.id}`}
+                    aria-selected={tab === t.id}
+                    aria-controls={`fr-panel-${t.id}`}
+                    tabIndex={tab === t.id ? 0 : -1}
+                    className={`fr-tab${tab === t.id ? " fr-tab-on" : ""}`}
+                    onClick={() => setTab(t.id)}
+                  >
+                    {t.label}
+                    {t.id === "plan" && plan.stops.length > 0 ? ` · ${plan.stops.length}` : ""}
+                  </button>
+                ))}
+              </div>
+            )}
+            <section className="fr-section" {...panelProps("queue", "Check next")}>
               <div className="fr-label">Check next · highest blockage risk</div>
               <ol
                 style={{
@@ -520,13 +918,7 @@ export default function Home() {
               </ol>
             </section>
 
-            <section
-              className="fr-section"
-              role="tabpanel"
-              id="fr-panel-plan"
-              aria-labelledby="fr-tab-plan"
-              hidden={tab !== "plan"}
-            >
+            <section className="fr-section" {...panelProps("plan", "Run plan")}>
               <div className="fr-label">Truck run planner</div>
               <label
                 htmlFor="fr-cap"
@@ -618,14 +1010,14 @@ export default function Home() {
                     className="fr-btn fr-pri"
                     type="button"
                     style={{ width: "100%" }}
-                    onClick={() => startRun(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
+                    onClick={() => setChoose(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
                     disabled={busy}
                   >
-                    {busy ? "Crew A is on a run" : "Send a crew on this run"}
+                    {busy ? "All crews are busy" : "Send a crew on this run"}
                   </button>
                   {busy && (
                     <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
-                      This is the next possible run. It can be sent when Crew A is back at the depot.
+                      This is the next possible run. It can be sent when a crew is back at the depot.
                     </div>
                   )}
                 </>
@@ -644,153 +1036,11 @@ export default function Home() {
               </div>
             </section>
 
-            <section
-              className="fr-section"
-              role="tabpanel"
-              id="fr-panel-records"
-              aria-labelledby="fr-tab-records"
-              hidden={tab !== "records"}
-            >
-              <div className="fr-label">Compliance records</div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <Stat
-                  n={photoRecs.filter((r) => r.before).length}
-                  color="#FFD27A"
-                  l1="Before photos"
-                  l2="AI training"
-                />
-                <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
-                <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
-              </div>
-              {records.length === 0 ? (
-                <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
-                  No completed jobs yet. Sites with a camera are checked by the camera. All other sites need a before
-                  and an after photo before the job can be closed.
-                </div>
-              ) : (
-                <ul
-                  style={{
-                    listStyle: "none",
-                    margin: "12px 0 0",
-                    padding: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                  }}
-                >
-                  {[...records]
-                    .reverse()
-                    .slice(0, 3)
-                    .map((e) => (
-                      <li
-                        key={e.stopId + e.at}
-                        style={{
-                          display: "flex",
-                          gap: 10,
-                          alignItems: "center",
-                          background: "#0B2233",
-                          borderRadius: 12,
-                          padding: "8px 10px",
-                        }}
-                      >
-                        {e.method === "camera" ? <CameraIcon w={48} /> : <PhotoPair />}
-                        <div style={{ fontSize: 13, lineHeight: 1.35, color: "#CFE6F0" }}>
-                          <b>{e.stopId}</b> · {e.method === "camera" ? "checked by camera" : "verified by photos"}
-                          <br />
-                          {e.crewId} · {e.clock}
-                          {e.pct != null ? ` · risk was ${e.pct}%` : ""}
-                        </div>
-                      </li>
-                    ))}
-                </ul>
-              )}
-              {records.length > 3 && (
-                <div style={{ marginTop: 8, fontSize: 13, color: "#B9D6E3" }}>
-                  Showing the latest 3 of {records.length} records.
-                </div>
-              )}
-              <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
-                Sample records, metadata only. Photos are not stored by the manager screen. Real photos would carry time
-                and location, be stored with the work order, and be checked for faces and number plates before use in
-                training.
-              </div>
-            </section>
+            {tabbed && recordsPanel}
+            {tabbed && crewsPanel}
+            {tabbed && logPanel}
 
-            <section
-              className="fr-section"
-              role="tabpanel"
-              id="fr-panel-crews"
-              aria-labelledby="fr-tab-crews"
-              hidden={tab !== "crews"}
-            >
-              <div className="fr-label">Crews</div>
-              <ul
-                style={{
-                  listStyle: "none",
-                  margin: "10px 0 18px",
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                }}
-              >
-                {CREWS.map((c) => {
-                  const status =
-                    c.name !== "Crew A" ? "Ready" : !isBusy(run) ? "Ready" : run?.accepted ? "Cleaning" : "Dispatched";
-                  return (
-                    <li
-                      key={c.name}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        background: "#0B2233",
-                        borderRadius: 12,
-                        padding: "10px 14px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span>{c.name}</span>
-                      <span style={{ color: status === "Ready" ? "#8FB8CC" : "#FFD27A" }}>{status}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div className="fr-label">Activity log</div>
-              <ol
-                style={{
-                  listStyle: "none",
-                  margin: "10px 0 0",
-                  padding: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 8,
-                  fontSize: 15,
-                  lineHeight: 1.4,
-                }}
-              >
-                {[...(run?.log ?? []), { t: "13:00", x: "Shift started. Risk scores update with leaf fall and rain." }]
-                  .slice(0, 8)
-                  .map((l, i) => (
-                    <li key={i} style={{ background: "#0B2233", borderRadius: 12, padding: "10px 14px" }}>
-                      <b style={{ color: "#8FB8CC" }}>{l.t}</b> &nbsp;{l.x}
-                    </li>
-                  ))}
-              </ol>
-              <button
-                type="button"
-                className="fr-btn fr-ghost"
-                style={{ marginTop: 8, padding: "6px 0", minHeight: 40, fontSize: 14 }}
-                onClick={() => {
-                  resetAll();
-                  setCur(null);
-                }}
-              >
-                Reset sample session
-              </button>
-            </section>
-
-            <details className="fr-sim">
+            <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open={!tabbed}>
               <summary>Simulation controls · What if and rain forecast (sample data)</summary>
               <section className="fr-group">
                 <div className="fr-label">What if · demo controls</div>
@@ -903,63 +1153,55 @@ export default function Home() {
       )}
 
       {curRow && showMap && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${curRow.a.id} details`}
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(5,15,25,.7)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-            zIndex: 10,
-          }}
-        >
-          <div
-            className="fr-pop"
-            style={{
-              background: "#102F45",
-              border: "3px solid #FF8A4C",
-              borderRadius: 24,
-              padding: 28,
-              maxWidth: 540,
-              width: "100%",
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".06em", color: "#FFB38A" }}>
-              {curRow.a.typeLabel.toUpperCase()}
-            </div>
-            <h2 style={{ margin: "6px 0 8px", fontSize: 26, fontWeight: 700 }}>
-              {curRow.a.id} · {TIER[curRow.p.level]} risk
-            </h2>
-            <p style={{ margin: "0 0 12px", fontSize: 16, lineHeight: 1.5, color: "#CFE6F0" }}>
-              Estimated blockage risk about {Math.min(99, Math.round(curRow.p.p_block * 100))}%.{" "}
-              {curRow.a.hasCamera
-                ? `Camera view: about ${Math.min(99, Math.round(curRow.p.p_block * 90))}% full (sample).`
-                : "No camera here, so this is a model estimate."}
-            </p>
-            <ul style={{ margin: "0 0 14px", paddingLeft: 20, fontSize: 15, lineHeight: 1.5, color: "#CFE6F0" }}>
-              {curRow.p.reasons.slice(0, 3).map((t) => (
-                <li key={t}>{t}</li>
-              ))}
-            </ul>
-            <div style={{ fontSize: 14, color: "#8FB8CC", marginBottom: 18 }}>
-              Sample data. The crew confirms the real condition on site.
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-              <button className="fr-btn fr-pri" type="button" onClick={() => dispatchOne(curRow.a.id)}>
-                Send a crew to clean it
+        <Dialog
+          label={`${curRow.a.id} details`}
+          eyebrow={curRow.a.typeLabel}
+          title={`${curRow.a.id} · ${TIER[curRow.p.level]} risk`}
+          maxWidth={540}
+          onClose={() => setCur(null)}
+          actions={
+            <>
+              <button className="fr-btn fr-pri" type="button" onClick={() => dispatchOne(curRow.a.id)} disabled={busy}>
+                {busy ? "All crews are busy" : "Send a crew to clean it"}
               </button>
               <button className="fr-btn fr-ghost" type="button" onClick={() => setCur(null)}>
                 Not now
               </button>
-            </div>
+            </>
+          }
+        >
+          <p style={{ margin: "0 0 12px" }}>
+            Estimated blockage risk about {Math.min(99, Math.round(curRow.p.p_block * 100))}%.{" "}
+            {curRow.a.hasCamera
+              ? `Camera view: about ${Math.min(99, Math.round(curRow.p.p_block * 90))}% full (sample).`
+              : "No camera here, so this is a model estimate."}
+          </p>
+          <ul style={{ margin: "0 0 12px", paddingLeft: 20 }}>
+            {curRow.p.reasons.slice(0, 3).map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          <div style={{ fontSize: 14, color: "#8FB8CC" }}>
+            Sample data. The crew confirms the real condition on site.
           </div>
-        </div>
+        </Dialog>
       )}
+
+      {choose && showMap && (
+        <CrewChooser
+          crews={st.crews}
+          runs={st.runs}
+          count={choose.length}
+          onCancel={() => setChoose(null)}
+          onPick={(id) => {
+            const c = st.crews.find((x) => x.id === id);
+            if (c) startRun(choose, c);
+            setChoose(null);
+          }}
+        />
+      )}
+
+      {confirm && showMap && confirmView}
 
       {role === null && (
         <RoleScreen
@@ -1000,5 +1242,83 @@ function PhotoPair() {
       <rect x="14" y="18" width="92" height="44" rx="8" fill="#0B1626" />
       <path d="M32 24v32M50 24v32M68 24v32M86 24v32" stroke="#4A5F94" strokeWidth="5" strokeLinecap="round" />
     </svg>
+  );
+}
+
+// Pick which crew takes the run. Every crew is listed A to Z with its map colour; busy ones are disabled.
+function CrewChooser({
+  crews,
+  runs,
+  count,
+  onPick,
+  onCancel,
+}: {
+  crews: SavedState["crews"];
+  runs: SavedState["runs"];
+  count: number;
+  onPick: (id: string) => void;
+  onCancel: () => void;
+}) {
+  const list = crews
+    .map((c, i) => ({ c, color: HATS[i % HATS.length], isBusy: isBusy(runs[c.id]) }))
+    .sort((m, n) => m.c.name.localeCompare(n.c.name, undefined, { sensitivity: "base", numeric: true }));
+  const firstFree = list.findIndex((x) => !x.isBusy);
+  return (
+    <Dialog
+      label="Choose a crew"
+      eyebrow="Send a crew"
+      title="Who should go?"
+      onClose={onCancel}
+      actions={
+        <button className="fr-btn fr-ghost" type="button" onClick={onCancel}>
+          Cancel
+        </button>
+      }
+    >
+      <p style={{ margin: "0 0 14px", fontSize: 14, color: "#B9D6E3" }}>
+        {count > 1 ? `A run of ${count} stops.` : "One stop."} Crews already out on a run can&apos;t take it.
+      </p>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        {list.map(({ c, color, isBusy: out }, i) => (
+          <li key={c.id}>
+            <button
+              type="button"
+              className="fr-btn"
+              autoFocus={i === firstFree}
+              disabled={out}
+              onClick={() => onPick(c.id)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                justifyContent: "flex-start",
+                minHeight: 48,
+                background: "#1E4A63",
+                color: "#EAF6FB",
+                opacity: out ? 0.55 : 1,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: 999,
+                  background: color,
+                  border: "2px solid #0B2233",
+                  boxShadow: "0 0 0 1px #EAF6FB",
+                  flex: "none",
+                }}
+              />
+              <span style={{ flex: 1, textAlign: "left" }}>{c.name}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: out ? "#FFD27A" : "#8FB8CC" }}>
+                {out ? "Out on a run" : "Available"}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </Dialog>
   );
 }

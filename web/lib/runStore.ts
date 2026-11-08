@@ -21,33 +21,55 @@ export type JobRecord = {
   before: boolean;
   after: boolean;
 };
-export type LogEntry = { t: string; x: string };
-export type SavedRun = {
-  runId?: string;
-  crew?: string;
+// crewId colours the entry; runId (set on dispatch entries) lets the manager withdraw that run.
+export type LogEntry = { t: string; x: string; crewId?: string; runId?: string };
+// One run per crew, plus records and log shared by everyone ("cleaned today").
+export type CrewRun = {
+  runId: string;
+  crew: string; // crew id
   stops: RunStop[];
   capacity: number;
   accepted: boolean;
   done: string[];
-  records?: JobRecord[]; // cumulative across runs ("cleaned today")
-  log?: LogEntry[];
 };
+export type Crew = { id: string; name: string };
+export type SavedState = {
+  crews: Crew[];
+  runs: Record<string, CrewRun | undefined>; // keyed by crew id
+  records: JobRecord[];
+  log: LogEntry[];
+};
+export const DEFAULT_CREWS: Crew[] = [
+  { id: "c1", name: "Crew A" },
+  { id: "c2", name: "Crew B" },
+  { id: "c3", name: "Crew C" },
+];
+// Short badge for a crew: "Crew B" -> "B", "Maria" -> "M".
+export function crewLetter(name: string): string {
+  const m = name.trim().match(/^crew\s+(\S)/i);
+  return (m ? m[1] : name.trim().charAt(0)).toUpperCase() || "?";
+}
+// One colour per crew (hat, ring and route on the map). Chosen to stay clear of the risk colours (orange, yellow, blue).
+export const HATS = ["#FF5CA8", "#5BE38A", "#B38BFF", "#2ED3C6", "#F2F2F2", "#C98B4B"];
 
-const KEY = "drainwise.run";
+const KEY = "drainwise.state";
 const EVT = "drainwise-run";
+const EMPTY: SavedState = { crews: DEFAULT_CREWS, runs: {}, records: [], log: [] };
 
-export function loadRun(): SavedRun | null {
+export function loadState(): SavedState {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as SavedRun) : null;
+    if (!raw) return EMPTY;
+    const st = JSON.parse(raw) as SavedState;
+    return st.crews?.length ? st : { ...st, crews: DEFAULT_CREWS };
   } catch {
-    return null;
+    return EMPTY;
   }
 }
 
-export function saveRun(run: SavedRun): void {
+export function saveState(state: SavedState): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(run));
+    localStorage.setItem(KEY, JSON.stringify(state));
   } catch {
     /* storage unavailable: demo handoff just won't persist */
   }
@@ -57,6 +79,7 @@ export function saveRun(run: SavedRun): void {
 export function resetAll(): void {
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem("drainwise.run"); // legacy single-run key
     localStorage.removeItem("drainwise.t0");
   } catch {
     /* ignore */
@@ -75,12 +98,26 @@ export function subscribeRun(fn: () => void): () => void {
   };
 }
 
-export function addLog(log: LogEntry[] | undefined, t: string, x: string): LogEntry[] {
-  return [{ t, x }, ...(log ?? [])].slice(0, 8);
+export function addLog(
+  log: LogEntry[] | undefined,
+  t: string,
+  x: string,
+  meta: { crewId?: string; runId?: string } = {},
+): LogEntry[] {
+  return [{ t, x, ...meta }, ...(log ?? [])].slice(0, 300);
 }
 
-export function isBusy(run: SavedRun | null): boolean {
+export function isBusy(run: CrewRun | undefined | null): boolean {
   return !!run && run.stops.some((s) => !run.done.includes(s.id));
+}
+
+// Stop ids still to clean across all crews, so two crews are never sent to the same asset.
+export function openStopIds(state: SavedState): Set<string> {
+  const ids = new Set<string>();
+  for (const r of Object.values(state.runs)) {
+    if (r) for (const s of r.stops) if (!r.done.includes(s.id)) ids.add(s.id);
+  }
+  return ids;
 }
 
 // Simulated shift clock shared by both screens: starts 13:00, one real second = 5 simulated minutes.

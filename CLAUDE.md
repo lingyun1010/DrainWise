@@ -145,6 +145,20 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 - UI matches `reference/demo-Main.dc.html`: role screen on `/` (Manager, Crew -> `/crew`, Side-by-side), map in 800x500 units, shared `web/app/CrewApp.tsx`. Run state and records in `web/lib/runStore.ts` (localStorage, events for same-tab sync). "Reset sample session" clears it.
 - 3D water view: `web/app/Map3D.tsx` (three.js, lazy-loaded) on procedural SAMPLE terrain from `web/lib/terrain.ts`. Water level is an illustration driven by rain and the extra-rain slider, not a flood forecast. Planned: swap `heightAt` for a LiDAR heightmap (ELVIS DEM, Parramatta) downsampled to a small file; never commit raw LiDAR.
 
+## UI consistency (required whenever you add or change a feature)
+
+The owner does not want the look to drift between features. Before adding any UI, reuse what exists; only add a new pattern if nothing fits, and then add it to this list.
+
+- **Popups**: only `web/app/Dialog.tsx`. Use `Dialog` for details and pickers, `ConfirmDialog` for yes/no. Never `window.confirm`, `alert`, or a hand-written overlay. Same card (dark panel, 3px border, radius 24), eyebrow in small caps, h2 title, body, then actions: primary button first, quiet "Cancel" last. Esc closes. It is fixed to the viewport and centred.
+- **Destructive or hard-to-undo actions** (Remove, Withdraw, Reset, delete): always a `ConfirmDialog` with `tone="danger"`. The body must say what happens, what stays (for example records) and what the person is currently doing. Focus starts on Cancel.
+- **Buttons**: `fr-btn` with `fr-pri` (main action), `fr-sec` (secondary), `fr-ghost` (quiet or Cancel). Minimum height 40px. Disabled looks come from the class, not inline colours. Label with a verb ("Withdraw run", "Send a crew").
+- **Crew identity**: colour comes from `HATS` in `web/lib/runStore.ts` by crew position; letter from `crewLetter()`. Show a colour dot wherever a crew is named (map, lists, log, pickers). Crews are listed A to Z in pickers. Never rely on colour alone: keep the letter or the name next to it.
+- **Risk levels**: High, Medium, Low keep their colour AND face AND label. Cut-offs are 60% and 30% (`risk_api/main.py`); write them as "High (60%+)".
+- **Colours and type**: use the existing dark navy palette and CSS variables in `globals.css`; do not introduce new accent colours. Crew colours avoid orange, yellow and blue because those mean risk.
+- **Copy**: English, short, plain words, no emoji. Say "sample data" for anything simulated. Name the thing ("Crew A", "GPT-014"), not "it".
+- **Manager page** shows all panels at once (no tabs). Side-by-side keeps the tabbed layout next to the phone. The crew phone stays mobile-first.
+- **Checks before saying done**: tsc, eslint, prettier, then look at it in the browser at desktop width and at 375px; open every dialog you touched. The `design-reviewer` gate applies to layout changes.
+
 ## Agent skills
 
 ### Issue tracker

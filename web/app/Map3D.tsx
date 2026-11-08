@@ -81,24 +81,6 @@ function dropTex(level: Level, state: MapAsset["state"]) {
   });
 }
 
-// "G" badge so a GPT is told apart from an inlet by shape, not colour.
-function gptTex(level: Level, state: MapAsset["state"]) {
-  const base = dropTex(level, state);
-  const img = base.image as HTMLCanvasElement;
-  const ctx = img.getContext("2d")!;
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.beginPath();
-  ctx.arc(24, 100, 20, 0, 7);
-  ctx.fillStyle = "#0B2233";
-  ctx.fill();
-  ctx.fillStyle = "#EAF6FB";
-  ctx.font = "800 26px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("G", 24, 109);
-  base.needsUpdate = true;
-  return base;
-}
-
 function crewTex(c: MapCrew) {
   return canvasTex(96, (ctx, s) => {
     const k = s / 96;
@@ -173,7 +155,10 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     const el = renderer.domElement;
     el.style.cssText = "display:block;width:100%;height:auto;touch-action:none;cursor:grab";
     el.setAttribute("role", "img");
-    el.setAttribute("aria-label", "3D view of sample terrain with a rising water level and drain markers. Drag to rotate, scroll to zoom. Illustration only, not a flood forecast.");
+    el.setAttribute(
+      "aria-label",
+      "3D view of sample terrain with a rising water level and drain markers. Drag to rotate, scroll to zoom. Illustration only, not a flood forecast.",
+    );
     host.appendChild(el);
 
     const scene = new THREE.Scene();
@@ -206,7 +191,9 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     }
     g.setAttribute("color", new THREE.BufferAttribute(cols, 3));
     g.computeVertexNormals();
-    scene.add(new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.93 })));
+    scene.add(
+      new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.93 })),
+    );
 
     // Roads and the drain pipes under them
     const roadMat = new THREE.LineBasicMaterial({ color: 0xe8f3f7, transparent: true, opacity: 0.5 });
@@ -231,7 +218,16 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     // Water plane
     const wg = new THREE.PlaneGeometry(84, 54);
     wg.rotateX(-Math.PI / 2);
-    const water = new THREE.Mesh(wg, new THREE.MeshPhongMaterial({ color: 0x4fc3e8, transparent: true, opacity: 0.62, shininess: 90, specular: 0xcfefff }));
+    const water = new THREE.Mesh(
+      wg,
+      new THREE.MeshPhongMaterial({
+        color: 0x4fc3e8,
+        transparent: true,
+        opacity: 0.62,
+        shininess: 90,
+        specular: 0xcfefff,
+      }),
+    );
     scene.add(water);
 
     // Sprites. Textures are cached per level/state/type.
@@ -240,7 +236,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
       const key = `${a.type}-${a.level}-${a.state}`;
       let t = texCache.get(key);
       if (!t) {
-        t = a.type === "gpt" ? gptTex(a.level, a.state) : dropTex(a.level, a.state);
+        t = dropTex(a.level, a.state);
         texCache.set(key, t);
       }
       return t;
@@ -279,7 +275,10 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
       el.style.cursor = "grab";
       if (moved < 6) {
         const r = el.getBoundingClientRect();
-        const m = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+        const m = new THREE.Vector2(
+          ((e.clientX - r.left) / r.width) * 2 - 1,
+          -((e.clientY - r.top) / r.height) * 2 + 1,
+        );
         const rc = new THREE.Raycaster();
         rc.setFromCamera(m, cam);
         const hit = rc.intersectObjects([...dropSprites.values()])[0];
@@ -338,7 +337,9 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
         seen.add(a.id);
         let sp = dropSprites.get(a.id);
         if (!sp) {
-          sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texFor(a), depthTest: false, transparent: true })) as AssetSprite;
+          sp = new THREE.Sprite(
+            new THREE.SpriteMaterial({ map: texFor(a), depthTest: false, transparent: true }),
+          ) as AssetSprite;
           sp.renderOrder = 10;
           sp.userData = { id: a.id, key: "" };
           scene.add(sp);
@@ -433,20 +434,45 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
   return (
     <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", border: "2px solid #2D6182" }}>
       <div ref={hostRef} />
-      <div style={{ position: "absolute", left: 14, bottom: 14, right: 14, display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", pointerEvents: "none" }}>
+      <div
+        style={{
+          position: "absolute",
+          left: 14,
+          bottom: 14,
+          right: 14,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 10,
+          alignItems: "center",
+          pointerEvents: "none",
+        }}
+      >
         <div className="fr-tile" style={{ background: "#102F45" }}>
           <div>WATER LEVEL (SAMPLE)</div>
           <div>{stats.level.toFixed(1)} m</div>
         </div>
         <div className="fr-tile" style={{ background: "#102F45" }}>
           <div>ASSETS REACHED</div>
-          <div>{stats.reached} of {assets.length}</div>
+          <div>
+            {stats.reached} of {assets.length}
+          </div>
         </div>
         <div className="fr-tile" style={{ background: "#102F45" }}>
           <div>{TIER.high.toUpperCase()} RISK REACHED</div>
-          <div>{stats.reachedHigh} of {highCount}</div>
+          <div>
+            {stats.reachedHigh} of {highCount}
+          </div>
         </div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#B9D6E3", background: "#102F45cc", borderRadius: 999, padding: "4px 12px" }}>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "#B9D6E3",
+            background: "#102F45cc",
+            borderRadius: 999,
+            padding: "4px 12px",
+          }}
+        >
           Illustration on sample terrain, not a flood forecast. Drag to rotate, scroll to zoom.
         </div>
       </div>
