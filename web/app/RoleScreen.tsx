@@ -1,3 +1,4 @@
+import Image from "next/image";
 import RoomChip from "./RoomChip";
 
 const FACE = (
@@ -7,12 +8,6 @@ const FACE = (
     <circle cx="6" cy="2" r="2.4" fill="#0B2233" />
     <path d="M-5 9 q5 5 10 0" fill="none" stroke="#0B2233" strokeWidth="2.4" strokeLinecap="round" />
   </>
-);
-const Drop = ({ size }: { size: number }) => (
-  <svg width={size} height={size} viewBox="0 0 36 36" aria-hidden="true">
-    <path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8" />
-    <path d="M18 15 C18 15 12.5 20 12.5 24 a5.5 5.5 0 0 0 11 0 C23.5 20 18 15 18 15Z" fill="#FF8A4C" />
-  </svg>
 );
 
 export default function RoleScreen({
@@ -40,8 +35,17 @@ export default function RoleScreen({
       }}
     >
       <div style={{ textAlign: "center", maxWidth: 720 }}>
-        <Drop size={56} />
-        <h1 style={{ margin: "8px 0 6px", fontSize: 40, fontWeight: 700 }}>DrainWise</h1>
+        <Image src="/brand-mascot.png" alt="" width={110} height={95} unoptimized style={{ margin: "0 auto" }} />
+        <h1 style={{ margin: "8px 0 6px" }}>
+          <Image
+            src="/brand-wordmark.png"
+            alt="DrainWise"
+            width={260}
+            height={59}
+            unoptimized
+            style={{ margin: "0 auto" }}
+          />
+        </h1>
         <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
           Leaves block gross pollutant traps (GPTs), and most of them have no camera. DrainWise predicts which ones are

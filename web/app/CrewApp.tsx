@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import RoomChip from "./RoomChip";
 import { useEffect, useState } from "react";
 import { canComplete } from "../../planner/src/canComplete";
@@ -153,17 +155,36 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontWeight: 700, fontSize: 18 }}>Crew app</span>
-        <RoomChip compact />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
         <button
-          className="fr-btn fr-ghost"
           type="button"
+          aria-label="DrainWise crew app, back to home"
+          title="Back to home"
           onClick={onSwitchRole}
-          style={{ padding: "6px 10px", minHeight: 40, fontSize: 14 }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flex: "none",
+            background: "none",
+            border: 0,
+            padding: 0,
+            cursor: "pointer",
+          }}
         >
-          Switch role
+          <Image src="/brand-mascot.png" alt="" width={34} height={30} unoptimized />
+          <Image src="/brand-wordmark.png" alt="" width={80} height={18} unoptimized />
         </button>
+        <RoomChip compact />
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {state.crews.map((c) => {
@@ -194,7 +215,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
 
       {!stop ? (
         <div style={{ textAlign: "center", padding: "40px 8px", color: "#B9D6E3" }}>
-          <svg width="56" height="56" viewBox="0 0 36 36" aria-hidden="true">
+          <svg width="56" height="56" viewBox="0 0 36 36" aria-hidden="true" style={{ margin: "0 auto" }}>
             <path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8" />
           </svg>
           <div style={{ fontWeight: 700, fontSize: 20, color: "#EAF6FB", marginTop: 10 }}>All clear</div>
