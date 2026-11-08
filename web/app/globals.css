@@ -73,6 +73,50 @@ body {
 .fr-mk {
   cursor: pointer;
 }
+.fr-mk-in {
+  transform-origin: 0 0;
+  transition:
+    transform 0.15s ease,
+    filter 0.15s ease;
+}
+.fr-mk-ring {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.fr-mk:hover .fr-mk-in,
+.fr-mk:focus-visible .fr-mk-in {
+  transform: scale(1.3);
+  filter: brightness(1.15) drop-shadow(0 0 5px rgba(234, 246, 251, 0.9));
+}
+.fr-mk:hover .fr-mk-ring,
+.fr-mk:focus-visible .fr-mk-ring {
+  opacity: 1;
+}
+.fr-tip {
+  position: fixed;
+  z-index: 18;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: max-content;
+  max-width: 200px;
+  padding: 8px 12px;
+  background: var(--fr-panel);
+  color: var(--fr-text);
+  border: 2px solid var(--fr-line);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.fr-tip b {
+  font-size: 15px;
+}
+.fr-tip-sub {
+  color: var(--fr-mute);
+  font-size: 12px;
+}
 
 .fr-section {
   background: var(--fr-panel);
@@ -208,6 +252,10 @@ body {
   .fr-bob {
     animation: none;
   }
+  .fr-mk-in,
+  .fr-mk-ring {
+    transition: none;
+  }
 }
 
 /* Manager app shell: sticky map on the left, tabbed panels on the right (and the crew phone in side-by-side). */
@@ -281,10 +329,15 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   align-content: start;
   gap: 14px;
-  max-height: calc(100vh - 100px);
+  max-height: calc(100vh - 24px);
 }
+/* Manager dashboard (desktop): the left and right columns each scroll on their own, so a panel is never cut short. */
 .fr-dash .fr-mapcol {
-  position: relative;
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 2px 4px 2px 2px;
 }
 .fr-below {
   display: grid;
@@ -293,13 +346,30 @@ body {
   margin-top: 14px;
   align-items: start;
 }
-.fr-dash .fr-sim {
-  grid-column: 1 / -1;
+.fr-dash .fr-sim,
+.fr-dash .fr-wide {
+  grid-column: 1 / -1; /* same full width as Simulation controls */
+}
+/* Columns still scroll with the wheel, trackpad and keyboard; the bar itself is hidden. */
+.fr-dash .fr-mapcol,
+.fr-dash .fr-side {
+  scrollbar-width: none;
+}
+.fr-dash .fr-mapcol::-webkit-scrollbar,
+.fr-dash .fr-side::-webkit-scrollbar {
+  display: none;
 }
 @media (max-width: 899px) {
   .fr-dash .fr-side {
     display: flex;
+    position: static;
     max-height: none;
+    overflow: visible;
+  }
+  .fr-dash .fr-mapcol {
+    position: relative;
+    max-height: none;
+    overflow: visible;
   }
 }
 .fr-tabs {
@@ -398,4 +468,9 @@ body {
 }
 .fr-skip:focus {
   top: 8px;
+}
+
+/* Full-screen map: its column is sticky (own stacking context), so lift it above the right-hand column. */
+.fr-map-full .fr-mapcol {
+  z-index: 15;
 }

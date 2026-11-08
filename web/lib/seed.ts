@@ -47,8 +47,8 @@ export function makeSeedAssets(): SeedAsset[] {
     const off = (rnd() < 0.5 ? -1 : 1) * (3 + rnd() * 11);
     const x = s.a.x + (s.b.x - s.a.x) * t + nx * off;
     const y = s.a.y + (s.b.y - s.a.y) * t + ny * off;
-    if (x < 40 || x > 760 || y < 45 || y > 455 || (x < 150 && y > 380)) continue;
-    if (out.some((q) => Math.abs(q.x - x) < 30 && Math.abs(q.y - y) < 30)) continue;
+    if (x < 50 || x > 700 || y < 45 || y > 455 || (x < 150 && y > 380)) continue;
+    if (out.some((q) => Math.abs(q.x - x) < 24 && Math.abs(q.y - y) < 24)) continue;
     const cam = rnd() < 0.3; // only some sites have a camera
     out.push({
       id: "GPT-" + String(out.length + 1).padStart(3, "0"),

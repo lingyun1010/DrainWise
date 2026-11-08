@@ -8,8 +8,8 @@ import { BOUNDS, MAP_W } from "@/lib/geo";
 // uses fixed map units (800 x 500) that match BOUNDS, so the view must never pan or zoom.
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
-// Where the 800 x 500 overlay sits now: translate (in map units) and scale. Identity at the default view.
-export type View = { tx: number; ty: number; k: number };
+// Where the overlay sits now, in screen pixels: translate and scale (pixels per map unit), plus the box size.
+export type View = { tx: number; ty: number; s: number; w: number; h: number };
 
 export default function BaseMap({ onView }: { onView: (v: View) => void }) {
   const host = useRef<HTMLDivElement>(null);
@@ -18,6 +18,7 @@ export default function BaseMap({ onView }: { onView: (v: View) => void }) {
   useEffect(() => {
     onViewRef.current = onView;
   });
+  const homeRef = useRef<View | null>(null);
   const [failed, setFailed] = useState(false);
   const [moved, setMoved] = useState(false);
 
@@ -47,22 +48,34 @@ export default function BaseMap({ onView }: { onView: (v: View) => void }) {
         m.setMinZoom(0);
         m.fitBounds(BOUNDS, { padding: 0, animate: false });
         m.setMinZoom(m.getZoom()); // cannot zoom out past the whole area
+        homeRef.current = read();
       };
-      const sync = () => {
-        const w = m.getContainer().clientWidth;
-        if (!w) return;
+      const read = (): View | null => {
+        const c = m.getContainer();
+        const w = c.clientWidth;
+        const h = c.clientHeight;
+        if (!w || !h) return null;
         const p0 = m.project([BOUNDS[0][0], BOUNDS[1][1]]); // north-west corner
         const p1 = m.project([BOUNDS[1][0], BOUNDS[0][1]]); // south-east corner
-        const u = w / MAP_W; // screen pixels per map unit at the default view
-        const v = { tx: p0.x / u, ty: p0.y / u, k: (p1.x - p0.x) / w };
+        return { tx: p0.x, ty: p0.y, s: (p1.x - p0.x) / MAP_W, w, h };
+      };
+      const sync = () => {
+        const v = read();
+        if (!v) return;
         onViewRef.current(v);
-        setMoved(Math.abs(v.k - 1) > 0.01 || Math.abs(v.tx) > 3 || Math.abs(v.ty) > 3);
+        const home = homeRef.current;
+        setMoved(
+          !home || Math.abs(v.s / home.s - 1) > 0.01 || Math.abs(v.tx - home.tx) > 3 || Math.abs(v.ty - home.ty) > 3,
+        );
       };
       m.on("resize", () => {
         fit();
         sync();
       });
-      m.on("load", fit);
+      m.on("load", () => {
+        fit();
+        sync();
+      });
       m.on("move", sync);
       m.on("error", () => setFailed(true));
       m.on("idle", () => setFailed(false));
@@ -83,7 +96,7 @@ export default function BaseMap({ onView }: { onView: (v: View) => void }) {
           type="button"
           className="fr-btn fr-sec"
           onClick={() => mapRef.current?.fitBounds(BOUNDS, { padding: 0 })}
-          style={{ position: "absolute", right: 56, bottom: 10, minHeight: 40 }}
+          style={{ position: "absolute", right: 56, bottom: 10, minHeight: 40, zIndex: 10 }}
         >
           Reset view
         </button>
@@ -95,6 +108,7 @@ export default function BaseMap({ onView }: { onView: (v: View) => void }) {
             position: "absolute",
             left: 10,
             bottom: moved ? 58 : 10,
+            zIndex: 10,
             background: "#102F45",
             color: "#EAF6FB",
             border: "2px solid #1E4A63",
