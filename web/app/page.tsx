@@ -1335,21 +1335,43 @@ export default function Home() {
                   What if · demo controls
                   {offline ? " · off while risk-api is offline" : ""}
                 </div>
-                <div className="fr-label" style={{ marginTop: 16, marginBottom: 12 }} id="fr-day-label">
-                  Forecast day
-                </div>
-                <div role="group" aria-labelledby="fr-day-label" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <label
+                  htmlFor="fr-day"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    marginTop: 16,
+                  }}
+                >
+                  <span>Forecast day</span>
+                  <span style={{ color: "#CFE6F0" }}>{DAYS[day]}</span>
+                </label>
+                <input
+                  id="fr-day"
+                  type="range"
+                  min={0}
+                  max={DAYS.length - 1}
+                  step={1}
+                  value={day}
+                  disabled={offline}
+                  aria-valuetext={DAYS[day]}
+                  onChange={(e) => setDay(+e.target.value)}
+                  style={{ width: "100%", accentColor: "#4FC3E8", opacity: offline ? 0.4 : 1 }}
+                />
+                <div
+                  aria-hidden="true"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 12,
+                    color: "#8FB8CC",
+                    marginTop: -2,
+                  }}
+                >
                   {DAYS.map((name, i) => (
-                    <button
-                      key={name}
-                      type="button"
-                      className={`fr-btn ${day === i ? "fr-pri" : "fr-sec"}`}
-                      aria-pressed={day === i}
-                      disabled={offline}
-                      onClick={() => setDay(i)}
-                    >
-                      {name}
-                    </button>
+                    <span key={name}>{i === 0 ? "Today" : `+${i}d`}</span>
                   ))}
                 </div>
                 {day > 0 && (
