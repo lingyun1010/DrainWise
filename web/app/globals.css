@@ -474,3 +474,42 @@ body {
 .fr-map-full .fr-mapcol {
   z-index: 15;
 }
+
+/* Crew page on a wide screen: show the phone app inside a device frame. */
+@media (min-width: 600px) {
+  .fr-device {
+    position: relative;
+    width: 390px;
+    height: min(844px, calc(100vh - 32px));
+    margin: 0 auto;
+    box-sizing: border-box;
+    border: 12px solid #04101a;
+    border-radius: 52px;
+    background: #0b2233;
+    box-shadow:
+      0 0 0 2px #1e4a63,
+      0 24px 60px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .fr-device::before {
+    content: "";
+    position: sticky;
+    top: 8px;
+    display: block;
+    width: 96px;
+    height: 22px;
+    margin: 8px auto -30px;
+    border-radius: 12px;
+    background: #04101a;
+    z-index: 5;
+  }
+  .fr-device > aside {
+    max-width: 100% !important;
+    width: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding-top: 40px !important;
+    min-height: 100% !important;
+  }
+}
