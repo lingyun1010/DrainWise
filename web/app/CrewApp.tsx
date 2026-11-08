@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { canComplete } from "../../planner/src/canComplete";
+import { mockSuggestion } from "../../planner/src/mockSuggestion";
+import type { Suggestion } from "../../planner/src/parseSuggestion";
 import {
   addLog,
   crewLetter,
@@ -14,6 +16,9 @@ import {
   type JobRecord,
   type SavedState,
 } from "@/lib/runStore";
+import { IS_PUBLIC_DEMO, PHOTO_UPLOAD_ON, uploadJobPhotos } from "@/lib/uploadPhoto";
+
+const MOCK_NAMES = ["Clear", "Light debris", "Half blocked", "Blocked"];
 
 export const CameraIcon = ({ w = 44 }: { w?: number }) => (
   <svg width={w} height={(w * 32) / 52} viewBox="0 0 52 32" role="img" aria-label="Camera" style={{ flex: "none" }}>
@@ -27,7 +32,12 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
   const [state, setState] = useState<SavedState>(() => ({ crews: [], runs: {}, records: [], log: [] }));
   const [crewId, setCrewId] = useState<string | undefined>();
   // Photos belong to one stop of one crew's run (key = crew/run/stop), so switching crew never shows another crew's photo.
-  const [photos, setPhotos] = useState<Record<string, { before?: string; after?: string }>>({});
+  const [photos, setPhotos] = useState<
+    Record<string, { before?: string; after?: string; beforeFile?: File; afterFile?: File }>
+  >({});
+
+  // Mock "AI check" results, per stop like the photos (see planner/src/mockSuggestion.ts).
+  const [mocks, setMocks] = useState<Record<string, Suggestion | undefined>>({});
 
   useEffect(() => {
     const read = () => setState(loadState());
@@ -59,7 +69,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
       const f = e.target.files?.[0];
       if (!f || !photoKey) return;
       const url = URL.createObjectURL(f); // kept in memory only, never persisted
-      setPhotos((p) => ({ ...p, [photoKey]: { ...p[photoKey], [kind]: url } }));
+      setPhotos((p) => ({ ...p, [photoKey]: { ...p[photoKey], [kind]: url, [`${kind}File`]: f } }));
     };
   }
 
@@ -86,9 +96,22 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
       after: stop.photosNeeded && !!after,
     };
     let log = state.log;
-    if (stop.photosNeeded) {
+    if (stop.photosNeeded && !PHOTO_UPLOAD_ON) {
       log = addLog(log, t, `${crewName} took the before photo of ${stop.id} (added to AI training candidates).`, meta);
       log = addLog(log, t, `${crewName} took the after photo of ${stop.id} (saved as evidence).`, meta);
+    }
+    if (stop.photosNeeded && PHOTO_UPLOAD_ON) {
+      // Saving happens after the job is recorded, so a slow network never blocks the crew.
+      const files = { before: photos[photoKey]?.beforeFile, after: photos[photoKey]?.afterFile };
+      const who = { crewId: crew!.id, runId: run.runId };
+      const stopId = stop.id;
+      void uploadJobPhotos(files, { runId: run.runId, stopId, assetId: stopId, crewId: crew!.id }).then((saved) => {
+        const now = loadState();
+        const text = saved
+          ? `${crewName} photos of ${stopId} saved for review.`
+          : `${crewName} photos of ${stopId} could not be saved. They stay on this device only.`;
+        saveState({ ...now, log: addLog(now.log, fmtClock(simMinute()), text, who) });
+      });
     }
     log = addLog(log, t, `${crewName} cleaned ${stop.id}. Risk reset.`, meta);
     const last = idx + 1 >= run.stops.length;
@@ -104,6 +127,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
     update({ ...run, done: [...run.done, stop.id] }, { records: [...state.records, rec], log });
   }
 
+  const mock = mocks[photoKey];
   const verdict = stop
     ? canComplete({ hasCamera: !stop.photosNeeded }, { before, after })
     : { ok: false, missing: [] as string[] };
@@ -275,8 +299,37 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
                   alt="Before cleaning"
                   color="#FFD27A"
                   title="Before saved"
-                  sub="Used to improve the AI"
+                  sub={PHOTO_UPLOAD_ON ? "Sent for review on submit" : "Used to improve the AI"}
                 />
+              )}
+              {before && PHOTO_UPLOAD_ON && (
+                <div>
+                  <button
+                    className="fr-btn fr-ghost"
+                    type="button"
+                    style={{ width: "100%", minHeight: 40 }}
+                    onClick={() => {
+                      const f = photos[photoKey]?.beforeFile;
+                      setMocks((m) => ({ ...m, [photoKey]: mockSuggestion(stop.pct, f ? f.size : 0) }));
+                    }}
+                  >
+                    {mock ? "Run mock AI check again" : "Run mock AI check"}
+                  </button>
+                  <div aria-live="polite" style={{ fontSize: 13, lineHeight: 1.4, color: "#CFE6F0", marginTop: 6 }}>
+                    {mock ? (
+                      <>
+                        <b style={{ color: "#FFD27A" }}>
+                          Mock result: level {mock.level} · {MOCK_NAMES[mock.level]}
+                        </b>{" "}
+                        · confidence {Math.round(mock.confidence * 100)}%
+                        <br />
+                        This is a mock for the demo, not a real model. It does not look at the photo.
+                      </>
+                    ) : (
+                      "Mock only in this demo: no real model is called."
+                    )}
+                  </div>
+                </div>
               )}
               {before && !after && (
                 <>
@@ -310,8 +363,11 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
                 </>
               )}
               <div style={{ fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
-                Photos stay on this device in memory in this demo. The real app would stamp time and location on each
-                photo.
+                {PHOTO_UPLOAD_ON
+                  ? `On submit, both photos are shrunk, stripped of location data and saved to the sample project for review.${
+                      IS_PUBLIC_DEMO ? " On this public demo they are deleted after 24 hours." : ""
+                    } They are not used for training.`
+                  : "Photos stay on this device in memory in this demo. The real app would stamp time and location on each photo."}
               </div>
             </div>
           )}
