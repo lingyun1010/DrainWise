@@ -7,15 +7,27 @@ import { getRoom, saveRoom } from "@/lib/roomStore";
 import { storageConfigured } from "@/lib/photoStore";
 
 const hits = new Map<string, number[]>();
+// Guessing codes: a client that asks for too many rooms that do not exist is stopped (28k possible codes).
+const misses = new Map<string, number[]>();
+const MISS_LIMIT = 60;
+const clientOf = (request: Request) => request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+const missesNow = (client: string) => (misses.get(client) ?? []).filter((t) => Date.now() - t < 3600_000);
 
-export async function GET(_request: Request, { params }: { params: Promise<{ code: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ code: string }> }) {
   await connection();
   if (!storageConfigured()) return Response.json({ error: "shared rooms are not configured" }, { status: 503 });
   const code = cleanRoomCode((await params).code);
   if (!code) return Response.json({ error: "invalid room code" }, { status: 400 });
+  const client = clientOf(request);
+  if (missesNow(client).length >= MISS_LIMIT) {
+    return Response.json({ error: "too many unknown rooms, try again later" }, { status: 429 });
+  }
   const room = await getRoom(code);
   if (room === "error") return Response.json({ error: "room storage is not reachable" }, { status: 502 });
-  if (!room) return Response.json({ error: "room not found" }, { status: 404 });
+  if (!room) {
+    misses.set(client, [...missesNow(client), Date.now()]);
+    return Response.json({ error: "room not found" }, { status: 404 });
+  }
   return Response.json(room);
 }
 
@@ -23,7 +35,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ code
   if (!storageConfigured()) return Response.json({ error: "shared rooms are not configured" }, { status: 503 });
   const code = cleanRoomCode((await params).code);
   if (!code) return Response.json({ error: "invalid room code" }, { status: 400 });
-  const client = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  const client = clientOf(request);
   if (!allowRequest(hits, client, Date.now(), 1200)) {
     return Response.json({ error: "too many updates, slow down" }, { status: 429 });
   }
