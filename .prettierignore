@@ -4,3 +4,4 @@ package-lock.json
 node_modules/
 .venv/
 web/lib/parramattaWaterways.json
+web/lib/precomputedScores.json
