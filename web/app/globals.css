@@ -723,6 +723,11 @@ body {
 }
 .fr-card:active {
   transform: scale(0.98);
+  border-color: #4fc3e8;
+  background: #14405c;
+}
+.fr-cardhi:active {
+  border-color: #ffa06b;
 }
 @media (prefers-reduced-motion: reduce) {
   .fr-card,

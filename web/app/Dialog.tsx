@@ -83,7 +83,7 @@ export default function Dialog({
         background: "rgba(5,15,25,.7)",
         display: "flex",
         padding: 20,
-        zIndex: 20,
+        zIndex: 40,
       }}
     >
       <div
