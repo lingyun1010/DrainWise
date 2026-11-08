@@ -1,7 +1,7 @@
 # 13: Photo review page (local only)
 
 Type: task
-Status: ready-for-agent
+Status: done (PR #20; real OpenAI call still untested)
 Blocked by: None (can start immediately)
 Spec: `.scratch/drainwise/spec.md` (tickets 04 and 07)
 
