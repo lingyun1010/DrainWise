@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
+import { DAYS, horizonInputs } from "../../planner/src/horizon";
 import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
 import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
 import riskModel from "@/lib/riskModel.json";
@@ -73,6 +74,7 @@ export default function Home() {
   const [role, setRole] = useState<Role>(null);
   const [tab, setTab] = useState<PanelTab>("queue");
   const [leaf, setLeaf] = useState(DEFAULT_LEAF);
+  const [day, setDay] = useState(0); // 0 = Today; later days score tomorrow's conditions so crews can be planned ahead
   const [extra, setExtra] = useState(0);
   const [capacity, setCapacity] = useState(2);
   const [preds, setPreds] = useState<Prediction[] | null>(null);
@@ -145,7 +147,8 @@ export default function Home() {
   const assigned = useMemo(() => openStopIds(st), [st]);
 
   // Cleaned assets get days_since_clean = 0, so the model itself shows the risk reset.
-  const rainForecast = Math.min(80, Math.round(10 + extra * 0.7));
+  const hz = horizonInputs(day, extra);
+  const rainForecast = hz.rain_forecast_mm;
   useEffect(() => {
     const t = setTimeout(async () => {
       let live: LiveResult<Prediction>;
@@ -155,9 +158,9 @@ export default function Home() {
           type: a.type,
           canopy_pct: a.canopyPct,
           leaf_index: leaf,
-          rain_mm_7d: 20,
+          rain_mm_7d: hz.rain_mm_7d,
           rain_forecast_mm: rainForecast,
-          days_since_clean: cleaned.has(a.id) ? 0 : a.daysSinceClean,
+          days_since_clean: (cleaned.has(a.id) ? 0 : a.daysSinceClean) + hz.days_added,
           has_camera: a.hasCamera,
         }));
         if (PUBLIC_BUILD) {
@@ -191,11 +194,12 @@ export default function Home() {
           // The file holds the default scenario only, so the what-if controls go back to it.
           setLeaf(precomputed.scenario.leaf_index);
           setExtra(0);
+          setDay(0);
         }
       }
     }, 250);
     return () => clearTimeout(t);
-  }, [seed, leaf, rainForecast, cleaned]);
+  }, [seed, leaf, rainForecast, hz.days_added, hz.rain_mm_7d, cleaned]);
 
   const byId = useMemo(() => new Map(seed.map((a) => [a.id, a])), [seed]);
   const rows = useMemo(
@@ -386,7 +390,7 @@ export default function Home() {
   }
 
   // Crews are sent on current conditions only. If the what-if sliders are moved, ask before sending anything.
-  const whatIfOn = leaf !== DEFAULT_LEAF || extra !== 0;
+  const whatIfOn = leaf !== DEFAULT_LEAF || extra !== 0 || day !== 0;
   function sendOrWarn(stops: RunStop[]) {
     if (whatIfOn) setWhatIfBlock(true);
     else setChoose(stops);
@@ -1175,6 +1179,29 @@ export default function Home() {
                       ? " · off while risk-api is offline"
                       : ""}
                 </div>
+                <div className="fr-label" style={{ marginTop: 12 }} id="fr-day-label">
+                  Forecast day · sample rain
+                </div>
+                <div role="group" aria-labelledby="fr-day-label" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {DAYS.map((name, i) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`fr-btn ${day === i ? "fr-pri" : "fr-sec"}`}
+                      aria-pressed={day === i}
+                      disabled={offline}
+                      onClick={() => setDay(i)}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                {day > 0 && (
+                  <div style={{ marginTop: 6, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
+                    Showing {DAYS[day].toLowerCase()}: assets are {day} day(s) older and the sample rain in between has
+                    fallen. A crew can be sent only on today&apos;s scores.
+                  </div>
+                )}
                 <label
                   htmlFor="fr-leaf"
                   style={{
@@ -1229,10 +1256,11 @@ export default function Home() {
                   type="button"
                   className="fr-btn fr-ghost"
                   style={{ marginTop: 10 }}
-                  disabled={offline || (leaf === DEFAULT_LEAF && extra === 0)}
+                  disabled={offline || (leaf === DEFAULT_LEAF && extra === 0 && day === 0)}
                   onClick={() => {
                     setLeaf(DEFAULT_LEAF);
                     setExtra(0);
+                    setDay(0);
                   }}
                 >
                   Reset to current conditions
@@ -1344,16 +1372,17 @@ export default function Home() {
           onConfirm={() => {
             setLeaf(DEFAULT_LEAF);
             setExtra(0);
+            setDay(0);
             setWhatIfBlock(false);
           }}
         >
           <p style={{ margin: "0 0 10px" }}>
-            No crew was sent. The map and queue show a what-if (leaf fall {leaf}%,{" "}
-            {extra === 0 ? "forecast rain" : `+${extra}% rain`}), not current conditions.
+            No crew was sent. The map and queue show a what-if ({day === 0 ? "today" : DAYS[day].toLowerCase()}, leaf
+            fall {leaf}%, {extra === 0 ? "forecast rain" : `+${extra}% rain`}), not current conditions.
           </p>
           <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>
-            Restoring puts both sliders back and recalculates the scores. Then press send again: the stops may change.
-            Cancel keeps the what-if so you can keep exploring.
+            Restoring puts the day and both sliders back and recalculates the scores. Then press send again: the stops
+            may change. Cancel keeps the what-if so you can keep exploring.
           </p>
         </ConfirmDialog>
       )}
