@@ -11,9 +11,13 @@ it("each later day adds a day since clean and the rain that fell in between", ()
   expect(horizonInputs(2, 0)).toEqual({ days_added: 2, rain_mm_7d: 52.3, rain_forecast_mm: 6 });
 });
 
-it("extra rain raises forecast rain and is capped at the training range", () => {
-  expect(horizonInputs(0, 100).rain_forecast_mm).toBe(80);
-  expect(horizonInputs(1, 100).rain_forecast_mm).toBe(80);
+it("extra rain is millimetres over the whole period, shared evenly between its days", () => {
+  expect(horizonInputs(0, 30).rain_forecast_mm).toBe(40); // 10 sample + 30
+  // 3 days (today to day 2): +10 mm on each day
+  const r = horizonInputs(2, 30);
+  expect(r.rain_forecast_mm).toBe(16); // day 2 sample 6 + 10
+  expect(r.rain_mm_7d).toBe(Math.round(((20 * 5) / 7 + (10 + 10) + (28 + 10)) * 10) / 10);
+  expect(horizonInputs(0, 200).rain_forecast_mm).toBe(80); // capped at the training range
   expect(horizonInputs(6, 100).rain_mm_7d).toBeLessThanOrEqual(80);
 });
 

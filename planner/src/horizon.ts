@@ -12,13 +12,16 @@ export const MAX_RAIN_MM = 80; // upper end of the simulated training range
 
 export type HorizonInputs = { days_added: number; rain_mm_7d: number; rain_forecast_mm: number };
 
-export function horizonInputs(day: number, extraPct: number, dayRain: readonly number[] = DAY_RAIN_MM): HorizonInputs {
+// Extra rain is extra millimetres over the whole period (today to the chosen day), shared evenly between those days.
+// So "+30 mm over 3 days" adds 10 mm to each of the three days, and it shows in the chart and its accumulate line.
+export function horizonInputs(day: number, extraMm: number, dayRain: readonly number[] = DAY_RAIN_MM): HorizonInputs {
   const d = Math.max(0, Math.min(DAYS.length - 1, Math.round(day)));
-  const fallen = dayRain.slice(0, d).reduce((a, b) => a + b, 0);
+  const share = Math.max(0, extraMm) / (d + 1);
+  const fallen = dayRain.slice(0, d).reduce((a, b) => a + b + share, 0);
+  const round1 = (v: number) => Math.round(v * 10) / 10;
   return {
     days_added: d,
-    rain_mm_7d: Math.min(MAX_RAIN_MM, Math.round(((BASE_RAIN_7D * (7 - d)) / 7 + fallen) * 10) / 10),
-    // "Extra rain" adds up to +70% of the 80 mm range on the chosen day, as it did before.
-    rain_forecast_mm: Math.min(MAX_RAIN_MM, Math.round((dayRain[d] ?? 0) + extraPct * 0.7)),
+    rain_mm_7d: Math.min(MAX_RAIN_MM, round1((BASE_RAIN_7D * (7 - d)) / 7 + fallen)),
+    rain_forecast_mm: Math.min(MAX_RAIN_MM, round1((dayRain[d] ?? 0) + share)),
   };
 }
