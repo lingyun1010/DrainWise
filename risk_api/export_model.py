@@ -61,18 +61,15 @@ def parity_cases(model_path: Path = DEFAULT_PATH, assets_path: Path = ASSETS_PAT
     model, means = bundle["model"], bundle["means"]
     cases = []
     for leaf, rain7, forecast in SCENARIOS:
-        for a in json.loads(assets_path.read_text()):
-            row = {**a, "leaf_index": leaf, "rain_mm_7d": rain7, "rain_forecast_mm": forecast}
-            x = np.array(to_vector(row))
-            p = float(model.predict_proba(x.reshape(1, -1))[0, 1])
-            cases.append(
-                {
-                    "input": row,
-                    "p_block": p,
-                    "level": level_for(p),
-                    "reasons": explain(model, means, x, p, row["days_since_clean"]),
-                }
-            )
+        rows = [
+            {**a, "leaf_index": leaf, "rain_mm_7d": rain7, "rain_forecast_mm": forecast}
+            for a in json.loads(assets_path.read_text())
+        ]
+        X = np.array([to_vector(r) for r in rows])
+        probs = model.predict_proba(X)[:, 1]
+        reasons = explain(model, means, X, probs, [r["days_since_clean"] for r in rows])
+        for r, p, why in zip(rows, probs, reasons):
+            cases.append({"input": r, "p_block": float(p), "level": level_for(float(p)), "reasons": why})
     return cases
 
 

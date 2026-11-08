@@ -39,20 +39,26 @@ REASON_FEATURES = {
 MAX_REASONS = 3
 
 
-def explain(model, means: list[float], x: np.ndarray, p: float, days: int) -> list[str]:
-    """Occlusion: swap one feature at a time for its training mean and see how p changes."""
-    deltas = []
-    for i in REASON_FEATURES:
-        x_mean = x.copy()
-        x_mean[i] = means[i]
-        deltas.append((p - float(model.predict_proba(x_mean.reshape(1, -1))[0, 1]), i))
-    raising = sorted([d for d in deltas if d[0] > 0], reverse=True)[:MAX_REASONS]
-    if raising:
-        picks = [(i, 0) for _, i in raising]
-    else:
-        lowest = min(deltas)
-        picks = [(lowest[1], 1)]
-    return [REASON_FEATURES[i][k].format(days=days) for i, k in picks]
+def explain(model, means: list[float], X: np.ndarray, probs: np.ndarray, days: list[int]) -> list[list[str]]:
+    """Occlusion: swap one feature at a time for its training mean and see how p changes.
+
+    One predict_proba call for all assets and features (calling it per asset and feature took ~1 s for 36 assets).
+    """
+    idx = list(REASON_FEATURES)
+    swapped = np.repeat(X[:, None, :], len(idx), axis=1)  # (assets, features, columns)
+    for k, i in enumerate(idx):
+        swapped[:, k, i] = means[i]
+    p_swapped = model.predict_proba(swapped.reshape(-1, X.shape[1]))[:, 1].reshape(len(X), len(idx))
+    out = []
+    for row, p in enumerate(probs):
+        deltas = [(float(p - p_swapped[row, k]), i) for k, i in enumerate(idx)]
+        raising = sorted([d for d in deltas if d[0] > 0], reverse=True)[:MAX_REASONS]
+        if raising:
+            picks = [(i, 0) for _, i in raising]
+        else:
+            picks = [(min(deltas)[1], 1)]
+        out.append([REASON_FEATURES[i][k].format(days=days[row]) for i, k in picks])
+    return out
 
 
 def create_app(model_path: Path = DEFAULT_PATH) -> FastAPI:
@@ -65,13 +71,9 @@ def create_app(model_path: Path = DEFAULT_PATH) -> FastAPI:
     def predict(assets: list[AssetIn]):
         X = np.array([to_vector(a.model_dump()) for a in assets])
         probs = model.predict_proba(X)[:, 1]
+        reasons = explain(model, means, X, probs, [a.days_since_clean for a in assets])
         return [
-            {
-                "asset_id": a.asset_id,
-                "p_block": float(p),
-                "level": level_for(float(p)),
-                "reasons": explain(model, means, X[i], float(p), a.days_since_clean),
-            }
+            {"asset_id": a.asset_id, "p_block": float(p), "level": level_for(float(p)), "reasons": reasons[i]}
             for i, (a, p) in enumerate(zip(assets, probs))
         ]
 

@@ -55,6 +55,7 @@ const TABS: { id: PanelTab; label: string }[] = [
 
 // Public build (Vercel): no risk-api, so the page only reads the baked scores file. Set at build time.
 const PUBLIC_BUILD = process.env.NEXT_PUBLIC_PUBLIC_BUILD === "1";
+const DEFAULT_LEAF = 60; // leaf-fall slider at first load, same as the precomputed scenario
 
 // Only assets at Medium risk or above are worth a truck stop (matches risk-api MEDIUM_AT, a placeholder).
 const MIN_RUN_RISK = 0.3;
@@ -71,7 +72,7 @@ export default function Home() {
   const seed = useMemo(() => makeSeedAssets(), []);
   const [role, setRole] = useState<Role>(null);
   const [tab, setTab] = useState<PanelTab>("queue");
-  const [leaf, setLeaf] = useState(60);
+  const [leaf, setLeaf] = useState(DEFAULT_LEAF);
   const [extra, setExtra] = useState(0);
   const [capacity, setCapacity] = useState(2);
   const [preds, setPreds] = useState<Prediction[] | null>(null);
@@ -81,6 +82,7 @@ export default function Home() {
   const [logOpen, setLogOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
   const [choose, setChoose] = useState<RunStop[] | null>(null); // stops waiting for the manager to pick a crew
+  const [whatIfBlock, setWhatIfBlock] = useState(false); // a send was stopped because the what-if sliders are moved
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -380,7 +382,14 @@ export default function Home() {
       p ??
       planRun([{ id, type: a.type, risk: r.p.p_block, x: a.x, y: a.y, hasCamera: a.hasCamera }], 4, DEPOT, 0).stops[0];
     setCur(null);
-    setChoose([stopFor(id, one.load, one.photosNeeded)]);
+    sendOrWarn([stopFor(id, one.load, one.photosNeeded)]);
+  }
+
+  // Crews are sent on current conditions only. If the what-if sliders are moved, ask before sending anything.
+  const whatIfOn = leaf !== DEFAULT_LEAF || extra !== 0;
+  function sendOrWarn(stops: RunStop[]) {
+    if (whatIfOn) setWhatIfBlock(true);
+    else setChoose(stops);
   }
 
   const openAsset = (id: string) => {
@@ -1125,7 +1134,7 @@ export default function Home() {
                     className="fr-btn fr-pri"
                     type="button"
                     style={{ width: "100%" }}
-                    onClick={() => setChoose(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
+                    onClick={() => sendOrWarn(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
                     disabled={busy}
                   >
                     {busy ? "All crews are busy" : "Send a crew on this run"}
@@ -1216,6 +1225,18 @@ export default function Home() {
                   onChange={(e) => setExtra(+e.target.value)}
                   style={{ width: "100%", accentColor: "#FF8A4C", opacity: offline ? 0.4 : 1 }}
                 />
+                <button
+                  type="button"
+                  className="fr-btn fr-ghost"
+                  style={{ marginTop: 10 }}
+                  disabled={offline || (leaf === DEFAULT_LEAF && extra === 0)}
+                  onClick={() => {
+                    setLeaf(DEFAULT_LEAF);
+                    setExtra(0);
+                  }}
+                >
+                  Reset to current conditions
+                </button>
                 <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
                   Risk scores come from a gradient boosting model trained on simulated history, not on real council
                   records. Every score shows its reasons.
@@ -1310,6 +1331,31 @@ export default function Home() {
             Sample data. The crew confirms the real condition on site.
           </div>
         </Dialog>
+      )}
+
+      {whatIfBlock && (
+        <ConfirmDialog
+          label="What-if is on"
+          eyebrow="Send a crew"
+          title="What-if scores are on. Restore current conditions?"
+          tone="info"
+          confirmLabel="Restore current conditions"
+          onCancel={() => setWhatIfBlock(false)}
+          onConfirm={() => {
+            setLeaf(DEFAULT_LEAF);
+            setExtra(0);
+            setWhatIfBlock(false);
+          }}
+        >
+          <p style={{ margin: "0 0 10px" }}>
+            No crew was sent. The map and queue show a what-if (leaf fall {leaf}%,{" "}
+            {extra === 0 ? "forecast rain" : `+${extra}% rain`}), not current conditions.
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>
+            Restoring puts both sliders back and recalculates the scores. Then press send again: the stops may change.
+            Cancel keeps the what-if so you can keep exploring.
+          </p>
+        </ConfirmDialog>
       )}
 
       {choose && showMap && (
