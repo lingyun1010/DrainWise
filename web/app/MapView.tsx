@@ -469,6 +469,15 @@ export default function MapView({
           </svg>
           has a camera
         </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <svg width="22" height="22" viewBox="-12 -12 24 24" aria-hidden="true">
+            <circle r="10" fill="#FFD27A" stroke="#0B2233" strokeWidth="2.5" />
+            <circle cx="-5" cy="0" r="1.8" fill="#0B2233" />
+            <circle cx="0" cy="0" r="1.8" fill="#0B2233" />
+            <circle cx="5" cy="0" r="1.8" fill="#0B2233" />
+          </svg>
+          crew at work
+        </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           Show on map:
           {crews.map((c) => {

@@ -23,10 +23,10 @@ export default function RoleScreen({
     <div
       className="fr-role"
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
         zIndex: 20,
-        background: "radial-gradient(circle at 20% 15%, #14506F 0%, #0B2233 55%)",
+        background: "linear-gradient(180deg, #14506F 0%, #0B2233 75%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

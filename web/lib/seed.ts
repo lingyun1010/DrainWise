@@ -15,7 +15,7 @@ export type SeedAsset = {
 
 export const ASSET_COUNT = 36; // demo size; the real network is expected to be about 200 GPTs (later)
 
-export const DEPOT = { x: 70, y: 445 };
+export const DEPOT = { x: 110, y: 400 };
 
 export function makeSeedAssets(): SeedAsset[] {
   let seed = 11;

@@ -699,3 +699,126 @@ body {
     align-self: start;
   }
 }
+
+/* Home cards: hover grows from the centre, and only on devices that really hover (no sticky hover on phones). */
+.fr-card {
+  transform-origin: center;
+}
+@media (hover: hover) {
+  .fr-card:hover {
+    transform: scale(1.03);
+    border-color: #4fc3e8;
+    background: #14405c;
+  }
+}
+@media (hover: none) {
+  .fr-card:hover {
+    transform: none;
+    border-color: #2d6182;
+    background: #102f45;
+  }
+  .fr-cardhi:hover {
+    border-color: #ff8a4c;
+  }
+}
+.fr-card:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fr-card,
+  .fr-card:hover,
+  .fr-card:active {
+    transform: none;
+    transition: none;
+  }
+}
+html:has(.fr-role),
+html:has(.fr-role) body {
+  background: linear-gradient(180deg, #14506f 0%, #0b2233 75%) fixed;
+}
+
+/* Records panel actions: two equal buttons, note underneath. */
+.fr-recact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.fr-recact .fr-btn {
+  flex: 1 1 0;
+  min-width: 120px;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 15px;
+}
+.fr-recnote {
+  flex: 1 1 100%;
+  font-size: 13px;
+  color: #8fb8cc;
+}
+
+/* Header: tiles and actions are plain flex rows on desktop. */
+.fr-hdr2,
+.fr-hdrtiles,
+.fr-hdracts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.fr-hdr2 {
+  gap: 12px;
+}
+.fr-hdrtiles,
+.fr-hdracts {
+  display: contents;
+}
+
+/* Full-screen map on a phone: drop the sticky tab bar and toast beneath it. */
+.fr-map-full .fr-side .fr-tabs,
+.fr-map-full .fr-tabtoast {
+  z-index: 1;
+}
+
+@media (max-width: 899px) {
+  .fr-hdr2 {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+  }
+  .fr-hdrtiles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .fr-hdrtiles .fr-tile {
+    width: auto !important;
+    padding: 5px 7px;
+    white-space: normal;
+    min-width: 0;
+  }
+  .fr-hdrtiles .fr-tile > :first-child {
+    font-size: 10px;
+    line-height: 1.15;
+    letter-spacing: 0.03em;
+    min-height: 23px;
+  }
+  .fr-hdrtiles .fr-tile > :last-child {
+    font-size: 16px;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+  .fr-hdracts {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+/* Full-screen map: a tall legend scrolls instead of being cut off. */
+.fr-map-full .fr-legend {
+  max-height: 38dvh;
+  overflow-y: auto;
+}
