@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
+import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
+import precomputed from "@/lib/precomputedScores.json";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
 import {
   DEFAULT_CREWS,
@@ -65,6 +67,7 @@ export default function Home() {
   const [capacity, setCapacity] = useState(2);
   const [preds, setPreds] = useState<Prediction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false); // true when the scores come from the precomputed file
   const [st, setSt] = useState<SavedState>({ crews: DEFAULT_CREWS, runs: {}, records: [], log: [] });
   const [logOpen, setLogOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
@@ -102,6 +105,7 @@ export default function Home() {
   const rainForecast = Math.min(80, Math.round(10 + extra * 0.7));
   useEffect(() => {
     const t = setTimeout(async () => {
+      let live: LiveResult<Prediction>;
       try {
         const res = await fetch("/api/risk", {
           method: "POST",
@@ -120,12 +124,27 @@ export default function Home() {
           ),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "request failed");
-        setPreds(data);
-        setError(null);
+        live =
+          res.ok && Array.isArray(data)
+            ? { ok: true, scores: data }
+            : { ok: false, error: data.error ?? "request failed" };
       } catch (e) {
+        live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
+      }
+      const r = resolveScores(live, precomputed.scores as Prediction[]);
+      if (r.status === "error") {
         setPreds(null);
-        setError(e instanceof Error ? e.message : "request failed");
+        setError(r.error);
+        setOffline(false);
+      } else {
+        setPreds(r.scores);
+        setError(null);
+        setOffline(r.status === "precomputed");
+        if (r.status === "precomputed") {
+          // The file holds the default scenario only, so the what-if controls go back to it.
+          setLeaf(precomputed.scenario.leaf_index);
+          setExtra(0);
+        }
       }
     }, 250);
     return () => clearTimeout(t);
@@ -725,6 +744,43 @@ export default function Home() {
             >
               Skip map, go to panels
             </a>
+            {offline && (
+              <div
+                role="status"
+                style={{
+                  margin: "0 0 12px",
+                  background: "#102F45",
+                  border: "2px dashed #FFD27A",
+                  borderRadius: 14,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  lineHeight: 1.4,
+                }}
+              >
+                <strong>Offline: showing precomputed sample scores (risk-api offline)</strong>
+                <div style={{ color: "#CFE6F0", fontSize: 13, marginTop: 2 }}>
+                  SAMPLE DATA · generated {precomputed.generated_at.slice(0, 16).replace("T", " ")} UTC · model{" "}
+                  {precomputed.model_version}. The what-if sliders are off, and cleaned assets keep their precomputed
+                  score. Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
+                </div>
+              </div>
+            )}
+            {error && (
+              <p
+                role="alert"
+                style={{
+                  margin: "0 0 12px",
+                  background: "#3A1A12",
+                  border: "2px solid #FF8A4C",
+                  borderRadius: 14,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                }}
+              >
+                Could not get risk scores: {error}. Start the risk API with <code>uvicorn risk_api.main:app</code> from
+                the project root.
+              </p>
+            )}
             <div style={{ position: "relative" }}>
               <div
                 style={{
@@ -759,22 +815,6 @@ export default function Home() {
                   3D water
                 </button>
               </div>
-              {error && (
-                <p
-                  role="alert"
-                  style={{
-                    margin: "0 0 12px",
-                    background: "#3A1A12",
-                    border: "2px solid #FF8A4C",
-                    borderRadius: 14,
-                    padding: "10px 14px",
-                    fontSize: 14,
-                  }}
-                >
-                  Could not get risk scores: {error}. Start the risk API with <code>uvicorn risk_api.main:app</code>{" "}
-                  from the project root.
-                </p>
-              )}
               {view === "3d" ? (
                 <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainNow(minute)} extra={extra} onOpen={openAsset} />
               ) : (
@@ -1044,7 +1084,9 @@ export default function Home() {
             <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open={!tabbed}>
               <summary>Simulation controls · What if and rain forecast (sample data)</summary>
               <section className="fr-group">
-                <div className="fr-label">What if · demo controls</div>
+                <div className="fr-label">
+                  What if · demo controls{offline ? " · off while risk-api is offline" : ""}
+                </div>
                 <label
                   htmlFor="fr-leaf"
                   style={{
@@ -1066,8 +1108,9 @@ export default function Home() {
                   min={0}
                   max={100}
                   value={leaf}
+                  disabled={offline}
                   onChange={(e) => setLeaf(+e.target.value)}
-                  style={{ width: "100%", accentColor: "#FFD27A" }}
+                  style={{ width: "100%", accentColor: "#FFD27A", opacity: offline ? 0.4 : 1 }}
                 />
                 <label
                   htmlFor="fr-extra"
@@ -1090,8 +1133,9 @@ export default function Home() {
                   min={0}
                   max={100}
                   value={extra}
+                  disabled={offline}
                   onChange={(e) => setExtra(+e.target.value)}
-                  style={{ width: "100%", accentColor: "#FF8A4C" }}
+                  style={{ width: "100%", accentColor: "#FF8A4C", opacity: offline ? 0.4 : 1 }}
                 />
                 <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
                   Risk scores come from a gradient boosting model trained on simulated history, not on real council
