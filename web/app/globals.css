@@ -136,6 +136,9 @@ body {
   border: 2px solid var(--fr-line);
   border-radius: 14px;
   padding: 8px 16px;
+  box-sizing: border-box;
+  font-variant-numeric: tabular-nums; /* digits keep one width, so tiles do not jiggle */
+  white-space: nowrap;
 }
 .fr-tile > :first-child {
   font-size: 12px;
@@ -244,7 +247,50 @@ body {
     opacity: 1;
   }
 }
+/* Small "updating" badge on the map. Fades in after 0.4 s, so quick updates never flash it. */
+.fr-wait {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--fr-bg);
+  border: 2px solid #4fc3e8;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  animation: frwait 0.2s ease-out 0.4s both;
+}
+.fr-wait > i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid #4fc3e8;
+  border-top-color: transparent;
+  animation: frspin 0.8s linear infinite;
+}
+@keyframes frwait {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes frspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
+  .fr-wait,
+  .fr-wait > i {
+    animation: none;
+  }
   .fr-pulse,
   .fr-spin,
   .fr-fall,
@@ -512,4 +558,30 @@ body {
     padding-top: 40px !important;
     min-height: 100% !important;
   }
+}
+
+/* Rain bars: fixed-width bars, extra days scroll sideways. */
+.fr-scroll {
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+.fr-scroll:focus-visible {
+  outline: 2px solid #eaf6fb;
+  outline-offset: 2px;
+}
+
+.fr-sub {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #cfe6f0;
+}
+
+/* Scrolls sideways but shows no scroll bar. */
+.fr-noscrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.fr-noscrollbar::-webkit-scrollbar {
+  display: none;
 }

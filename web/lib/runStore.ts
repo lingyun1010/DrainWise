@@ -305,6 +305,15 @@ export function fmtClock(m: number): string {
   const mm = m % 60;
   return h + ":" + (mm < 10 ? "0" : "") + mm;
 }
+// Real wall-clock time in Sydney as HH:mm, used for the header and the activity log.
+export function sydneyClock(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Sydney",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(now);
+}
 export function rainNow(m: number): number {
   const i = Math.floor(m / 60);
   const f = (m % 60) / 60;

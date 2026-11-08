@@ -24,9 +24,10 @@ def simulate(seed: int, n: int) -> list[dict]:
 def _p_block(row: dict) -> float:
     """Assumed (made-up) generating process for sample data. Not observed behaviour."""
     risk = (
-        0.45 * row["canopy_pct"] / 70
-        + 0.35 * row["leaf_index"] / 100
-        + 0.20 * min(1.0, row["rain_mm_7d"] / 80)
+        0.40 * row["canopy_pct"] / 70
+        + 0.30 * row["leaf_index"] / 100
+        + 0.15 * min(1.0, row["rain_mm_7d"] / 80)
+        + 0.15 * min(1.0, row["rain_forecast_mm"] / 80)  # forecast rain washes leaves into drains
     )
     age = min(1.0, row["days_since_clean"] / 150)
     score = risk * (0.2 + 0.8 * age)

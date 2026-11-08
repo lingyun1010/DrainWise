@@ -1,7 +1,7 @@
 {
  "data_source": "simulated (ml/simulate.py) - SAMPLE DATA, not observed council records; sample assets, SAMPLE DATA",
- "generated_at": "2026-11-08T05:54:47+00:00",
- "model_version": "HistGradientBoosting seed=0 n=20000 sha256=8a58d26b9b36",
+ "generated_at": "2026-11-08T11:05:03+00:00",
+ "model_version": "HistGradientBoosting seed=0 n=20000 sha256=13b5afb60d7f",
  "scenario": {
   "leaf_index": 60,
   "rain_mm_7d": 20,
@@ -11,37 +11,36 @@
  "scores": [
   {
    "asset_id": "GPT-001",
-   "p_block": 0.2931,
+   "p_block": 0.2298,
    "level": "low",
    "reasons": [
-    "Significant rain forecast",
     "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-002",
-   "p_block": 0.7835,
+   "p_block": 0.7259,
    "level": "high",
    "reasons": [
+    "Asset type: GPT",
     "High leaf-fall season",
-    "Last cleaned 99 days ago",
-    "Significant rain forecast"
+    "Last cleaned 99 days ago"
    ]
   },
   {
    "asset_id": "GPT-003",
-   "p_block": 0.6519,
-   "level": "high",
+   "p_block": 0.5882,
+   "level": "medium",
    "reasons": [
     "Last cleaned 103 days ago",
     "High leaf-fall season",
-    "Significant rain forecast"
+    "Asset type: GPT"
    ]
   },
   {
    "asset_id": "GPT-004",
-   "p_block": 0.9424,
+   "p_block": 0.9258,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
@@ -51,197 +50,193 @@
   },
   {
    "asset_id": "GPT-005",
-   "p_block": 0.7286,
+   "p_block": 0.6096,
    "level": "high",
    "reasons": [
     "Last cleaned 167 days ago",
-    "Significant rain forecast",
-    "High leaf-fall season"
+    "High leaf-fall season",
+    "Asset type: GPT"
    ]
   },
   {
    "asset_id": "GPT-006",
-   "p_block": 0.3517,
+   "p_block": 0.3078,
    "level": "medium",
    "reasons": [
     "Asset type: GPT",
-    "Significant rain forecast",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-007",
-   "p_block": 0.9012,
+   "p_block": 0.8482,
    "level": "high",
    "reasons": [
     "Last cleaned 151 days ago",
-    "Significant rain forecast",
-    "Asset type: GPT"
+    "Asset type: GPT",
+    "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-008",
-   "p_block": 0.7294,
+   "p_block": 0.6819,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
-    "Significant rain forecast",
+    "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-009",
-   "p_block": 0.9511,
+   "p_block": 0.9254,
    "level": "high",
    "reasons": [
     "Last cleaned 153 days ago",
     "Heavy tree cover nearby",
-    "Significant rain forecast"
+    "Asset type: GPT"
    ]
   },
   {
    "asset_id": "GPT-010",
-   "p_block": 0.6809,
+   "p_block": 0.6541,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
-    "Significant rain forecast",
+    "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-011",
-   "p_block": 0.3215,
-   "level": "medium",
+   "p_block": 0.2838,
+   "level": "low",
    "reasons": [
-    "Significant rain forecast",
-    "High leaf-fall season",
-    "Asset type: GPT"
+    "Asset type: GPT",
+    "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-012",
-   "p_block": 0.8489,
+   "p_block": 0.801,
    "level": "high",
    "reasons": [
     "Last cleaned 131 days ago",
-    "Significant rain forecast",
+    "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-013",
-   "p_block": 0.3878,
+   "p_block": 0.362,
    "level": "medium",
    "reasons": [
-    "Asset type: GPT",
-    "High leaf-fall season",
-    "Significant rain forecast"
-   ]
-  },
-  {
-   "asset_id": "GPT-014",
-   "p_block": 0.6067,
-   "level": "high",
-   "reasons": [
-    "Heavy tree cover nearby",
-    "Asset type: GPT",
-    "Significant rain forecast"
-   ]
-  },
-  {
-   "asset_id": "GPT-015",
-   "p_block": 0.7286,
-   "level": "high",
-   "reasons": [
-    "Last cleaned 163 days ago",
-    "Significant rain forecast",
-    "High leaf-fall season"
-   ]
-  },
-  {
-   "asset_id": "GPT-016",
-   "p_block": 0.3371,
-   "level": "medium",
-   "reasons": [
-    "Significant rain forecast",
-    "Asset type: GPT",
-    "Heavy tree cover nearby"
-   ]
-  },
-  {
-   "asset_id": "GPT-017",
-   "p_block": 0.4903,
-   "level": "medium",
-   "reasons": [
-    "Significant rain forecast",
     "High leaf-fall season",
     "Asset type: GPT"
    ]
   },
   {
+   "asset_id": "GPT-014",
+   "p_block": 0.5249,
+   "level": "medium",
+   "reasons": [
+    "Heavy tree cover nearby",
+    "Asset type: GPT",
+    "High leaf-fall season"
+   ]
+  },
+  {
+   "asset_id": "GPT-015",
+   "p_block": 0.6096,
+   "level": "high",
+   "reasons": [
+    "Last cleaned 163 days ago",
+    "High leaf-fall season",
+    "Asset type: GPT"
+   ]
+  },
+  {
+   "asset_id": "GPT-016",
+   "p_block": 0.294,
+   "level": "low",
+   "reasons": [
+    "Heavy tree cover nearby",
+    "Asset type: GPT",
+    "High leaf-fall season"
+   ]
+  },
+  {
+   "asset_id": "GPT-017",
+   "p_block": 0.4322,
+   "level": "medium",
+   "reasons": [
+    "Asset type: GPT",
+    "High leaf-fall season",
+    "Heavy tree cover nearby"
+   ]
+  },
+  {
    "asset_id": "GPT-018",
-   "p_block": 0.6475,
+   "p_block": 0.6365,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
-    "Significant rain forecast",
+    "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-019",
-   "p_block": 0.6763,
+   "p_block": 0.646,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
-    "Significant rain forecast",
-    "Asset type: GPT"
+    "Asset type: GPT",
+    "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-020",
-   "p_block": 0.5533,
+   "p_block": 0.4757,
    "level": "medium",
    "reasons": [
-    "Last cleaned 126 days ago",
     "High leaf-fall season",
+    "Last cleaned 126 days ago",
     "Asset type: GPT"
    ]
   },
   {
    "asset_id": "GPT-021",
-   "p_block": 0.2005,
+   "p_block": 0.1591,
    "level": "low",
    "reasons": [
-    "Significant rain forecast",
     "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-022",
-   "p_block": 0.2732,
+   "p_block": 0.2138,
    "level": "low",
    "reasons": [
-    "Significant rain forecast",
     "Asset type: GPT",
+    "High leaf-fall season",
     "Heavy tree cover nearby"
    ]
   },
   {
    "asset_id": "GPT-023",
-   "p_block": 0.9406,
+   "p_block": 0.9153,
    "level": "high",
    "reasons": [
-    "Last cleaned 135 days ago",
     "Heavy tree cover nearby",
+    "Last cleaned 135 days ago",
     "Asset type: GPT"
    ]
   },
   {
    "asset_id": "GPT-024",
-   "p_block": 0.9816,
+   "p_block": 0.9553,
    "level": "high",
    "reasons": [
     "Last cleaned 173 days ago",
@@ -251,122 +246,116 @@
   },
   {
    "asset_id": "GPT-025",
-   "p_block": 0.181,
+   "p_block": 0.1573,
    "level": "low",
    "reasons": [
-    "Significant rain forecast",
     "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-026",
-   "p_block": 0.1166,
+   "p_block": 0.1058,
    "level": "low",
    "reasons": [
-    "Significant rain forecast",
+    "High leaf-fall season",
+    "Asset type: GPT"
+   ]
+  },
+  {
+   "asset_id": "GPT-027",
+   "p_block": 0.8277,
+   "level": "high",
+   "reasons": [
+    "Last cleaned 172 days ago",
     "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
-   "asset_id": "GPT-027",
-   "p_block": 0.9135,
-   "level": "high",
-   "reasons": [
-    "Last cleaned 172 days ago",
-    "Significant rain forecast",
-    "Asset type: GPT"
-   ]
-  },
-  {
    "asset_id": "GPT-028",
-   "p_block": 0.4198,
+   "p_block": 0.353,
    "level": "medium",
    "reasons": [
     "Asset type: GPT",
-    "Significant rain forecast",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-029",
-   "p_block": 0.8489,
+   "p_block": 0.7752,
    "level": "high",
    "reasons": [
     "Last cleaned 126 days ago",
-    "Significant rain forecast",
+    "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-030",
-   "p_block": 0.9348,
+   "p_block": 0.89,
    "level": "high",
    "reasons": [
-    "Last cleaned 124 days ago",
     "Heavy tree cover nearby",
-    "Significant rain forecast"
+    "Last cleaned 124 days ago",
+    "Asset type: GPT"
    ]
   },
   {
    "asset_id": "GPT-031",
-   "p_block": 0.4017,
+   "p_block": 0.3435,
    "level": "medium",
    "reasons": [
-    "Significant rain forecast",
     "Asset type: GPT",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-032",
-   "p_block": 0.6108,
-   "level": "high",
+   "p_block": 0.5442,
+   "level": "medium",
    "reasons": [
-    "High leaf-fall season",
     "Asset type: GPT",
-    "Significant rain forecast"
+    "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-033",
-   "p_block": 0.3725,
-   "level": "medium",
+   "p_block": 0.264,
+   "level": "low",
    "reasons": [
     "Heavy tree cover nearby",
-    "Significant rain forecast",
-    "Asset type: GPT"
+    "Asset type: GPT",
+    "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-034",
-   "p_block": 0.873,
+   "p_block": 0.8239,
    "level": "high",
    "reasons": [
     "Last cleaned 133 days ago",
-    "High leaf-fall season",
-    "Significant rain forecast"
+    "Asset type: GPT",
+    "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-035",
-   "p_block": 0.2421,
+   "p_block": 0.1891,
    "level": "low",
    "reasons": [
     "Asset type: GPT",
-    "Significant rain forecast",
     "High leaf-fall season"
    ]
   },
   {
    "asset_id": "GPT-036",
-   "p_block": 0.7404,
+   "p_block": 0.7128,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
     "Asset type: GPT",
-    "Significant rain forecast"
+    "High leaf-fall season"
    ]
   }
  ]

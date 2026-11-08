@@ -127,6 +127,8 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 - `python -m ml.simulate` then `python -m ml.train` -> writes `ml/model.joblib`
 - `uvicorn risk_api.main:app --reload` -> serves /predict
 - `python -m risk_api.export_scores` -> writes `web/lib/precomputedScores.json` (default scenario, 36 sample assets, stamped with data source, time, model version). Reads `ml/sample_assets.json`, a snapshot of `web/lib/seed.ts`; a planner test fails if the two drift. Regenerate after retraining or changing seed assets.
+- - Rain forecast: the Manager page reads the real BoM precis forecast (IDN11060, Parramatta) through `web/app/api/bom/route.ts` (server side, kept 1 h; parser `planner/src/bomPrecis.ts`). It gives a daily chance of rain and a rain range (75% / 25% chance of at least the first / second amount); there is no 3-hourly rain in this free product, so the 3-hourly strip is SAMPLE. The unofficial `api.weather.bom.gov.au` says "You must not use, copy or share it": do not use it. BoM free text products are not for commercial use; forecast grids need the paid real-time service. Header RAIN SINCE 9AM is a real reading from Sydney Olympic Park AWS via `web/app/api/rain-obs/route.ts` (IDN60920; rain since 9am, no rate).
+    `python -m risk_api.export_model` -> writes `web/lib/riskModel.json` (the trees) and `planner/src/riskModel.parity.json` (Python answers). `planner/src/riskModel.ts` walks the trees in TypeScript; the public build uses it so what-if works with no risk-api. `riskModel.test.ts` fails if TS and Python disagree. Re-run after every retrain, together with `export_scores`.
 - Keep results reproducible: fixed random seed, log the data source and version in each run.
 
 ### Working agreements
@@ -151,6 +153,7 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 The owner does not want the look to drift between features. Before adding any UI, reuse what exists; only add a new pattern if nothing fits, and then add it to this list.
 
 - **Popups**: only `web/app/Dialog.tsx`. Use `Dialog` for details and pickers, `ConfirmDialog` for yes/no. Never `window.confirm`, `alert`, or a hand-written overlay. Same card (dark panel, 3px border, radius 24), eyebrow in small caps, h2 title, body, then actions: primary button first, quiet "Cancel" last. Esc closes. It is fixed to the viewport and centred.
+- **Hover cards**: use `web/app/Tip.tsx` (the `.fr-tip` card: bold title, muted sub-lines, then detail), never the browser's native `title` tooltip. It also opens on keyboard focus and closes on Esc.
 - **Destructive or hard-to-undo actions** (Remove, Withdraw, Reset, delete): always a `ConfirmDialog` with `tone="danger"`. The body must say what happens, what stays (for example records) and what the person is currently doing. Focus starts on Cancel.
 - **Buttons**: `fr-btn` with `fr-pri` (main action), `fr-sec` (secondary), `fr-ghost` (quiet or Cancel). Minimum height 40px. Disabled looks come from the class, not inline colours. Label with a verb ("Withdraw run", "Send a crew").
 - **Crew identity**: colour comes from `HATS` in `web/lib/runStore.ts` by crew position; letter from `crewLetter()`. Show a colour dot wherever a crew is named (map, lists, log, pickers). Crews are listed A to Z in pickers. Never rely on colour alone: keep the letter or the name next to it.

@@ -1,5 +1,5 @@
 // Proxies to the Python risk-api so the browser never needs its address.
-// Not available on the public build: it has no risk-api and reads the baked scores file instead.
+// Not available on the public build: it has no risk-api, so the page scores in the browser (planner/src/riskModel.ts).
 const RISK_API_URL = process.env.RISK_API_URL ?? "http://127.0.0.1:8000";
 
 export async function POST(request: Request) {

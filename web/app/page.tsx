@@ -1,25 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { planRun, type Asset } from "../../planner/src/planRun";
+import { DAYS, DAY_RAIN_MM, horizonInputs } from "../../planner/src/horizon";
+import { dayRainMm, sydneyDate, type BomDay } from "../../planner/src/bomPrecis";
+import { rainBlocks, unitFor } from "../../planner/src/rainBlocks";
+import RainChart from "./RainChart";
+import Tip from "./Tip";
 import { resolveScores, type LiveResult } from "../../planner/src/resolveScores";
+import { predict as predictLocal, type ModelJson } from "../../planner/src/riskModel";
+import riskModel from "@/lib/riskModel.json";
 import precomputed from "@/lib/precomputedScores.json";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
 import {
   DEFAULT_CREWS,
-  FORECAST,
   HATS,
   addLog,
   crewLetter,
-  fmtClock,
+  sydneyClock,
   isBusy,
   loadState,
   openStopIds,
-  rainNow,
   resetAll,
   saveState,
-  simMinute,
   subscribeRun,
   type RunStop,
   type SavedState,
@@ -53,6 +57,7 @@ const TABS: { id: PanelTab; label: string }[] = [
 
 // Public build (Vercel): no risk-api, so the page only reads the baked scores file. Set at build time.
 const PUBLIC_BUILD = process.env.NEXT_PUBLIC_PUBLIC_BUILD === "1";
+const DEFAULT_LEAF = 60; // leaf-fall slider at first load, same as the precomputed scenario
 
 // Only assets at Medium risk or above are worth a truck stop (matches risk-api MEDIUM_AT, a placeholder).
 const MIN_RUN_RISK = 0.3;
@@ -69,7 +74,8 @@ export default function Home() {
   const seed = useMemo(() => makeSeedAssets(), []);
   const [role, setRole] = useState<Role>(null);
   const [tab, setTab] = useState<PanelTab>("queue");
-  const [leaf, setLeaf] = useState(60);
+  const [leaf, setLeaf] = useState(DEFAULT_LEAF);
+  const [day, setDay] = useState(0); // 0 = Today; later days score tomorrow's conditions so crews can be planned ahead
   const [extra, setExtra] = useState(0);
   const [capacity, setCapacity] = useState(2);
   const [preds, setPreds] = useState<Prediction[] | null>(null);
@@ -79,10 +85,11 @@ export default function Home() {
   const [logOpen, setLogOpen] = useState(false);
   const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
   const [choose, setChoose] = useState<RunStop[] | null>(null); // stops waiting for the manager to pick a crew
+  const [whatIfBlock, setWhatIfBlock] = useState(false); // a send was stopped because the what-if sliders are moved
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [minute, setMinute] = useState(0);
+  const [clock, setClock] = useState("--:--"); // real Sydney time; set after mount so server and browser HTML match
   const [view, setView] = useState<"2d" | "3d">("2d");
   // Before photos a person has already confirmed on /review, as "runId:stopId". Those no longer wait for review.
   const [reviewed, setReviewed] = useState<ReadonlySet<string>>(new Set());
@@ -116,9 +123,9 @@ export default function Home() {
     const read = () => setSt(loadState());
     read();
     const un = subscribeRun(read);
-    const tick = setInterval(() => setMinute(simMinute()), 400);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sim clock lives in localStorage, only readable in the browser
-    setMinute(simMinute());
+    const tick = setInterval(() => setClock(sydneyClock()), 400);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the clock is read after mount so server and browser HTML match
+    setClock(sydneyClock());
     return () => {
       un();
       clearInterval(tick);
@@ -136,54 +143,142 @@ export default function Home() {
   const assigned = useMemo(() => openStopIds(st), [st]);
 
   // Cleaned assets get days_since_clean = 0, so the model itself shows the risk reset.
-  const rainForecast = Math.min(80, Math.round(10 + extra * 0.7));
+  // Real BoM forecast for Parramatta (server route /api/bom). Until it arrives, or if it fails, the sample rain is used.
+  const [bom, setBom] = useState<{
+    source: string;
+    copyright: string;
+    fetchedAt: string;
+    issuedAt: string;
+    days: BomDay[];
+  } | null>(null);
+  const [bomFailed, setBomFailed] = useState(false);
   useEffect(() => {
-    const t = setTimeout(async () => {
-      let live: LiveResult<Prediction>;
-      try {
-        if (PUBLIC_BUILD) throw new Error("public build: no live risk-api");
-        const res = await fetch("/api/risk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            seed.map((a) => ({
-              asset_id: a.id,
-              type: a.type,
-              canopy_pct: a.canopyPct,
-              leaf_index: leaf,
-              rain_mm_7d: 20,
-              rain_forecast_mm: rainForecast,
-              days_since_clean: cleaned.has(a.id) ? 0 : a.daysSinceClean,
-              has_camera: a.hasCamera,
-            })),
-          ),
-        });
-        const data = await res.json();
-        live =
-          res.ok && Array.isArray(data)
-            ? { ok: true, scores: data }
-            : { ok: false, error: data.error ?? "request failed" };
-      } catch (e) {
-        live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
-      }
-      const r = resolveScores(live, precomputed.scores as Prediction[]);
-      if (r.status === "error") {
-        setPreds(null);
-        setError(r.error);
-        setOffline(false);
-      } else {
-        setPreds(r.scores);
-        setError(null);
-        setOffline(r.status === "precomputed");
-        if (r.status === "precomputed") {
-          // The file holds the default scenario only, so the what-if controls go back to it.
-          setLeaf(precomputed.scenario.leaf_index);
-          setExtra(0);
+    let live = true;
+    fetch("/api/bom")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("bom"))))
+      .then((d) => live && setBom(d))
+      .catch(() => live && setBomFailed(true));
+    return () => {
+      live = false;
+    };
+  }, []);
+  // Real rain reading so far today (BoM, Sydney Olympic Park AWS), refreshed every 10 minutes.
+  const [obs, setObs] = useState<{ station: string; observedAt: string; rainMm: number } | null>(null);
+  const [obsFailed, setObsFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const load = () =>
+      fetch("/api/rain-obs")
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error("obs"))))
+        .then((d) => {
+          if (live) {
+            setObs(d);
+            setObsFailed(false);
+          }
+        })
+        .catch(() => live && setObsFailed(true));
+    load();
+    const t = setInterval(load, 10 * 60 * 1000);
+    return () => {
+      live = false;
+      clearInterval(t);
+    };
+  }, []);
+  const dayRain = useMemo(
+    () => (bom ? DAYS.map((_, k) => dayRainMm(bom.days.find((d) => d.date === sydneyDate(k))) ?? 0) : DAY_RAIN_MM),
+    [bom],
+  );
+  const hz = horizonInputs(day, extra, dayRain);
+  // Rain over the chosen period in 3-hour blocks (6-hour when long) and its running total. Daily totals come from BoM;
+  // the split inside a day is an assumed pattern (see rainBlocks.ts).
+  const blocks = useMemo(() => {
+    const hour = Number(clock.slice(0, 2));
+    return rainBlocks({
+      dayRain,
+      days: day + 1,
+      extraMm: extra,
+      nowHour: Number.isNaN(hour) ? 0 : hour,
+      unitHours: unitFor(day + 1),
+    });
+  }, [dayRain, day, extra, clock]);
+  // Rain intensity for the 3D water picture: the first block of the chart, in mm per hour (forecast, not a reading).
+  const rainRate = blocks.length ? (blocks[0].baseMm + blocks[0].extraMm) / unitFor(day + 1) : 0;
+  // The scores on screen belong to scoredKey. While it differs from the inputs now chosen, new scores are on the way.
+  const [scoredKey, setScoredKey] = useState<string | null>(null);
+  const rainForecast = hz.rain_forecast_mm;
+  const scoreKey = `${leaf}|${rainForecast}|${hz.days_added}|${hz.rain_mm_7d}|${[...cleaned].sort().join(",")}`;
+  const scoring = scoredKey !== scoreKey;
+  // Live scores by scenario, kept for this page load. Going back to a scenario already scored (for example Today after
+  // looking at Tomorrow) shows it at once and asks nobody. Fallback scores are never stored.
+  const scoreCache = useRef(new Map<string, Prediction[]>());
+  useEffect(() => {
+    const hit = scoreCache.current.get(scoreKey);
+    const t = setTimeout(
+      async () => {
+        if (hit) {
+          setPreds(hit);
+          setError(null);
+          setOffline(false);
+          setScoredKey(scoreKey);
+          return;
         }
-      }
-    }, 250);
+        let live: LiveResult<Prediction>;
+        try {
+          const inputs = seed.map((a) => ({
+            asset_id: a.id,
+            type: a.type,
+            canopy_pct: a.canopyPct,
+            leaf_index: leaf,
+            rain_mm_7d: hz.rain_mm_7d,
+            rain_forecast_mm: rainForecast,
+            days_since_clean: (cleaned.has(a.id) ? 0 : a.daysSinceClean) + hz.days_added,
+            has_camera: a.hasCamera,
+          }));
+          if (PUBLIC_BUILD) {
+            // No risk-api on the public build: run the exported trees in the browser (same answers, see riskModel.test.ts).
+            live = { ok: true, scores: predictLocal(riskModel as unknown as ModelJson, inputs) };
+          } else {
+            const res = await fetch("/api/risk", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(inputs),
+            });
+            const data = await res.json();
+            live =
+              res.ok && Array.isArray(data)
+                ? { ok: true, scores: data }
+                : { ok: false, error: data.error ?? "request failed" };
+          }
+        } catch (e) {
+          live = { ok: false, error: e instanceof Error ? e.message : "request failed" };
+        }
+        const r = resolveScores(live, precomputed.scores as Prediction[]);
+        setScoredKey(scoreKey);
+        if (r.status === "live") {
+          const cache = scoreCache.current;
+          cache.set(scoreKey, r.scores);
+          if (cache.size > 60) cache.delete(cache.keys().next().value as string); // oldest first
+        }
+        if (r.status === "error") {
+          setPreds(null);
+          setError(r.error);
+          setOffline(false);
+        } else {
+          setPreds(r.scores);
+          setError(null);
+          setOffline(r.status === "precomputed");
+          if (r.status === "precomputed") {
+            // The file holds the default scenario only, so the what-if controls go back to it.
+            setLeaf(precomputed.scenario.leaf_index);
+            setExtra(0);
+            setDay(0);
+          }
+        }
+      },
+      hit ? 0 : 250,
+    );
     return () => clearTimeout(t);
-  }, [seed, leaf, rainForecast, cleaned]);
+  }, [seed, leaf, rainForecast, hz.days_added, hz.rain_mm_7d, cleaned, scoreKey]);
 
   const byId = useMemo(() => new Map(seed.map((a) => [a.id, a])), [seed]);
   const rows = useMemo(
@@ -293,7 +388,7 @@ export default function Home() {
       return;
     }
     const total = stops.reduce((n, s) => n + s.load, 0);
-    const t = fmtClock(simMinute());
+    const t = sydneyClock();
     const msg =
       stops.length > 1
         ? `${target.name} sent on a run: ${stops.length} stops, ${total.toFixed(1)} of ${capacity.toFixed(1)} m³ (estimated).`
@@ -330,7 +425,7 @@ export default function Home() {
     save({
       ...st,
       runs: { ...st.runs, [crewId]: kept.length ? { ...r, stops: kept } : undefined },
-      log: addLog(st.log, fmtClock(simMinute()), msg, { crewId }),
+      log: addLog(st.log, sydneyClock(), msg, { crewId }),
     });
     setToast(msg);
   }
@@ -370,7 +465,14 @@ export default function Home() {
       p ??
       planRun([{ id, type: a.type, risk: r.p.p_block, x: a.x, y: a.y, hasCamera: a.hasCamera }], 4, DEPOT, 0).stops[0];
     setCur(null);
-    setChoose([stopFor(id, one.load, one.photosNeeded)]);
+    sendOrWarn([stopFor(id, one.load, one.photosNeeded)]);
+  }
+
+  // Crews are sent on current conditions only. If the what-if sliders are moved, ask before sending anything.
+  const whatIfOn = leaf !== DEFAULT_LEAF || extra !== 0 || day !== 0;
+  function sendOrWarn(stops: RunStop[]) {
+    if (whatIfOn) setWhatIfBlock(true);
+    else setChoose(stops);
   }
 
   const openAsset = (id: string) => {
@@ -383,7 +485,6 @@ export default function Home() {
   const high = idle.filter((r) => r.p.level === "high").length;
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
   const planPct = Math.min(100, Math.round((plan.totalLoad / capacity) * 100));
-  const forecastHour = Math.min(5, Math.floor(minute / 60));
   const photoRecs = records.filter((r) => r.method === "photos");
 
   const confirmCrew = confirm ? st.crews.find((c) => c.id === confirm.crewId) : undefined;
@@ -764,21 +865,42 @@ export default function Home() {
             </span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-            <div className="fr-tile">
-              <div>TIME</div>
-              <div>{fmtClock(minute)}</div>
+            <div className="fr-tile" style={{ width: 132 }}>
+              <div>SYDNEY TIME</div>
+              <div>{clock}</div>
             </div>
-            <div className="fr-tile">
-              <div>RAIN NOW</div>
-              <div>{Math.round(rainNow(minute))} mm/h</div>
-            </div>
-            <div className="fr-tile">
+            <Tip
+              className="fr-tile"
+              style={{ width: 160 }}
+              tip={
+                obs ? (
+                  <>
+                    <b>Rain since 9am</b>
+                    <span className="fr-tip-sub">{obs.station}</span>
+                    <span>
+                      {obs.rainMm} mm · read {obs.observedAt.slice(11, 16)} Sydney time
+                    </span>
+                    <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
+                  </>
+                ) : (
+                  <>
+                    <b>Rain since 9am</b>
+                    <span>{obsFailed ? "No reading available right now" : "Loading the latest reading"}</span>
+                    <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
+                  </>
+                )
+              }
+            >
+              <div>RAIN SINCE 9AM</div>
+              <div>{obs ? `${obs.rainMm} mm` : obsFailed ? "no data" : "…"}</div>
+            </Tip>
+            <div className="fr-tile" style={{ width: 132 }}>
               <div>HIGH RISK</div>
               <div>
                 {high} of {seed.length}
               </div>
             </div>
-            <div className="fr-tile">
+            <div className="fr-tile" style={{ width: 164 }}>
               <div>CLEANED TODAY</div>
               <div>{records.length}</div>
             </div>
@@ -824,22 +946,11 @@ export default function Home() {
                   lineHeight: 1.4,
                 }}
               >
-                <strong>
-                  {PUBLIC_BUILD
-                    ? "Public demo: showing precomputed sample scores"
-                    : "Offline: showing precomputed sample scores (risk-api offline)"}
-                </strong>
+                <strong>Offline: showing precomputed sample scores (risk-api offline)</strong>
                 <div style={{ color: "#CFE6F0", fontSize: 13, marginTop: 2 }}>
                   SAMPLE DATA · generated {precomputed.generated_at.slice(0, 16).replace("T", " ")} UTC · model{" "}
                   {precomputed.model_version}. The what-if sliders are off, and cleaned assets keep their precomputed
-                  score.{" "}
-                  {PUBLIC_BUILD ? (
-                    "Run the project locally to try what-if."
-                  ) : (
-                    <>
-                      Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
-                    </>
-                  )}
+                  score. Start the risk API with <code>uvicorn risk_api.main:app</code> and reload to go live.
                 </div>
               </div>
             )}
@@ -894,7 +1005,7 @@ export default function Home() {
                 </button>
               </div>
               {view === "3d" ? (
-                <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainNow(minute)} extra={extra} onOpen={openAsset} />
+                <Map3D assets={mapAssets} crews={mapCrews} rainMmH={rainRate} extra={extra} onOpen={openAsset} />
               ) : (
                 <MapView
                   assets={mapAssets}
@@ -907,6 +1018,12 @@ export default function Home() {
                   }
                   onOpen={openAsset}
                 />
+              )}
+              {scoring && (
+                <div role="status" className="fr-wait">
+                  <i aria-hidden="true" />
+                  Updating risk scores…
+                </div>
               )}
               <div role="status" className="fr-sr">
                 {toast}
@@ -1129,7 +1246,7 @@ export default function Home() {
                     className="fr-btn fr-pri"
                     type="button"
                     style={{ width: "100%" }}
-                    onClick={() => setChoose(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
+                    onClick={() => sendOrWarn(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
                     disabled={busy}
                   >
                     {busy ? "All crews are busy" : "Send a crew on this run"}
@@ -1160,12 +1277,35 @@ export default function Home() {
             {tabbed && logPanel}
 
             <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open>
-              <summary>Simulation controls · What if and rain forecast (sample data)</summary>
+              <summary>Simulation controls · What if and rain forecast</summary>
               <section className="fr-group">
                 <div className="fr-label">
                   What if · demo controls
-                  {PUBLIC_BUILD ? " · run locally to try what-if" : offline ? " · off while risk-api is offline" : ""}
+                  {offline ? " · off while risk-api is offline" : ""}
                 </div>
+                <div className="fr-label" style={{ marginTop: 16, marginBottom: 12 }} id="fr-day-label">
+                  Forecast day
+                </div>
+                <div role="group" aria-labelledby="fr-day-label" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {DAYS.map((name, i) => (
+                    <button
+                      key={name}
+                      type="button"
+                      className={`fr-btn ${day === i ? "fr-pri" : "fr-sec"}`}
+                      aria-pressed={day === i}
+                      disabled={offline}
+                      onClick={() => setDay(i)}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                {day > 0 && (
+                  <div style={{ marginTop: 6, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
+                    Showing {DAYS[day].toLowerCase()}: assets are {day} day(s) older and the sample rain in between has
+                    fallen. A crew can be sent only on today&apos;s scores.
+                  </div>
+                )}
                 <label
                   htmlFor="fr-leaf"
                   style={{
@@ -1203,7 +1343,7 @@ export default function Home() {
                 >
                   <span>Extra rain</span>
                   <span style={{ color: "#CFE6F0" }}>
-                    {extra === 0 ? "Forecast as is" : `+${extra}%`} · {rainForecast} mm
+                    {extra === 0 ? "Forecast as is" : `+${extra} mm`} over {day + 1} day{day === 0 ? "" : "s"}
                   </span>
                 </label>
                 <input
@@ -1216,6 +1356,19 @@ export default function Home() {
                   onChange={(e) => setExtra(+e.target.value)}
                   style={{ width: "100%", accentColor: "#FF8A4C", opacity: offline ? 0.4 : 1 }}
                 />
+                <button
+                  type="button"
+                  className="fr-btn fr-ghost"
+                  style={{ marginTop: 10 }}
+                  disabled={offline || (leaf === DEFAULT_LEAF && extra === 0 && day === 0)}
+                  onClick={() => {
+                    setLeaf(DEFAULT_LEAF);
+                    setExtra(0);
+                    setDay(0);
+                  }}
+                >
+                  Reset to current conditions
+                </button>
                 <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
                   Risk scores come from a gradient boosting model trained on simulated history, not on real council
                   records. Every score shows its reasons.
@@ -1223,46 +1376,63 @@ export default function Home() {
               </section>
 
               <section className="fr-group">
-                <div className="fr-label">Rain forecast · next 6 hours</div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginTop: 26 }}>
-                  {FORECAST.map((v, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        flex: 1,
-                        borderRadius: "8px 8px 3px 3px",
-                        position: "relative",
-                        background: v >= 20 ? "#FF8A4C" : "#4FC3E8",
-                        height: `${Math.round((v / 31) * 100)}%`,
-                        outline: i === forecastHour ? "2px solid #EAF6FB" : undefined,
-                      }}
-                    >
-                      <span
-                        style={{
-                          position: "absolute",
-                          top: -20,
-                          left: 0,
-                          right: 0,
-                          textAlign: "center",
-                          fontSize: 13,
-                          fontWeight: 700,
-                          color: "#CFE6F0",
-                        }}
-                      >
-                        {v}
-                      </span>
-                    </div>
-                  ))}
+                <div className="fr-label">Rain forecast · {day === 0 ? "rest of today" : `next ${day + 1} days`}</div>
+                <div className="fr-sub">
+                  Every {unitFor(day + 1)} hours (hour of day, Sydney time) · bars = rain in the block, line = running
+                  total. Under each day: BoM rain range and chance of rain
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 13, fontWeight: 600, color: "#8FB8CC" }}>
-                  {[13, 14, 15, 16, 17, 18].map((h) => (
-                    <span key={h} style={{ flex: 1 }}>
-                      {h}
-                    </span>
-                  ))}
-                </div>
-                <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
-                  Sample forecast (mm/h). Not a Bureau of Meteorology feed yet.
+                <RainChart
+                  blocks={blocks}
+                  unitHours={unitFor(day + 1)}
+                  days={DAYS.slice(0, day + 1).map((_, i) => {
+                    const d = bom?.days.find((x) => x.date === sydneyDate(i));
+                    const name =
+                      i === 0
+                        ? "Today"
+                        : new Intl.DateTimeFormat("en-AU", {
+                            timeZone: "Australia/Sydney",
+                            weekday: "short",
+                            day: "numeric",
+                          }).format(new Date(`${sydneyDate(i)}T12:00:00Z`));
+                    return {
+                      name,
+                      range: !bom
+                        ? "sample"
+                        : !d
+                          ? "no data"
+                          : d.lowMm === null
+                            ? "no rain"
+                            : `${d.lowMm}–${d.highMm} mm`,
+                      chance: bom && d?.popPct != null ? `${d.popPct}% chance` : "",
+                    };
+                  })}
+                />
+                <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
+                  {bom ? (
+                    <>
+                      Source:{" "}
+                      <a href={bom.copyright} target="_blank" rel="noreferrer" style={{ color: "#8FD8F0" }}>
+                        Australian Government Bureau of Meteorology
+                      </a>
+                      , precis forecast for Parramatta, issued {bom.issuedAt.slice(0, 16).replace("T", " ")} Sydney
+                      time, read {bom.fetchedAt.slice(11, 16)} UTC. A forecast is a chance, not a fact: the range means
+                      a 75% chance of at least the first amount and a 25% chance of at least the second. The daily total
+                      used is the middle of the range; no range means no rain expected (0 mm).
+                    </>
+                  ) : bomFailed ? (
+                    "The Bureau of Meteorology forecast could not be loaded, so sample rain is used. Not a forecast."
+                  ) : (
+                    "Loading the Bureau of Meteorology forecast. Sample rain until it arrives."
+                  )}{" "}
+                  {obs && (
+                    <>
+                      Rain so far today: {obs.rainMm} mm since 9am, measured at {obs.station} (a few km east of
+                      Parramatta), read at {obs.observedAt.slice(11, 16)} Sydney time.{" "}
+                    </>
+                  )}
+                  The free BoM forecast has no 3-hourly rain, so how each day&apos;s rain is split into blocks is an
+                  assumption (a fixed sample pattern, most rain in the afternoon). Light blue on top of a bar is what-if
+                  rain from the Extra rain slider.
                 </div>
               </section>
             </details>
@@ -1310,6 +1480,32 @@ export default function Home() {
             Sample data. The crew confirms the real condition on site.
           </div>
         </Dialog>
+      )}
+
+      {whatIfBlock && (
+        <ConfirmDialog
+          label="What-if is on"
+          eyebrow="Send a crew"
+          title="What-if scores are on. Restore current conditions?"
+          tone="info"
+          confirmLabel="Restore current conditions"
+          onCancel={() => setWhatIfBlock(false)}
+          onConfirm={() => {
+            setLeaf(DEFAULT_LEAF);
+            setExtra(0);
+            setDay(0);
+            setWhatIfBlock(false);
+          }}
+        >
+          <p style={{ margin: "0 0 10px" }}>
+            No crew was sent. The map and queue show a what-if ({day === 0 ? "today" : DAYS[day].toLowerCase()}, leaf
+            fall {leaf}%, {extra === 0 ? "forecast rain" : `+${extra} mm rain`}), not current conditions.
+          </p>
+          <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>
+            Restoring puts the day and both sliders back and recalculates the scores. Then press send again: the stops
+            may change. Cancel keeps the what-if so you can keep exploring.
+          </p>
+        </ConfirmDialog>
       )}
 
       {choose && showMap && (
