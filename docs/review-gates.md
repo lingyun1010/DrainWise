@@ -18,6 +18,17 @@ A finding is a **blocker** (do not merge) only if it is one of:
 
 Everything else is a **note**: record it, do not block the merge. Notes still go in the PR body under "Known issues".
 
+## Gates and agents
+
+| Gate   | Agent             | Covers                                                               |
+| ------ | ----------------- | -------------------------------------------------------------------- |
+| Smoke  | `smoke-tester`    | Main flow below                                                      |
+| UI     | `ui-reviewer`     | Accessibility and function: focus, contrast, console, reduced motion |
+| UX     | `ux-reviewer`     | Flow clarity, states, honest labelling                               |
+| Design | `design-reviewer` | Visual layout: page length, hierarchy, spacing, consistency          |
+
+Order: smoke first, then UI, UX and Design one after another (they share the built-in browser). The pre-PR hook reminds you to dispatch all of them for any change under `web/`. Design findings are notes unless the layout blocks the main flow.
+
 ## Main flow
 
 1. Open `/`, pick Manager, open the Crews tab, click "Reset sample session".
