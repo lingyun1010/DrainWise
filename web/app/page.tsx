@@ -26,6 +26,7 @@ import {
 } from "@/lib/runStore";
 import MapView, { type Level, type MapAsset, type MapCrew, type MapRoute } from "./MapView";
 import RoleScreen from "./RoleScreen";
+import Link from "next/link";
 import RoomChip from "./RoomChip";
 import Dialog, { ConfirmDialog } from "./Dialog";
 import dynamic from "next/dynamic";
@@ -443,6 +444,16 @@ export default function Home() {
         <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
         <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
       </div>
+      {!PUBLIC_BUILD && (
+        <div style={{ marginTop: 12 }}>
+          <Link className="fr-btn fr-sec" href="/review" style={{ textDecoration: "none" }}>
+            Review before photos
+          </Link>
+          <span style={{ marginLeft: 10, fontSize: 13, color: "#8FB8CC" }}>
+            Local only. Mock AI unless a key is set.
+          </span>
+        </div>
+      )}
       {records.length === 0 ? (
         <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
           No completed jobs yet. Sites with a camera are checked by the camera. All other sites need a before and an
