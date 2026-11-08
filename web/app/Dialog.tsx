@@ -7,6 +7,8 @@ import { useEffect, useRef } from "react";
 //
 // Layout: small caps eyebrow, h2 title, body, then an actions row (primary button first, quiet Cancel last).
 // Fixed to the viewport and centred; the card uses margin:auto so a tall card scrolls instead of being clipped.
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 const TONE = { info: { border: "#4FC3E8", eyebrow: "#8FD8F0" }, danger: { border: "#FF8A4C", eyebrow: "#FFB38A" } };
 
 export default function Dialog({
@@ -29,13 +31,15 @@ export default function Dialog({
   actions: React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
-  const FOCUSABLE =
-    'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
+  const closeRef = useRef(onClose); // the listener below is added once, not on every parent render
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
 
   // Keyboard: Esc closes, Tab stays inside the dialog.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return onClose();
+      if (e.key === "Escape") return closeRef.current();
       if (e.key !== "Tab" || !box.current) return;
       const items = [...box.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
       if (items.length === 0) return;
@@ -52,7 +56,7 @@ export default function Dialog({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   // Focus moves in when the dialog opens (unless a control inside already asked for it with autoFocus) and goes
   // back to the button that opened it when it closes.

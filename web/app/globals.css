@@ -589,19 +589,9 @@ body {
   display: none;
 }
 
-/* Phone-width Manager: the tab bar stays in view while a panel scrolls; a sent-crew message sits right above it. */
-@media (max-width: 899px) {
-  .fr-side .fr-tabs {
-    position: sticky;
-    top: 8px;
-    z-index: 20;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
-  }
-  .fr-tab {
-    white-space: nowrap;
-    font-size: 13px;
-    padding: 6px 2px;
-  }
+.fr-qtext {
+  flex: 1;
+  min-width: 0;
 }
 .fr-tabtoast {
   position: sticky;
@@ -614,19 +604,34 @@ body {
   font-weight: 600;
   font-size: 14px;
 }
+.fr-role {
+  overflow-y: auto;
+}
+
+/* Phone width (keep in step with NARROW_QUERY in page.tsx): tab bar stays in view, Check next rows stack,
+   header and legend are compact, touch targets are 40px, role screen cards are full-width rows. */
 @media (max-width: 899px) {
+  .fr-side .fr-tabs {
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  }
+  .fr-tab {
+    white-space: nowrap;
+    font-size: 13px;
+    padding: 6px 2px;
+  }
   /* Check next rows: name and reason on full width, the two buttons on their own line. */
   .fr-qrow {
     flex-wrap: wrap;
   }
   .fr-qtext {
-    flex: 1 1 100% !important;
+    flex: 1 1 100%;
   }
   .fr-qrow .fr-btn {
     flex: 1 1 0;
   }
-}
-@media (max-width: 899px) {
   /* Compact header tiles so the tab bar is near the first screen. */
   .fr-tile {
     padding: 4px 12px;
@@ -634,8 +639,6 @@ body {
   .fr-tile > :last-child {
     font-size: 18px;
   }
-}
-@media (max-width: 899px) {
   .fr-legend {
     gap: 2px 14px !important;
     padding: 8px 14px !important;
@@ -645,8 +648,6 @@ body {
     font-size: 12px;
     line-height: 1.35;
   }
-}
-@media (max-width: 899px) {
   /* Touch targets of at least 40px: map zoom buttons and range sliders. */
   .maplibregl-ctrl-group button {
     width: 40px;
@@ -655,12 +656,6 @@ body {
   .fr-side input[type="range"] {
     height: 40px;
   }
-}
-/* Role screen on a phone: scrolls instead of clipping, cards are full-width rows (icon left, text right). */
-.fr-role {
-  overflow-y: auto;
-}
-@media (max-width: 899px) {
   .fr-role {
     justify-content: flex-start !important;
     gap: 16px !important;

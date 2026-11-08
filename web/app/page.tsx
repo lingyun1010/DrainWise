@@ -48,6 +48,8 @@ import { PHOTO_UPLOAD_ON } from "@/lib/uploadPhoto";
 type Prediction = { asset_id: string; p_block: number; level: Level; reasons: string[] };
 type Role = null | "manager" | "split";
 const LOG_PREVIEW = 5; // rows shown before "Show today's full log"
+// Phone breakpoint: keep in step with the max-width: 899px rules in globals.css.
+const NARROW_QUERY = "(max-width: 899px)";
 type PanelTab = "queue" | "plan" | "records" | "crews";
 const TABS: { id: PanelTab; label: string; short: string }[] = [
   { id: "queue", label: "Check next", short: "Queue" },
@@ -77,7 +79,7 @@ export default function Home() {
   const [tab, setTab] = useState<PanelTab>("queue");
   const [narrow, setNarrow] = useState(false); // phone width: same breakpoint as the one-column layout in globals.css
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 899px)");
+    const mq = window.matchMedia(NARROW_QUERY);
     const sync = () => setNarrow(mq.matches);
     sync();
     mq.addEventListener("change", sync);
@@ -1066,8 +1068,8 @@ export default function Home() {
           </section>
 
           <aside className="fr-side" aria-label="Manager panels">
-            {tabbed && narrow && toast && (
-              <div role="status" className="fr-tabtoast">
+            {narrow && toast && (
+              <div aria-hidden="true" className="fr-tabtoast">
                 {toast}
               </div>
             )}
@@ -1133,7 +1135,7 @@ export default function Home() {
                       padding: "10px 12px",
                     }}
                   >
-                    <div className="fr-qtext" style={{ flex: 1, minWidth: 0 }}>
+                    <div className="fr-qtext">
                       <div style={{ fontWeight: 700, fontSize: 16 }}>
                         {a.id}{" "}
                         <span
