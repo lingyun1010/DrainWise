@@ -158,3 +158,12 @@ Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+## Workflow hooks (lingyun-project, installed 2026-11-08)
+
+Project hooks in `.claude/settings.json`, scripts in `.claude/hooks/` (state in gitignored `.claude/.state/`). Nudges are advice the agent may skip; blocks are enforced; CI on the PR is the only enforcement that does not depend on a Claude session.
+
+- SessionStart: nudge naming the stage list. Do not ask again which hooks to install.
+- `git commit`: nudge to run `simplify` and `security-review`.
+- `gh pr create`: **block** unless `npm test` (planner) and `pytest` both passed this session; nudge to dispatch smoke/UI/UX subagents.
+- `gh pr merge`: **block** unless `gh pr checks` is green and the PR body mentions "smoke"; afterwards nudge to re-run tests on main and update the map.
