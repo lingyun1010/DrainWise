@@ -83,6 +83,33 @@ export default function Home() {
   const [toast, setToast] = useState<string | null>(null);
   const [minute, setMinute] = useState(0);
   const [view, setView] = useState<"2d" | "3d">("2d");
+  // Before photos a person has already confirmed on /review, as "runId:stopId". Those no longer wait for review.
+  const [reviewed, setReviewed] = useState<ReadonlySet<string>>(new Set());
+
+  useEffect(() => {
+    if (!PHOTO_UPLOAD_ON) return;
+    let live = true;
+    const pull = async () => {
+      try {
+        const res = await fetch("/api/review/photos", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = (await res.json()) as { photos?: { runId: string; stopId: string; confirmed: number | null }[] };
+        if (live && data.photos) {
+          setReviewed(new Set(data.photos.filter((p) => p.confirmed !== null).map((p) => `${p.runId}:${p.stopId}`)));
+        }
+      } catch {
+        /* offline: keep the last known set */
+      }
+    };
+    void pull();
+    const tick = setInterval(pull, 10_000);
+    window.addEventListener("focus", pull);
+    return () => {
+      live = false;
+      clearInterval(tick);
+      window.removeEventListener("focus", pull);
+    };
+  }, []);
 
   useEffect(() => {
     const read = () => setSt(loadState());
@@ -436,10 +463,10 @@ export default function Home() {
       <div className="fr-label">Compliance records</div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <Stat
-          n={photoRecs.filter((r) => r.before).length}
+          n={photoRecs.filter((r) => r.before && !(PHOTO_UPLOAD_ON && reviewed.has(`${r.runId}:${r.stopId}`))).length}
           color="#FFD27A"
           l1="Before photos"
-          l2={PHOTO_UPLOAD_ON ? "for review" : "AI training"}
+          l2={PHOTO_UPLOAD_ON ? "to review" : "AI training"}
         />
         <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
         <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
