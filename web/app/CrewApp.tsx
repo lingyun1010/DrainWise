@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import RoomChip from "./RoomChip";
 import { useEffect, useState } from "react";
 import { canComplete } from "../../planner/src/canComplete";
@@ -153,8 +155,35 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
         boxSizing: "border-box",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <span style={{ fontWeight: 700, fontSize: 18 }}>Crew app</span>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
+        <button
+          type="button"
+          aria-label="DrainWise crew app, back to home"
+          title="Back to home"
+          onClick={onSwitchRole}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flex: "none",
+            background: "none",
+            border: 0,
+            padding: 0,
+            cursor: "pointer",
+          }}
+        >
+          <Image src="/brand-mascot.png" alt="" width={34} height={30} unoptimized />
+          <Image src="/brand-wordmark.png" alt="" width={80} height={18} unoptimized />
+        </button>
         <RoomChip compact />
         <button
           className="fr-btn fr-ghost"
