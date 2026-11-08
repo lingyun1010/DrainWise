@@ -17,10 +17,13 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
 
   // A phone opens /crew?room=ABCD from the manager's link: join, then tidy the address bar.
   useEffect(() => {
-    const raw = new URLSearchParams(window.location.search).get("room");
+    const raw =
+      new URLSearchParams(window.location.search).get("team") ??
+      new URLSearchParams(window.location.search).get("room");
     const fromUrl = cleanRoomCode(raw);
     if (!fromUrl) return;
     const url = new URL(window.location.href);
+    url.searchParams.delete("team");
     url.searchParams.delete("room");
     window.history.replaceState(null, "", url.pathname + url.search);
     if (fromUrl !== getRoomCode()) {
@@ -49,7 +52,7 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
 
   // A phone cannot open "localhost", and the browser cannot see the laptop's Wi-Fi address.
   const onLocalhost = typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  const link = code && typeof window !== "undefined" ? `${window.location.origin}/crew?room=${code}` : "";
+  const link = code && typeof window !== "undefined" ? `${window.location.origin}/crew?team=${code}` : "";
   async function copy() {
     try {
       await navigator.clipboard.writeText(onLocalhost ? (code ?? "") : link);
@@ -71,19 +74,19 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
         }}
         style={{ padding: "6px 12px", minHeight: 40, fontSize: compact ? 14 : 15 }}
       >
-        {code ? `Room ${code}` : "Shared room"}
+        {code ? `Team ${code}` : "Shared team"}
       </button>
       {open && (
         <Dialog
-          label="Shared room"
+          label="Shared team"
           eyebrow="TWO DEVICES"
-          title={code ? `Room ${code}` : "Use two devices"}
+          title={code ? `Team ${code}` : "Use two devices"}
           onClose={() => setOpen(false)}
           actions={
             code ? (
               <>
                 <button type="button" className="fr-btn fr-pri" onClick={copy}>
-                  {copied ? "Copied" : onLocalhost ? "Copy room code" : "Copy phone link"}
+                  {copied ? "Copied" : onLocalhost ? "Copy team code" : "Copy phone link"}
                 </button>
                 <button
                   type="button"
@@ -93,7 +96,7 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
                     setOpen(false);
                   }}
                 >
-                  Leave room
+                  Leave team
                 </button>
                 <button type="button" className="fr-btn fr-ghost" onClick={() => setOpen(false)}>
                   Close
@@ -102,7 +105,7 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
             ) : (
               <>
                 <button type="button" className="fr-btn fr-pri" disabled={busy} onClick={() => run(createRoom, false)}>
-                  Start a new room (code is made for you)
+                  Start a new team (code is made for you)
                 </button>
                 <button
                   type="button"
@@ -122,21 +125,21 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
           {code ? (
             <>
               <p
-                aria-label={`Room code ${code}`}
+                aria-label={`Team code ${code}`}
                 style={{ margin: "0 0 12px", fontSize: 44, fontWeight: 700, letterSpacing: 8, textAlign: "center" }}
               >
                 {code}
               </p>
               <p style={{ margin: "0 0 10px", lineHeight: 1.5 }}>
-                This device shares its sample session with every device in room {code}. Runs, records and the log sync
+                This device shares its sample session with every device in team {code}. Runs, records and the log sync
                 about every 2 seconds. Photos already go to the server on their own.
               </p>
               <p style={{ margin: 0, lineHeight: 1.5, color: "#B9D6E3", wordBreak: "break-all" }}>
                 {onLocalhost ? (
-                  <>On the other device, choose Shared room, then join with {code}.</>
+                  <>On the other device, choose Shared team, then join with {code}.</>
                 ) : (
                   <>
-                    On the phone, open <strong>{link}</strong> or choose Crew and join room {code}.
+                    On the phone, open <strong>{link}</strong> or choose Crew and join team {code}.
                   </>
                 )}
               </p>
@@ -145,13 +148,13 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
             <>
               <p style={{ margin: "0 0 14px", lineHeight: 1.5 }}>
                 Two devices (for example a laptop as Manager and a phone as Crew) can share one sample session. Anyone
-                with the room code can see and change it. Rooms are removed after 24 hours without changes.
+                with the team code can see and change it. Teams are removed after 24 hours without changes.
               </p>
-              <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>1. Start a new room</h3>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>1. Start a new team</h3>
               <p style={{ margin: "0 0 14px", lineHeight: 1.5, color: "#B9D6E3" }}>
                 Do this on the first device. You do not type anything: the app makes a 4-letter code and shows it here.
               </p>
-              <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>2. Join a room</h3>
+              <h3 style={{ margin: "0 0 4px", fontSize: 16 }}>2. Join a team</h3>
               <label style={{ display: "block", fontSize: 14, color: "#B9D6E3", marginBottom: 6 }}>
                 On the second device, type the code the first device shows
                 <input
