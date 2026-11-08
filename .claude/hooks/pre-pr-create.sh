@@ -5,14 +5,14 @@ missing=""
 [ -f "$STATE_DIR/$SESSION.planner" ] || missing="$missing planner (cd planner && npm test)"
 [ -f "$STATE_DIR/$SESSION.pytest" ] || missing="$missing python (.venv/bin/pytest -q)"
 [ -z "$missing" ] || block "full tests have not passed in this session. Missing:$missing. Run them, then retry gh pr create."
-DET="$CLAUDE_PROJECT_DIR/.claude/skills/impeccable/scripts/impeccable"
+DET="$HOME/.claude/skills/impeccable/scripts/impeccable"
 DETECT=""
 if [ -x "$DET" ] && [ -d "$CLAUDE_PROJECT_DIR/web/app" ]; then
   out=$("$DET" detect --json "$CLAUDE_PROJECT_DIR/web/app" 2>/dev/null)
   code=$?
   if [ "$code" = "2" ]; then
     n=$(echo "$out" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(len(d) if isinstance(d,list) else len(d.get("findings",d)))' 2>/dev/null)
-    DETECT=" Impeccable detector (web/app) reported ${n:-some} findings: run '.claude/skills/impeccable/scripts/impeccable detect web/app' and list them under Known issues in the PR body."
+    DETECT=" Impeccable detector (web/app) reported ${n:-some} findings: run '~/.claude/skills/impeccable/scripts/impeccable detect web/app' and list them under Known issues in the PR body."
   elif [ "$code" = "0" ]; then
     DETECT=" Impeccable detector (web/app): clean."
   fi

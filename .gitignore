@@ -10,4 +10,3 @@ node_modules/
 next-env.d.ts
 .claude/settings.local.json
 .claude/.state/
-.claude/skills/impeccable/scripts/bin/

@@ -10,7 +10,7 @@ Read `docs/review-gates.md` and `CLAUDE.md` section 2 (design principles). Compa
 
 ## Impeccable
 
-Impeccable is installed in `.claude/skills/impeccable/`. Before judging, read `.claude/skills/impeccable/reference/critique.md` (Assessment A, cognitive load, heuristics scoring) and `reference/operate.md`; the manager dashboard is an Operate surface. After your own visual review, run `.claude/skills/impeccable/scripts/impeccable detect --json web/app` and merge the findings (mark false positives). Score the 10 Nielsen heuristics as that guide describes.
+Impeccable is installed globally in `~/.claude/skills/impeccable/` (not in this repo). Before judging, read `~/.claude/skills/impeccable/reference/critique.md` (Assessment A, cognitive load, heuristics scoring) and `reference/operate.md`; the manager dashboard is an Operate surface. After your own visual review, run `~/.claude/skills/impeccable/scripts/impeccable detect --json web/app` and merge the findings (mark false positives). Score the 10 Nielsen heuristics as that guide describes.
 
 ## Views to inspect
 
