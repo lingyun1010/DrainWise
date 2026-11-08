@@ -139,7 +139,7 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 - `planner/` TypeScript planner (vitest): `planRun` (knapsack + nearest-neighbour, min-risk cutoff) and `canComplete` (crew submit rule). Tests: `cd planner && npm test`.
 - `web/` Next.js 16 app: manager page `/` (map, queue, truck run, sliders), crew phone page `/crew`. Imports the planner by relative path.
 - Run: `uvicorn risk_api.main:app` from the project root, then `cd web && npm run dev`. `RISK_API_URL` env var overrides the default `http://127.0.0.1:8000`.
-- Manager-to-crew handoff is localStorage only (demo). Photos are kept in memory, never persisted.
+- Manager-to-crew handoff: localStorage on one device; with a shared room (`web/app/RoomChip.tsx`, `web/lib/runStore.ts`, `/api/room`) the session is also kept in Supabase table `rooms` and polled every 2 s, so a laptop and a phone share it. No sign-in; last write wins; rooms expire after 24 h. Photos go to Supabase Storage (ticket 16) when `NEXT_PUBLIC_PHOTO_UPLOAD=1`.
 
 ### UI (updated 2026-11-08)
 
