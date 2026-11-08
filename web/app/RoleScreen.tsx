@@ -35,9 +35,16 @@ export default function RoleScreen({
       }}
     >
       <div style={{ textAlign: "center", maxWidth: 720 }}>
-        <Image src="/brand-mascot.png" alt="" width={110} height={95} unoptimized />
+        <Image src="/brand-mascot.png" alt="" width={110} height={95} unoptimized style={{ margin: "0 auto" }} />
         <h1 style={{ margin: "8px 0 6px" }}>
-          <Image src="/brand-wordmark.png" alt="DrainWise" width={260} height={59} unoptimized />
+          <Image
+            src="/brand-wordmark.png"
+            alt="DrainWise"
+            width={260}
+            height={59}
+            unoptimized
+            style={{ margin: "0 auto" }}
+          />
         </h1>
         <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>

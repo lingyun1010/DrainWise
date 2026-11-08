@@ -726,8 +726,27 @@ export default function Home() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <Image src="/brand-mascot.png" alt="" width={46} height={40} unoptimized />
-            <Image src="/brand-wordmark.png" alt="DrainWise" width={120} height={27} unoptimized />
+            <button
+              type="button"
+              aria-label="DrainWise, back to home"
+              title="Back to home"
+              onClick={() => {
+                setRole(null);
+                setCur(null);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                background: "none",
+                border: 0,
+                padding: 0,
+                cursor: "pointer",
+              }}
+            >
+              <Image src="/brand-mascot.png" alt="" width={46} height={40} unoptimized />
+              <Image src="/brand-wordmark.png" alt="" width={120} height={27} unoptimized />
+            </button>
             <span
               style={{
                 fontSize: 13,
