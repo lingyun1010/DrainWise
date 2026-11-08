@@ -20,7 +20,7 @@ Everything else is a **note**: record it, do not block the merge. Notes still go
 
 ## Main flow
 
-1. Open `/`, pick Manager, click "Reset sample session".
+1. Open `/`, pick Manager, open the Crews tab, click "Reset sample session".
 2. Move the capacity slider (1 / 2 / 4 m3): the plan never exceeds capacity.
 3. "Send a crew on this run".
 4. Open `/crew` at 375x812: Accept task, no horizontal scroll.
