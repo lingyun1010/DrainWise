@@ -1,6 +1,6 @@
 ---
 name: ux-reviewer
-description: Reviews the DrainWise UI against the demo behaviour list and project design principles (clear states, honest labelling, mobile-first crew view). Use after UI changes, alongside smoke-tester.
+description: Reviews the DrainWise UI against the demo behaviour list and project design principles (clear states, honest labelling, mobile-first crew view). Never run automatically: ask the user first (AskUserQuestion) and launch only on a yes. Worth offering after a user-flow change.
 tools: Read, Grep, Glob, Bash, mcp__Claude_Browser__navigate, mcp__Claude_Browser__computer, mcp__Claude_Browser__find, mcp__Claude_Browser__read_page, mcp__Claude_Browser__get_page_text, mcp__Claude_Browser__javascript_tool, mcp__Claude_Browser__resize_window
 ---
 

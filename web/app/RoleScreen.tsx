@@ -13,17 +13,38 @@ const Drop = ({ size }: { size: number }) => (
   </svg>
 );
 
-export default function RoleScreen({ onManager, onCrew, onSplit }: { onManager: () => void; onCrew: () => void; onSplit: () => void }) {
+export default function RoleScreen({
+  onManager,
+  onCrew,
+  onSplit,
+}: {
+  onManager: () => void;
+  onCrew: () => void;
+  onSplit: () => void;
+}) {
   return (
     <div
-      style={{ position: "absolute", inset: 0, zIndex: 20, background: "radial-gradient(circle at 20% 15%, #14506F 0%, #0B2233 55%)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 24, padding: "32px 20px" }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 20,
+        background: "radial-gradient(circle at 20% 15%, #14506F 0%, #0B2233 55%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 24,
+        padding: "32px 20px",
+      }}
     >
       <div style={{ textAlign: "center", maxWidth: 720 }}>
         <Drop size={56} />
         <h1 style={{ margin: "8px 0 6px", fontSize: 40, fontWeight: 700 }}>DrainWise</h1>
         <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
         <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
-          Leaves block drain inlets and gross pollutant traps, and most of them have no camera. DrainWise predicts which ones are about to block and tells crews where to go first. Crews fill the truck on one run, and every job is closed with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.
+          Leaves block drain inlets and gross pollutant traps, and most of them have no camera. DrainWise predicts which
+          ones are about to block and tells crews where to go first. Crews fill the truck on one run, and every job is
+          closed with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.
         </p>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", maxWidth: 1000 }}>
@@ -42,7 +63,13 @@ export default function RoleScreen({ onManager, onCrew, onSplit }: { onManager: 
             {FACE}
             <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
             <circle cx="11" cy="8" r="3" fill="#FFB38A" />
-            <path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#FF8A4C" stroke="#0B2233" strokeWidth="2.5" strokeLinejoin="round" />
+            <path
+              d="M-19 -3 a19 17 0 0 1 38 0 Z"
+              fill="#FF8A4C"
+              stroke="#0B2233"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+            />
             <rect x="-22" y="-4" width="44" height="6" rx="3" fill="#FF8A4C" stroke="#0B2233" strokeWidth="2" />
           </svg>
           <span className="fr-ct">Crew (phone)</span>
@@ -63,7 +90,9 @@ export default function RoleScreen({ onManager, onCrew, onSplit }: { onManager: 
           <span className="fr-cd">Manager map and crew phone together. Best for judges.</span>
         </button>
       </div>
-      <p style={{ margin: 0, fontSize: 14, color: "#8FB8CC" }}>Sample data only. Real deployment would use council single sign-on and audit logs.</p>
+      <p style={{ margin: 0, fontSize: 14, color: "#B9D6E3", maxWidth: "60ch", textAlign: "center" }}>
+        Sample data only. Real deployment would use council single sign-on and audit logs.
+      </p>
     </div>
   );
 }

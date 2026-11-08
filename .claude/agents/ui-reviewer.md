@@ -1,6 +1,6 @@
 ---
 name: ui-reviewer
-description: UI gate for DrainWise: desktop and 375px phone width, console errors, keyboard focus, contrast, severity not by colour alone, labels and prefers-reduced-motion. Run after smoke-tester passes, for any visual change.
+description: UI gate for DrainWise: desktop and 375px phone width, console errors, keyboard focus, contrast, severity not by colour alone, labels and prefers-reduced-motion. Never run automatically: ask the user first (AskUserQuestion) and launch only on a yes. Worth offering after a substantial visual change.
 tools: Read, Grep, Glob, Bash, mcp__Claude_Browser__navigate, mcp__Claude_Browser__computer, mcp__Claude_Browser__find, mcp__Claude_Browser__read_page, mcp__Claude_Browser__get_page_text, mcp__Claude_Browser__javascript_tool, mcp__Claude_Browser__read_console_messages, mcp__Claude_Browser__resize_window
 ---
 

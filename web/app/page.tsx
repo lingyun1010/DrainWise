@@ -31,6 +31,13 @@ import CrewApp, { CameraIcon } from "./CrewApp";
 
 type Prediction = { asset_id: string; p_block: number; level: Level; reasons: string[] };
 type Role = null | "manager" | "split";
+type PanelTab = "queue" | "plan" | "records" | "crews";
+const TABS: { id: PanelTab; label: string }[] = [
+  { id: "queue", label: "Check next" },
+  { id: "plan", label: "Run plan" },
+  { id: "records", label: "Records" },
+  { id: "crews", label: "Crews" },
+];
 
 // Only assets at Medium risk or above are worth a truck stop (matches risk-api MEDIUM_AT, a placeholder).
 const MIN_RUN_RISK = 0.3;
@@ -50,6 +57,7 @@ export default function Home() {
   const router = useRouter();
   const seed = useMemo(() => makeSeedAssets(), []);
   const [role, setRole] = useState<Role>(null);
+  const [tab, setTab] = useState<PanelTab>("queue");
   const [leaf, setLeaf] = useState(60);
   const [extra, setExtra] = useState(0);
   const [capacity, setCapacity] = useState(2);
@@ -207,6 +215,7 @@ export default function Home() {
       records: run?.records ?? [],
       log: addLog(run?.log, t, msg),
     });
+    setToast(msg);
     setCur(null);
   }
 
@@ -302,10 +311,8 @@ export default function Home() {
       ) : null}
 
       {showMap && (
-        <div
-          style={{ display: "flex", flexWrap: "wrap", gap: 20, padding: "20px 28px 32px", justifyContent: "center" }}
-        >
-          <section style={{ flex: "3 1 640px", minWidth: 0, position: "relative", alignSelf: "flex-start" }}>
+        <div className={`fr-shell${showPhone ? " fr-split" : ""}`}>
+          <section className="fr-mapcol">
             <div
               style={{
                 position: "absolute",
@@ -382,8 +389,49 @@ export default function Home() {
             )}
           </section>
 
-          <aside style={{ flex: "1 1 340px", minWidth: 0, display: "flex", flexDirection: "column", gap: 20 }}>
-            <section className="fr-section">
+          <aside className="fr-side" aria-label="Manager panels">
+            <div
+              role="tablist"
+              aria-label="Manager tabs"
+              className="fr-tabs"
+              onKeyDown={(e) => {
+                const n = TABS.length;
+                const i = TABS.findIndex((x) => x.id === tab);
+                const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+                let next = -1;
+                if (step) next = (i + step + n) % n;
+                else if (e.key === "Home") next = 0;
+                else if (e.key === "End") next = n - 1;
+                if (next < 0) return;
+                e.preventDefault();
+                setTab(TABS[next].id);
+                document.getElementById(`fr-tab-${TABS[next].id}`)?.focus();
+              }}
+            >
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  id={`fr-tab-${t.id}`}
+                  aria-selected={tab === t.id}
+                  aria-controls={`fr-panel-${t.id}`}
+                  tabIndex={tab === t.id ? 0 : -1}
+                  className={`fr-tab${tab === t.id ? " fr-tab-on" : ""}`}
+                  onClick={() => setTab(t.id)}
+                >
+                  {t.label}
+                  {t.id === "plan" && plan.stops.length > 0 ? ` · ${plan.stops.length}` : ""}
+                </button>
+              ))}
+            </div>
+            <section
+              className="fr-section"
+              role="tabpanel"
+              id="fr-panel-queue"
+              aria-labelledby="fr-tab-queue"
+              hidden={tab !== "queue"}
+            >
               <div className="fr-label">Check next · highest blockage risk</div>
               <ol
                 style={{
@@ -440,7 +488,13 @@ export default function Home() {
               </ol>
             </section>
 
-            <section className="fr-section">
+            <section
+              className="fr-section"
+              role="tabpanel"
+              id="fr-panel-plan"
+              aria-labelledby="fr-tab-plan"
+              hidden={tab !== "plan"}
+            >
               <div className="fr-label">Truck run planner</div>
               <label
                 htmlFor="fr-cap"
@@ -483,6 +537,8 @@ export default function Home() {
                     />
                   </div>
                   <ol
+                    tabIndex={0}
+                    aria-label="Planned stops"
                     style={{
                       listStyle: "none",
                       margin: "0 0 12px",
@@ -490,6 +546,8 @@ export default function Home() {
                       display: "flex",
                       flexDirection: "column",
                       gap: 6,
+                      maxHeight: 220,
+                      overflowY: "auto",
                     }}
                   >
                     {plan.stops.map((s, i) => {
@@ -541,107 +599,116 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="fr-section">
-              <div className="fr-label">What if · demo controls</div>
-              <label
-                htmlFor="fr-leaf"
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  marginTop: 12,
-                }}
-              >
-                <span>Leaf fall</span>
-                <span style={{ color: "#CFE6F0" }}>
-                  {leaf < 25 ? `Low (${leaf}%)` : leaf < 65 ? `Moderate (${leaf}%)` : `Peak (${leaf}%)`}
-                </span>
-              </label>
-              <input
-                id="fr-leaf"
-                type="range"
-                min={0}
-                max={100}
-                value={leaf}
-                onChange={(e) => setLeaf(+e.target.value)}
-                style={{ width: "100%", accentColor: "#FFD27A" }}
-              />
-              <label
-                htmlFor="fr-extra"
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 15,
-                  fontWeight: 600,
-                  marginTop: 8,
-                }}
-              >
-                <span>Extra rain</span>
-                <span style={{ color: "#CFE6F0" }}>
-                  {extra === 0 ? "Forecast as is" : `+${extra}%`} · {rainForecast} mm
-                </span>
-              </label>
-              <input
-                id="fr-extra"
-                type="range"
-                min={0}
-                max={100}
-                value={extra}
-                onChange={(e) => setExtra(+e.target.value)}
-                style={{ width: "100%", accentColor: "#FF8A4C" }}
-              />
-              <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
-                Risk scores come from a gradient boosting model trained on simulated history, not on real council
-                records. Every score shows its reasons.
-              </div>
-            </section>
+            <details className="fr-sim">
+              <summary>Simulation controls · What if and rain forecast (sample data)</summary>
+              <section className="fr-group">
+                <div className="fr-label">What if · demo controls</div>
+                <label
+                  htmlFor="fr-leaf"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    marginTop: 12,
+                  }}
+                >
+                  <span>Leaf fall</span>
+                  <span style={{ color: "#CFE6F0" }}>
+                    {leaf < 25 ? `Low (${leaf}%)` : leaf < 65 ? `Moderate (${leaf}%)` : `Peak (${leaf}%)`}
+                  </span>
+                </label>
+                <input
+                  id="fr-leaf"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={leaf}
+                  onChange={(e) => setLeaf(+e.target.value)}
+                  style={{ width: "100%", accentColor: "#FFD27A" }}
+                />
+                <label
+                  htmlFor="fr-extra"
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    fontSize: 15,
+                    fontWeight: 600,
+                    marginTop: 8,
+                  }}
+                >
+                  <span>Extra rain</span>
+                  <span style={{ color: "#CFE6F0" }}>
+                    {extra === 0 ? "Forecast as is" : `+${extra}%`} · {rainForecast} mm
+                  </span>
+                </label>
+                <input
+                  id="fr-extra"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={extra}
+                  onChange={(e) => setExtra(+e.target.value)}
+                  style={{ width: "100%", accentColor: "#FF8A4C" }}
+                />
+                <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
+                  Risk scores come from a gradient boosting model trained on simulated history, not on real council
+                  records. Every score shows its reasons.
+                </div>
+              </section>
 
-            <section className="fr-section">
-              <div className="fr-label">Rain forecast · next 6 hours</div>
-              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginTop: 26 }}>
-                {FORECAST.map((v, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      borderRadius: "8px 8px 3px 3px",
-                      position: "relative",
-                      background: v >= 20 ? "#FF8A4C" : "#4FC3E8",
-                      height: `${Math.round((v / 31) * 100)}%`,
-                      outline: i === forecastHour ? "2px solid #EAF6FB" : undefined,
-                    }}
-                  >
-                    <span
+              <section className="fr-group">
+                <div className="fr-label">Rain forecast · next 6 hours</div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginTop: 26 }}>
+                  {FORECAST.map((v, i) => (
+                    <div
+                      key={i}
                       style={{
-                        position: "absolute",
-                        top: -20,
-                        left: 0,
-                        right: 0,
-                        textAlign: "center",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#CFE6F0",
+                        flex: 1,
+                        borderRadius: "8px 8px 3px 3px",
+                        position: "relative",
+                        background: v >= 20 ? "#FF8A4C" : "#4FC3E8",
+                        height: `${Math.round((v / 31) * 100)}%`,
+                        outline: i === forecastHour ? "2px solid #EAF6FB" : undefined,
                       }}
                     >
-                      {v}
+                      <span
+                        style={{
+                          position: "absolute",
+                          top: -20,
+                          left: 0,
+                          right: 0,
+                          textAlign: "center",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: "#CFE6F0",
+                        }}
+                      >
+                        {v}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 13, fontWeight: 600, color: "#8FB8CC" }}>
+                  {[13, 14, 15, 16, 17, 18].map((h) => (
+                    <span key={h} style={{ flex: 1 }}>
+                      {h}
                     </span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 6, fontSize: 13, fontWeight: 600, color: "#8FB8CC" }}>
-                {[13, 14, 15, 16, 17, 18].map((h) => (
-                  <span key={h} style={{ flex: 1 }}>
-                    {h}
-                  </span>
-                ))}
-              </div>
-              <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
-                Sample forecast (mm/h). Not a Bureau of Meteorology feed yet.
-              </div>
-            </section>
+                  ))}
+                </div>
+                <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
+                  Sample forecast (mm/h). Not a Bureau of Meteorology feed yet.
+                </div>
+              </section>
+            </details>
 
-            <section className="fr-section">
+            <section
+              className="fr-section"
+              role="tabpanel"
+              id="fr-panel-records"
+              aria-labelledby="fr-tab-records"
+              hidden={tab !== "records"}
+            >
               <div className="fr-label">Compliance records</div>
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 <Stat
@@ -702,7 +769,13 @@ export default function Home() {
               </div>
             </section>
 
-            <section className="fr-section">
+            <section
+              className="fr-section"
+              role="tabpanel"
+              id="fr-panel-crews"
+              aria-labelledby="fr-tab-crews"
+              hidden={tab !== "crews"}
+            >
               <div className="fr-label">Crews</div>
               <ul
                 style={{
@@ -771,7 +844,11 @@ export default function Home() {
             </section>
           </aside>
 
-          {showPhone && <CrewApp onSwitchRole={() => setRole(null)} />}
+          {showPhone && (
+            <div className="fr-phonecol">
+              <CrewApp onSwitchRole={() => setRole(null)} />
+            </div>
+          )}
         </div>
       )}
 

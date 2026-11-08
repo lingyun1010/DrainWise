@@ -1,6 +1,6 @@
 ---
 name: smoke-tester
-description: Runs the DrainWise main-flow smoke test in the built-in browser (Manager sends a run, Crew accepts, photos, submit, records sync) and reports pass/fail with evidence for the PR body. Use before `gh pr create` for any change under web/, planner/ or risk-api/.
+description: Runs the DrainWise main-flow smoke test in the built-in browser (Manager sends a run, Crew accepts, photos, submit, records sync) and reports pass/fail with evidence for the PR body. Run it only when a feature is added or its behaviour changes (new or changed flow step, planner or risk-api logic, data contract). Do NOT run it for layout, style, copy or docs-only changes; reuse the last Smoke evidence in the PR body and say what changed since.
 tools: Read, Grep, Glob, Bash, mcp__Claude_Browser__navigate, mcp__Claude_Browser__computer, mcp__Claude_Browser__find, mcp__Claude_Browser__read_page, mcp__Claude_Browser__get_page_text, mcp__Claude_Browser__javascript_tool, mcp__Claude_Browser__read_console_messages, mcp__Claude_Browser__read_network_requests, mcp__Claude_Browser__resize_window
 ---
 
