@@ -215,7 +215,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
 
       {!stop ? (
         <div style={{ textAlign: "center", padding: "40px 8px", color: "#B9D6E3" }}>
-          <svg width="56" height="56" viewBox="0 0 36 36" aria-hidden="true">
+          <svg width="56" height="56" viewBox="0 0 36 36" aria-hidden="true" style={{ margin: "0 auto" }}>
             <path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill="#4FC3E8" />
           </svg>
           <div style={{ fontWeight: 700, fontSize: 20, color: "#EAF6FB", marginTop: 10 }}>All clear</div>
