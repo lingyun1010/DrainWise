@@ -375,8 +375,8 @@ export default function Home() {
       name: c.name,
       hat: HATS[i % HATS.length],
       letter: crewLetter(c.name),
-      x: spot ? spot.x + 24 : 70 + (i - 1) * 22 + 22,
-      y: spot ? spot.y + 26 : 475,
+      x: spot ? spot.x + 24 : DEPOT.x + (i - 1) * 24 + 24,
+      y: spot ? spot.y + 26 : DEPOT.y + 34,
       working: !!spot,
     };
   });
@@ -586,14 +586,14 @@ export default function Home() {
         <Stat n={photoRecs.filter((r) => r.after).length} color="#7ED9A3" l1="After photos" l2="evidence" />
         <Stat n={records.filter((r) => r.method === "camera").length} color="#4FC3E8" l1="Camera" l2="checks" />
       </div>
-      <div style={{ marginTop: 12 }}>
+      <div className="fr-recact">
         <Link className="fr-btn fr-sec" href="/review" style={{ textDecoration: "none" }}>
           Review before photos
         </Link>
-        <span style={{ marginLeft: 10, fontSize: 13, color: "#8FB8CC" }}>Mock AI unless a key is set.</span>
-        <Link className="fr-btn fr-sec" href="/model" style={{ textDecoration: "none", marginLeft: 10 }}>
+        <Link className="fr-btn fr-sec" href="/model" style={{ textDecoration: "none" }}>
           How the model works
         </Link>
+        <span className="fr-recnote">Photo review uses mock AI unless a key is set.</span>
       </div>
       {records.length === 0 ? (
         <div style={{ marginTop: 12, fontSize: 14, color: "#8FB8CC", lineHeight: 1.4 }}>
@@ -839,93 +839,120 @@ export default function Home() {
             borderBottom: "2px solid #1E4A63",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              aria-label="DrainWise, back to home"
-              title="Back to home"
-              onClick={() => {
-                setRole(null);
-                setCur(null);
-              }}
+          <div
+            style={
+              narrow
+                ? { display: "flex", flexDirection: "column", gap: 2, width: "100%" }
+                : { display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }
+            }
+          >
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 gap: 12,
-                background: "none",
-                border: 0,
-                padding: 0,
-                cursor: "pointer",
+                width: narrow ? "100%" : undefined,
               }}
             >
-              <Image src="/brand-mascot.png" alt="" width={46} height={40} unoptimized />
-              <Image src="/brand-wordmark.png" alt="" width={120} height={27} unoptimized />
-            </button>
+              <button
+                type="button"
+                aria-label="DrainWise, back to home"
+                title="Back to home"
+                onClick={() => {
+                  setRole(null);
+                  setCur(null);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "none",
+                  border: 0,
+                  padding: 0,
+                  cursor: "pointer",
+                }}
+              >
+                <Image src="/brand-mascot.png" alt="" width={46} height={40} unoptimized />
+                <Image src="/brand-wordmark.png" alt="" width={120} height={27} unoptimized />
+              </button>
+              {narrow && <RoomChip />}
+            </div>
             <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#B9D6E3",
-                border: "1px solid #2D6182",
-                borderRadius: 999,
-                padding: "4px 12px",
-              }}
+              style={
+                narrow
+                  ? { fontSize: 11, fontWeight: 600, color: "#8FB8CC" }
+                  : {
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: "#B9D6E3",
+                      border: "1px solid #2D6182",
+                      borderRadius: 999,
+                      padding: "4px 12px",
+                    }
+              }
             >
               Simulation · sample data
             </span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-            <div className="fr-tile" style={{ width: 132 }}>
-              <div>SYDNEY TIME</div>
-              <div>{clock}</div>
-            </div>
-            <Tip
-              className="fr-tile"
-              style={{ width: 160 }}
-              tip={
-                obs ? (
-                  <>
-                    <b>Rain since 9am</b>
-                    <span className="fr-tip-sub">{obs.station}</span>
-                    <span>
-                      {obs.rainMm} mm · read {obs.observedAt.slice(11, 16)} Sydney time
-                    </span>
-                    <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
-                  </>
-                ) : (
-                  <>
-                    <b>Rain since 9am</b>
-                    <span>{obsFailed ? "No reading available right now" : "Loading the latest reading"}</span>
-                    <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
-                  </>
-                )
-              }
-            >
-              <div>RAIN SINCE 9AM</div>
-              <div>{obs ? `${obs.rainMm} mm` : obsFailed ? "no data" : "…"}</div>
-            </Tip>
-            <div className="fr-tile" style={{ width: 132 }}>
-              <div>HIGH RISK</div>
-              <div>
-                {high} of {seed.length}
+          <div className="fr-hdr2">
+            <div className="fr-hdrtiles">
+              <div className="fr-tile" style={{ width: 132 }}>
+                <div>SYDNEY TIME</div>
+                <div>{clock}</div>
+              </div>
+              <Tip
+                className="fr-tile"
+                style={{ width: 160 }}
+                tip={
+                  obs ? (
+                    <>
+                      <b>Rain since 9am</b>
+                      <span className="fr-tip-sub">{obs.station}</span>
+                      <span>
+                        {obs.rainMm} mm · read {obs.observedAt.slice(11, 16)} Sydney time
+                      </span>
+                      <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
+                    </>
+                  ) : (
+                    <>
+                      <b>Rain since 9am</b>
+                      <span>{obsFailed ? "No reading available right now" : "Loading the latest reading"}</span>
+                      <span className="fr-tip-sub">Source: Bureau of Meteorology</span>
+                    </>
+                  )
+                }
+              >
+                <div>RAIN SINCE 9AM</div>
+                <div>{obs ? `${obs.rainMm} mm` : obsFailed ? "no data" : "…"}</div>
+              </Tip>
+              <div className="fr-tile" style={{ width: 132 }}>
+                <div>HIGH RISK</div>
+                <div>
+                  {high} of {seed.length}
+                </div>
+              </div>
+              <div className="fr-tile" style={{ width: 164 }}>
+                <div>CLEANED TODAY</div>
+                <div>{records.length}</div>
               </div>
             </div>
-            <div className="fr-tile" style={{ width: 164 }}>
-              <div>CLEANED TODAY</div>
-              <div>{records.length}</div>
+            <div className="fr-hdracts">
+              {!narrow && <RoomChip />}
+              {!narrow && (
+                <button
+                  className="fr-btn fr-sec"
+                  type="button"
+                  onClick={() => {
+                    setRole(null);
+                    setCur(null);
+                  }}
+                  style={{ padding: "8px 16px", minHeight: 44 }}
+                >
+                  Switch role
+                </button>
+              )}
             </div>
-            <RoomChip />
-            <button
-              className="fr-btn fr-sec"
-              type="button"
-              onClick={() => {
-                setRole(null);
-                setCur(null);
-              }}
-              style={{ padding: "8px 16px", minHeight: 44 }}
-            >
-              Switch role
-            </button>
           </div>
         </div>
       ) : null}
