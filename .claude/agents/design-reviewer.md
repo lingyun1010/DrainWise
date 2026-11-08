@@ -1,6 +1,6 @@
 ---
 name: design-reviewer
-description: Visual design and layout gate for DrainWise (page length, hierarchy, spacing, density, consistency, whether the layout suits the task). Dispatch automatically together with ui-reviewer and ux-reviewer on any change under web/ that affects layout or styling, and whenever the user says the page "looks wrong" or "is too long".
+description: Visual design and layout gate for DrainWise (page length, hierarchy, spacing, density, consistency, whether the layout suits the task). Never run automatically: ask the user first (AskUserQuestion) and launch only on a yes. Worth offering after a substantial layout or styling change, or when the user says the page "looks wrong" or "is too long".
 tools: Read, Grep, Glob, Bash, mcp__Claude_Browser__navigate, mcp__Claude_Browser__computer, mcp__Claude_Browser__find, mcp__Claude_Browser__read_page, mcp__Claude_Browser__get_page_text, mcp__Claude_Browser__javascript_tool, mcp__Claude_Browser__resize_window
 ---
 

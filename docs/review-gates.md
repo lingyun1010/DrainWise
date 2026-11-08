@@ -27,7 +27,7 @@ Everything else is a **note**: record it, do not block the merge. Notes still go
 | UX     | `ux-reviewer`     | Flow clarity, states, honest labelling                               |
 | Design | `design-reviewer` | Visual layout: page length, hierarchy, spacing, consistency          |
 
-Order: smoke first, then UI, UX and Design one after another (they share the built-in browser). The pre-PR hook reminds you to dispatch all of them for any change under `web/`. Design findings are notes unless the layout blocks the main flow.
+Order: smoke first (only if it applies, see below), then the reviewers the user accepted, one after another (they share the built-in browser). Design findings are notes unless the layout blocks the main flow.
 
 ## Main flow
 
@@ -40,9 +40,15 @@ Order: smoke first, then UI, UX and Design one after another (they share the bui
 7. Back on Manager: compliance records, crew status and activity log reflect the job.
 8. Toggle 2D / 3D; the 3D view still says it is not a flood forecast.
 
+## When each agent runs (agreed 2026-11-08)
+
+- `smoke-tester`: only when a feature is added or its behaviour changes (flow step, planner or risk-api logic, data contract). Layout, style, copy and docs-only PRs skip it: reuse the last **Smoke** evidence in the PR body and state what changed since.
+- `ui-reviewer`, `ux-reviewer`, `design-reviewer`: never automatic. Ask the user first with `AskUserQuestion` (offer the ones that fit the change) and run only the ones they accept, one at a time (shared browser tab).
+- The pre-PR hook only reminds; it does not decide.
+
 ## Scope and environment
 
-- Run the full flow on every PR that touches `web/`, `planner/` or `risk-api/`. Docs-only PRs skip it.
+- When the smoke test runs, it runs the full flow below. Viewports and servers as follows.
 - Viewports: 375x812 (crew) and desktop (manager). Chromium only (built-in browser).
 - Always click "Reset sample session" before starting.
 - Servers: `.venv/bin/uvicorn risk_api.main:app --port 8000` and `cd web && npm run dev -- -p 3000`. Reuse them if the ports are already listening.

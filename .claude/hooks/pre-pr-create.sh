@@ -17,4 +17,4 @@ if [ -x "$DET" ] && [ -d "$CLAUDE_PROJECT_DIR/web/app" ]; then
     DETECT=" Impeccable detector (web/app): clean."
   fi
 fi
-nudge PreToolUse "Pre-PR gates: dispatch fresh subagents for the smoke test first, then (once it passes) the UI, UX and design reviews (ui-reviewer, ux-reviewer, design-reviewer), run one after another, each in its own browser tab. design-reviewer applies Impeccable's critique rubric.${DETECT} Put the smoke-test evidence in the PR body (word 'smoke') because gh pr merge is blocked without it."
+nudge PreToolUse "Pre-PR gates (docs/review-gates.md): run the smoke test only if a feature was added or its behaviour changed; for layout/style/copy-only changes reuse earlier Smoke evidence and say what changed. Ask the user before running ui-reviewer, ux-reviewer or design-reviewer.${DETECT} The PR body must contain the word 'smoke' because gh pr merge is blocked without it."
