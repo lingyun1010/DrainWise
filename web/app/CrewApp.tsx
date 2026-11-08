@@ -185,14 +185,6 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
           <Image src="/brand-wordmark.png" alt="" width={80} height={18} unoptimized />
         </button>
         <RoomChip compact />
-        <button
-          className="fr-btn fr-ghost"
-          type="button"
-          onClick={onSwitchRole}
-          style={{ padding: "6px 10px", minHeight: 40, fontSize: 14 }}
-        >
-          Switch role
-        </button>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         {state.crews.map((c) => {
