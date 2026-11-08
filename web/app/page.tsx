@@ -1274,7 +1274,7 @@ export default function Home() {
             {tabbed && logPanel}
 
             <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open>
-              <summary>Simulation controls · What if and rain forecast (sample data)</summary>
+              <summary>Simulation controls · What if and rain forecast</summary>
               <section className="fr-group">
                 <div className="fr-label">
                   What if · demo controls
