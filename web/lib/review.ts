@@ -85,7 +85,12 @@ export async function suggestLevel(image: Buffer): Promise<ParsedSuggestion> {
   }
   // Never echo the response body: it can contain request details. Status code only.
   if (!res.ok) return { ok: false, error: `vision service returned ${res.status}` };
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  let data: { choices?: { message?: { content?: string } }[] };
+  try {
+    data = await res.json();
+  } catch {
+    return { ok: false, error: "vision reply was not valid JSON" };
+  }
   const text = data.choices?.[0]?.message?.content;
   return typeof text === "string" ? parseSuggestion(text) : { ok: false, error: "vision reply was empty" };
 }
