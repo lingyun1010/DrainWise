@@ -8,7 +8,13 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { id?: unknown; withAfter?: unknown } | null;
   if (typeof body?.id !== "string") return Response.json({ error: "bad request" }, { status: 400 });
   const res = await deletePhoto(body.id, body.withAfter !== false);
-  if (res.ok) return Response.json({ ok: true, before: res.before, after: res.after });
+  if (res.ok) return Response.json({ ok: true, before: res.before, after: res.after, afterKept: res.afterKept });
   if (res.reason === "not_found") return Response.json({ error: "photo not found" }, { status: 404 });
+  if (res.reason === "rows_failed") {
+    return Response.json(
+      { error: "the files are gone but the records were not removed; press Delete again to finish" },
+      { status: 502 },
+    );
+  }
   return Response.json({ error: "could not delete the photo" }, { status: 502 });
 }

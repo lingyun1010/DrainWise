@@ -10,14 +10,23 @@ type Ask =
 // Only metadata is kept (no image): which image, the confirmed level, what the model suggested, when.
 type Label = { level: Level; suggested: Level | null; at: string };
 // One card: either one of the 7 local samples (key "1".."7") or a stored crew photo (key "p-<uuid>").
-type Item = { key: string; src: string; title: string; detail?: string; photoId?: string; afterCount?: number };
+type Item = {
+  key: string;
+  src: string;
+  title: string;
+  detail?: string;
+  photoId?: string;
+  runId?: string;
+  stopId?: string;
+  afterCount?: number | null; // null = could not be looked up
+};
 type StoredPhoto = {
   id: string;
   at: string;
   runId: string;
   stopId: string;
   crewId: string;
-  afterCount: number;
+  afterCount: number | null;
   suggested: Level | null;
   confirmed: Level | null;
   confirmedAt: string | null;
@@ -76,6 +85,8 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
             key: `p-${p.id}`,
             photoId: p.id,
             afterCount: p.afterCount,
+            runId: p.runId,
+            stopId: p.stopId,
             src: `/api/review/image?id=${p.id}`,
             title: `Crew photo · ${p.stopId}`,
             detail: `${p.crewId} · ${p.runId} · ${new Date(p.at).toLocaleString()}`,
@@ -171,6 +182,12 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
       setAsks((m) => ({ ...m, [it.key]: { state: "error", msg: e instanceof Error ? e.message : "request failed" } }));
     }
   }
+
+  const otherBefores = removing
+    ? crewItems.filter((x) => x.key !== removing.key && x.runId === removing.runId && x.stopId === removing.stopId)
+        .length
+    : 0;
+  const afterWord = (n: number) => (n === 1 ? "" : `s (${n})`);
 
   function card(it: Item) {
     const n = it.key;
@@ -388,11 +405,19 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
           onCancel={() => setRemoving(null)}
         >
           <p style={{ margin: 0, lineHeight: 1.5 }}>
-            This deletes the BEFORE photo of {removing.title.replace("Crew photo · ", "")} and its confirmed label from
-            the DrainWise sample project. It cannot be undone. The job record, run history and records in the crew app
-            stay.
+            This deletes the BEFORE photo of {removing.stopId} (run {removing.runId}) and its confirmed label from the
+            DrainWise sample project. It cannot be undone. The job record, run history and records in the crew app stay.
           </p>
-          {(removing.afterCount ?? 0) > 0 ? (
+          {otherBefores > 0 ? (
+            <p style={{ margin: "12px 0 0", lineHeight: 1.5, color: "var(--fr-soft)" }}>
+              This job has {otherBefores} other BEFORE photo{otherBefores === 1 ? "" : "s"}, so its AFTER photo
+              {removing.afterCount === 1 ? "" : "s"} stay as work evidence.
+            </p>
+          ) : removing.afterCount === 0 ? (
+            <p style={{ margin: "12px 0 0", lineHeight: 1.5, color: "var(--fr-soft)" }}>
+              This job has no AFTER photo stored, so nothing else is deleted.
+            </p>
+          ) : (
             <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12, lineHeight: 1.5 }}>
               <input
                 type="checkbox"
@@ -401,17 +426,14 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
                 style={{ width: 20, height: 20, marginTop: 2, flex: "none" }}
               />
               <span>
-                Also delete the AFTER photo of the same job ({removing.detail?.split(" · ")[1] ?? "this run"},{" "}
-                {removing.title.replace("Crew photo · ", "")}).{" "}
+                Also delete the AFTER photo
+                {typeof removing.afterCount === "number" ? afterWord(removing.afterCount) : ""} of the same job
+                {removing.afterCount === null ? " (could not check whether there is one)" : ""}.{" "}
                 {alsoAfter
                   ? "The after photo file is deleted too."
                   : "The after photo stays as work evidence and is not shown here."}
               </span>
             </label>
-          ) : (
-            <p style={{ margin: "12px 0 0", lineHeight: 1.5, color: "var(--fr-soft)" }}>
-              This job has no AFTER photo stored, so nothing else is deleted.
-            </p>
           )}
         </ConfirmDialog>
       )}
