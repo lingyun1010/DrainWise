@@ -15,10 +15,8 @@ function mockStore(rows: PairRow[], fail: { objects?: boolean; rows?: boolean; l
   const files = new Set(rows.map((r) => r.path));
   const store: PhotoStore = {
     getRow: async (id) => table.get(id) ?? null,
-    findAfters: async (run, stop) =>
-      fail.lookup
-        ? null
-        : [...table.values()].filter((r) => r.run_id === run && r.stop_id === stop && r.kind === "after"),
+    findJob: async (run, stop) =>
+      fail.lookup ? null : [...table.values()].filter((r) => r.run_id === run && r.stop_id === stop),
     removeObjects: async (paths) => {
       if (fail.objects) return false;
       for (const p of paths) files.delete(p);
@@ -30,8 +28,15 @@ function mockStore(rows: PairRow[], fail: { objects?: boolean; rows?: boolean; l
       return true;
     },
   };
-  // an orphan is a file with no row or a row with no file
+  // an orphan is a file with no row, a row with no file, or an after photo whose job has no before photo
   const orphans = () => [
+    ...[...table.values()]
+      .filter(
+        (r) =>
+          r.kind === "after" &&
+          ![...table.values()].some((b) => b.kind === "before" && b.run_id === r.run_id && b.stop_id === r.stop_id),
+      )
+      .map((r) => `after without before: ${r.path}`),
     ...[...files].filter((p) => ![...table.values()].some((r) => r.path === p)),
     ...[...table.values()].filter((r) => !files.has(r.path)).map((r) => r.path),
   ];
@@ -51,33 +56,34 @@ describe("deleteJobPhotos", () => {
   it("deletes the before photo and the after photo of the same job, nothing else, no orphans", async () => {
     const m = mockStore(seed);
     const res = await deleteJobPhotos(m.store, "b1", true);
-    expect(res).toEqual({ ok: true, before: 1, after: 1 });
+    expect(res).toEqual({ ok: true, before: 1, after: 1, afterKept: 0 });
     expect([...m.table.keys()].sort()).toEqual(["a2", "a3", "b2", "b3"]);
     expect(m.orphans()).toEqual([]);
   });
 
   it("keeps the after photo when withAfter is false (evidence stays, files and rows still pair)", async () => {
     const m = mockStore(seed);
-    expect(await deleteJobPhotos(m.store, "b1", false)).toEqual({ ok: true, before: 1, after: 0 });
+    expect(await deleteJobPhotos(m.store, "b1", false)).toEqual({ ok: true, before: 1, after: 0, afterKept: 1 });
     expect(m.table.has("a1")).toBe(true);
-    expect(m.orphans()).toEqual([]);
+    // chosen on purpose: file and row still pair, the after photo is kept as evidence
+    expect(m.orphans()).toEqual(["after without before: r1/GPT-001/after-a1.jpg"]);
   });
 
   it("deleting an after photo removes only that photo", async () => {
     const m = mockStore(seed);
-    expect(await deleteJobPhotos(m.store, "a1", true)).toEqual({ ok: true, before: 0, after: 1 });
+    expect(await deleteJobPhotos(m.store, "a1", true)).toEqual({ ok: true, before: 0, after: 1, afterKept: 0 });
     expect(m.table.has("b1")).toBe(true);
   });
 
   it("removes every after photo of the job if there are several", async () => {
     const m = mockStore([...seed, row("a1b", "r1", "GPT-001", "after")]);
-    expect(await deleteJobPhotos(m.store, "b1", true)).toEqual({ ok: true, before: 1, after: 2 });
+    expect(await deleteJobPhotos(m.store, "b1", true)).toEqual({ ok: true, before: 1, after: 2, afterKept: 0 });
     expect(m.orphans()).toEqual([]);
   });
 
   it("works for a job with no after photo", async () => {
     const m = mockStore([row("b9", "r9", "GPT-009", "before")]);
-    expect(await deleteJobPhotos(m.store, "b9", true)).toEqual({ ok: true, before: 1, after: 0 });
+    expect(await deleteJobPhotos(m.store, "b9", true)).toEqual({ ok: true, before: 1, after: 0, afterKept: 0 });
     expect(m.table.size).toBe(0);
   });
 
@@ -101,12 +107,24 @@ describe("deleteJobPhotos", () => {
     expect(m.orphans()).toEqual([]);
   });
 
-  it("a retry after a row failure finishes the job", async () => {
-    const m = mockStore(seed, { rows: true });
+  it("a retry after a row failure finishes the job (files are already gone)", async () => {
+    const fail = { rows: true };
+    const m = mockStore(seed, fail);
     expect(await deleteJobPhotos(m.store, "b1", true)).toEqual({ ok: false, reason: "rows_failed" });
-    // rows still there, files gone: the retry must still succeed
-    const retry = mockStore([...m.table.values()]);
-    expect(await deleteJobPhotos(retry.store, "b1", true)).toMatchObject({ ok: true });
+    expect(m.files.has("r1/GPT-001/before-b1.jpg")).toBe(false); // files removed, rows kept
+    fail.rows = false;
+    expect(await deleteJobPhotos(m.store, "b1", true)).toMatchObject({ ok: true, before: 1, after: 1 });
+    expect(m.orphans()).toEqual([]);
+  });
+
+  it("keeps the after photos while another before photo of the job remains", async () => {
+    const m = mockStore([...seed, row("b1b", "r1", "GPT-001", "before")]);
+    expect(await deleteJobPhotos(m.store, "b1", true)).toEqual({ ok: true, before: 1, after: 0, afterKept: 1 });
+    expect(m.table.has("a1")).toBe(true);
+    expect(m.orphans()).toEqual([]);
+    // deleting the last before photo now takes the after photo with it
+    expect(await deleteJobPhotos(m.store, "b1b", true)).toEqual({ ok: true, before: 1, after: 1, afterKept: 0 });
+    expect(m.orphans()).toEqual([]);
   });
 });
 

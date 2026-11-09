@@ -9,29 +9,33 @@ export type PairRow = { id: string; run_id: string; stop_id: string; kind: "befo
 
 export type PhotoStore = {
   getRow(id: string): Promise<PairRow | null>;
-  // after photos of the same run and stop
-  findAfters(runId: string, stopId: string): Promise<PairRow[] | null>;
+  // every photo (before and after) of the same run and stop; null if the lookup failed
+  findJob(runId: string, stopId: string): Promise<PairRow[] | null>;
   removeObjects(paths: string[]): Promise<boolean>;
   removeRows(ids: string[]): Promise<boolean>;
 };
 
 export type DeleteResult =
-  | { ok: true; before: number; after: number }
+  | { ok: true; before: number; after: number; afterKept: number }
   | { ok: false; reason: "not_found" | "storage_failed" | "lookup_failed" | "rows_failed" };
 
-// Deletes the photo `id`. For a before photo with withAfter true, the after photo(s) of the same job go too.
-// Order: look up everything first, then remove files, then rows. A failed step stops the run, so a file is
-// never removed while its row is kept without the caller knowing, and a retry finishes the job (removing
-// an already-missing file is a no-op).
+// Deletes the photo `id`. The after photos of the job go too only when withAfter is true AND this is the
+// last before photo of the job (a stop can have several before photos after a retry; while another one
+// remains, the evidence stays with it). Order: look up everything first, then remove files, then rows. A
+// failed step stops the run; a retry finishes the job (removing an already-missing file is a no-op).
 export async function deleteJobPhotos(store: PhotoStore, id: string, withAfter: boolean): Promise<DeleteResult> {
   const row = await store.getRow(id);
   if (!row) return { ok: false, reason: "not_found" };
 
   const targets: PairRow[] = [row];
-  if (withAfter && row.kind === "before") {
-    const afters = await store.findAfters(row.run_id, row.stop_id);
-    if (!afters) return { ok: false, reason: "lookup_failed" };
-    for (const a of afters) if (a.kind === "after" && !targets.some((t) => t.id === a.id)) targets.push(a);
+  let afterKept = 0;
+  if (row.kind === "before") {
+    const job = await store.findJob(row.run_id, row.stop_id);
+    if (!job) return { ok: false, reason: "lookup_failed" };
+    const afters = job.filter((r) => r.kind === "after");
+    const otherBefores = job.filter((r) => r.kind === "before" && r.id !== id);
+    if (withAfter && otherBefores.length === 0) targets.push(...afters);
+    else afterKept = afters.length;
   }
 
   if (!(await store.removeObjects(targets.map((t) => t.path)))) return { ok: false, reason: "storage_failed" };
@@ -40,6 +44,7 @@ export async function deleteJobPhotos(store: PhotoStore, id: string, withAfter: 
     ok: true,
     before: targets.filter((t) => t.kind === "before").length,
     after: targets.filter((t) => t.kind === "after").length,
+    afterKept,
   };
 }
 
