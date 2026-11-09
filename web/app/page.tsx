@@ -612,6 +612,9 @@ export default function Home() {
         <Link className="fr-btn fr-sec" href="/model" style={{ textDecoration: "none" }}>
           How the model works
         </Link>
+        <Link className="fr-btn fr-sec" href="/report" style={{ textDecoration: "none" }}>
+          Email report
+        </Link>
         <span className="fr-recnote">Photo review uses mock AI unless a key is set.</span>
       </div>
       {records.length === 0 ? (
