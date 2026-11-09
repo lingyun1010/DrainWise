@@ -167,7 +167,9 @@ body {
   padding: 20px;
   border-radius: 28px;
   border: 3px solid #2d6182;
-  background: #102f45;
+  background: rgba(11, 31, 48, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: #eaf6fb;
   font-family: inherit;
   cursor: pointer;
@@ -175,7 +177,7 @@ body {
 .fr-card:hover {
   transform: translateY(-4px) rotate(-1deg);
   border-color: #4fc3e8;
-  background: #14405c;
+  background: rgba(20, 64, 92, 0.85);
 }
 .fr-cardhi {
   border-color: #ff8a4c;
@@ -740,14 +742,14 @@ body {
   .fr-card:hover {
     transform: scale(1.03);
     border-color: #4fc3e8;
-    background: #14405c;
+    background: rgba(20, 64, 92, 0.85);
   }
 }
 @media (hover: none) {
   .fr-card:hover {
     transform: none;
     border-color: #2d6182;
-    background: #102f45;
+    background: rgba(11, 31, 48, 0.78);
   }
   .fr-cardhi:hover {
     border-color: #ff8a4c;
@@ -756,7 +758,7 @@ body {
 .fr-card:active {
   transform: scale(0.98);
   border-color: #4fc3e8;
-  background: #14405c;
+  background: rgba(20, 64, 92, 0.85);
 }
 .fr-cardhi:active {
   border-color: #ffa06b;
