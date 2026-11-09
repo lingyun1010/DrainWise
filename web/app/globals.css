@@ -1073,6 +1073,9 @@ html:has(.fr-role) body {
   .fr-cards .fr-card {
     width: auto;
     height: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
   .fr-cardm {
     grid-column: 1;
