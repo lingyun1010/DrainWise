@@ -21,6 +21,8 @@
 
 html {
   background: #0b2233;
+  color-scheme: dark; /* dark scrollbars and overscroll, no white edge */
+  overscroll-behavior: none;
 }
 
 body {
@@ -538,7 +540,11 @@ body {
     border: 0 !important;
     border-radius: 0 !important;
     min-height: 100vh !important;
+    min-height: 100dvh !important;
     padding-top: max(22px, env(safe-area-inset-top)) !important;
+    padding-left: max(18px, env(safe-area-inset-left)) !important;
+    padding-right: max(18px, env(safe-area-inset-right)) !important;
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
   }
 }
 

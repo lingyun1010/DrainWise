@@ -405,7 +405,7 @@ export default function Home() {
     const t = sydneyClock();
     const msg =
       stops.length > 1
-        ? `${target.name} sent on a run: ${stops.length} stops, ${total.toFixed(1)} of ${capacity.toFixed(1)} m³ (estimated).`
+        ? `${target.name} sent on a run: ${stops.map((s) => s.id).join(", ")} (${stops.length} stops), ${total.toFixed(1)} of ${capacity.toFixed(1)} m³ (estimated).`
         : `${target.name} sent to ${stops[0].id}.`;
     // eslint-disable-next-line react-hooks/purity -- startRun only runs from click handlers, never during render
     const runId = `run-${Date.now()}`;
