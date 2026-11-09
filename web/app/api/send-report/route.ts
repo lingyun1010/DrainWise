@@ -25,11 +25,6 @@ export async function POST(request: Request) {
   if (!validAddress(body.to)) return Response.json({ error: "Enter one valid email address." }, { status: 400 });
   const force = (FORCES as readonly string[]).includes(body.force ?? "") ? (body.force as Force) : "bom";
 
-  const client = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
-  if (!perClient(client) || !overall("all")) {
-    return Response.json({ error: "Too many reports this hour. Try again later." }, { status: 429 });
-  }
-
   const p = await previewReport(force, lastSent());
   if (!p.ok) return Response.json({ error: p.error }, { status: p.status });
   const { decision, report } = p.value;
@@ -40,6 +35,12 @@ export async function POST(request: Request) {
       rule: decision.kind,
       reason: "Storm report has no GPT to list, so nothing was sent.",
     });
+  }
+
+  // Counted only when a mail is really about to go out, so a "nothing to send" answer does not use up the quota.
+  const client = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
+  if (!perClient(client) || !overall("all")) {
+    return Response.json({ error: "Too many reports this hour. Try again later." }, { status: 429 });
   }
 
   const masked = maskAddress(body.to);
