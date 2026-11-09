@@ -64,10 +64,10 @@ Owner decisions after the session:
 
 Sliced 2026-11-09 into ticket files, in build order:
 
-1. [20](issues/20-risk-target-70-band.md): risk target = net reaches the 70% band within 1 / 7 days (ready-for-agent).
+1. [20](issues/20-risk-target-70-band.md): risk target relabel: dropped by the owner (Forecast day slider already covers 1 to 7 days).
 2. [21](issues/21-synthetic-image-generator.md): synthetic image generator (ready-for-agent).
 3. [22](issues/22-image-reading-fullness-damage.md): image reading with fullness band, damage, location, annotated image; blocked by 21 (ready-for-agent). Relates to 13, 17, 18.
-4. [23](issues/23-trigger-email-report.md): trigger email/report, Gmail SMTP, storm rule; blocked by 20 (needs-info: Gmail limit, owner's app password).
+4. [23](issues/23-trigger-email-report.md): risk trigger email: storm in forecast gives a 1-day report the day before, otherwise one 7-day report per week; Gmail SMTP; not blocked (open: Gmail limit, owner's app password, storm threshold).
 5. [24](issues/24-copy-and-scope-pass.md): copy and scope pass, includes the camera-count check (ready-for-agent).
 6. Ticket 15 (demo rehearsal) and the ticket 12 leftovers stay last.
 

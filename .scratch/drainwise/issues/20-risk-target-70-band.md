@@ -1,7 +1,7 @@
 # 20: Risk target = net reaches the 70% band within 1 / 7 days
 
 Type: task
-Status: ready-for-agent
+Status: wontfix (owner, 2026-11-09: the dashboard Forecast day slider already scores Today to In 6 days, see `planner/src/horizon.ts`; relabelling `p_block` is not needed now)
 Blocked by: None
 Spec: `.scratch/drainwise/map.md` ("Council session 9 Nov 2026"); `CLAUDE.md` section 8
 
