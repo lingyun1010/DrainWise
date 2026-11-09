@@ -69,7 +69,8 @@ Sliced 2026-11-09 into ticket files, in build order:
 3. [22](issues/22-image-reading-fullness-damage.md): image reading with fullness band, damage, location, annotated image; blocked by 21 (ready-for-agent). Relates to 13, 17, 18.
 4. [23](issues/23-trigger-email-report.md): risk trigger email: storm in forecast gives a 1-day report the day before, otherwise one 7-day report per week; Gmail SMTP; not blocked (open: Gmail limit, owner's app password, storm threshold).
 5. [24](issues/24-copy-and-scope-pass.md): copy and scope pass, includes the camera-count check (ready-for-agent).
-6. Ticket 15 (demo rehearsal) and the ticket 12 leftovers stay last.
+6. More tickets (2026-11-09, found while reviewing the map): [25](issues/25-privacy-gate-faces-plates.md) face and plate gate; [26](issues/26-map3d-parity.md) 3D view parity; [27](issues/27-photo-delete-cascade.md) photo delete pairs; [28](issues/28-ui-leftovers.md) UI leftovers (after 23 and 24 merge).
+7. Ticket 15 (demo rehearsal) and the ticket 12 leftovers stay last.
 
 Still waiting on the 13 Nov answers (see 01-expert-questions.md).
 
