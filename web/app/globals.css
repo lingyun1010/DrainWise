@@ -982,9 +982,27 @@ html:has(.fr-role) body {
   .fr-leaf:nth-child(n + 13) {
     display: none;
   }
+  /* Phone: the skyline sits behind the logo and intro and scrolls with them; leaves stay fixed. */
+  .fr-bg {
+    position: static;
+    overflow: visible;
+  }
+  .fr-leaves {
+    position: fixed;
+  }
   .fr-sky {
-    opacity: 0.35;
-    height: 200px;
+    top: 150px;
+    bottom: auto;
+    height: 210px;
+    opacity: 0.4;
+  }
+  .fr-water {
+    top: 360px;
+    bottom: auto;
+    height: 36px;
+  }
+  .fr-cardhi {
+    order: 3;
   }
 }
 

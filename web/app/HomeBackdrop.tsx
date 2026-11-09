@@ -9,7 +9,7 @@ import type { CSSProperties } from "react";
  */
 
 const LEAF_COUNT = 22; // phones show the first 12 (CSS)
-const LEAF_COLOURS = ["#FF8A4C", "#FFD27A", "#E8651F", "#F2A33A", "#FFB38A", "#C8501A"];
+const LEAF_COLOURS = ["#FF8A4C", "#FFD27A", "#FFB38A"]; // existing palette only
 
 function rnd(i: number, k: number, min: number, max: number): number {
   const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453;
@@ -24,7 +24,7 @@ const LEAVES = Array.from({ length: LEAF_COUNT }, (_, i) => {
     style: {
       "--x": `${rnd(i, 1, 0, 98)}%`,
       "--s": `${rnd(i, 2, 14, 30)}px`,
-      "--o": rnd(i, 3, 0.55, 0.95),
+      "--o": rnd(i, 3, 0.4, 0.7),
       "--fd": `${rnd(i, 4, 10, 19)}s`,
       "--fl": `${-rnd(i, 5, 0, 19)}s`,
       "--sw": `${rnd(i, 6, 14, 40)}px`,

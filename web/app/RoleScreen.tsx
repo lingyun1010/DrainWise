@@ -76,23 +76,6 @@ export default function RoleScreen({
           <span className="fr-ct">Manager</span>
           <span className="fr-cd">See risk across the whole map and send crews.</span>
         </button>
-        <button type="button" className="fr-card fr-cardc" onClick={onCrew}>
-          <svg className="fr-face fr-face-b" width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
-            {FACE}
-            <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
-            <circle cx="11" cy="8" r="3" fill="#FFB38A" />
-            <path
-              d="M-19 -3 a19 17 0 0 1 38 0 Z"
-              fill="#FF8A4C"
-              stroke="#0B2233"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-            />
-            <rect x="-22" y="-4" width="44" height="6" rx="3" fill="#FF8A4C" stroke="#0B2233" strokeWidth="2" />
-          </svg>
-          <span className="fr-ct">Crew (phone)</span>
-          <span className="fr-cd">Get a run, photograph before and after, mark each stop cleaned.</span>
-        </button>
         <button type="button" className="fr-card fr-cardhi" onClick={onSplit}>
           <svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true">
             <g transform="translate(24,24)">
@@ -110,6 +93,23 @@ export default function RoleScreen({
           </svg>
           <span className="fr-ct">Side-by-side demo</span>
           <span className="fr-cd">Manager map and crew phone together. For demonstration.</span>
+        </button>
+        <button type="button" className="fr-card fr-cardc" onClick={onCrew}>
+          <svg className="fr-face fr-face-b" width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
+            {FACE}
+            <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
+            <circle cx="11" cy="8" r="3" fill="#FFB38A" />
+            <path
+              d="M-19 -3 a19 17 0 0 1 38 0 Z"
+              fill="#FF8A4C"
+              stroke="#0B2233"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+            />
+            <rect x="-22" y="-4" width="44" height="6" rx="3" fill="#FF8A4C" stroke="#0B2233" strokeWidth="2" />
+          </svg>
+          <span className="fr-ct">Crew (phone)</span>
+          <span className="fr-cd">Get a run, photograph before and after, mark each stop cleaned.</span>
         </button>
       </div>
       <RoomChip />
