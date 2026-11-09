@@ -683,6 +683,10 @@ body {
   .fr-side input[type="range"] {
     height: 40px;
   }
+}
+
+/* Phones (under 768px): role screen stacks the three cards as full-width rows. */
+@media (max-width: 767px) {
   .fr-role {
     justify-content: flex-start !important;
     gap: 16px !important;
@@ -696,10 +700,11 @@ body {
     font-size: 14px !important;
   }
   .fr-cards {
+    display: flex;
     flex-direction: column;
     flex-wrap: nowrap !important;
     width: 100%;
-    gap: 12px !important;
+    gap: 20px !important;
   }
   .fr-card {
     display: grid;
@@ -853,4 +858,254 @@ html:has(.fr-role) body {
 .fr-map-full .fr-legend {
   max-height: 38dvh;
   overflow-y: auto;
+}
+
+/* ---- Role screen: backdrop (leaves, skyline, water), avatar wobble, wide layout ---- */
+.fr-role > :not(.fr-bg) {
+  position: relative;
+  z-index: 1;
+}
+.fr-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.fr-sky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 34px;
+  height: 260px;
+  opacity: 0.6;
+}
+.fr-role > p:last-child,
+.fr-role > :nth-last-child(2) {
+  text-shadow: 0 1px 6px #0b2233;
+}
+.fr-sky svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fr-water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #14486a, #0f3a55);
+}
+.fr-water i {
+  position: absolute;
+  left: -20%;
+  width: 140%;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(79, 195, 232, 0.35);
+  animation: fr-flow 7s ease-in-out infinite alternate;
+}
+.fr-water i:nth-child(1) {
+  top: 4px;
+}
+.fr-water i:nth-child(2) {
+  top: 16px;
+  background: rgba(79, 195, 232, 0.22);
+  animation-duration: 10s;
+  animation-direction: alternate-reverse;
+}
+.fr-water i:nth-child(3) {
+  top: 28px;
+  background: rgba(79, 195, 232, 0.15);
+  animation-duration: 13s;
+}
+@keyframes fr-flow {
+  from {
+    transform: translateX(-8%);
+  }
+  to {
+    transform: translateX(8%);
+  }
+}
+.fr-leaves {
+  position: absolute;
+  inset: 0;
+}
+.fr-leaf {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  width: var(--s);
+  height: var(--s);
+  opacity: var(--o);
+  will-change: transform;
+  animation: fr-fall var(--fd) linear var(--fl) infinite;
+}
+.fr-leafsway {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: fr-sway var(--sd) ease-in-out var(--sl) infinite alternate;
+}
+.fr-leafspin {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: fr-spin var(--rd) ease-in-out infinite alternate;
+}
+@keyframes fr-fall {
+  from {
+    transform: translateY(-60px);
+  }
+  to {
+    transform: translateY(calc(100vh + 60px));
+  }
+}
+@keyframes fr-sway {
+  from {
+    transform: translateX(calc(var(--sw) * -1));
+  }
+  to {
+    transform: translateX(var(--sw));
+  }
+}
+@keyframes fr-spin {
+  from {
+    transform: rotate(var(--r0));
+  }
+  to {
+    transform: rotate(var(--r1));
+  }
+}
+@media (max-width: 767px) {
+  .fr-leaf:nth-child(n + 13) {
+    display: none;
+  }
+  /* Phone: the skyline sits behind the logo and intro and scrolls with them; leaves stay fixed. */
+  .fr-bg {
+    position: static;
+    overflow: visible;
+  }
+  .fr-leaves {
+    position: fixed;
+  }
+  .fr-sky {
+    top: 150px;
+    bottom: auto;
+    height: 210px;
+    opacity: 0.4;
+  }
+  .fr-water {
+    top: 360px;
+    bottom: auto;
+    height: 36px;
+  }
+  .fr-cardhi {
+    order: 3;
+  }
+}
+
+/* Logo sways up and down; avatars shake a little, each on its own rhythm. */
+.fr-rolemascot {
+  animation: fr-bob 3.2s ease-in-out infinite;
+}
+@keyframes fr-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+}
+.fr-face {
+  transform-origin: 50% 90%;
+}
+.fr-face-g {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+}
+.fr-face-a {
+  animation: fr-jit 1.9s ease-in-out infinite;
+}
+.fr-face-b {
+  animation: fr-jit 2.4s ease-in-out -0.7s infinite;
+}
+.fr-face-c {
+  animation: fr-jit 2.1s ease-in-out -1.1s infinite;
+}
+.fr-face-d {
+  animation: fr-jit 2.7s ease-in-out -0.4s infinite;
+}
+@keyframes fr-jit {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  15% {
+    transform: translate(1.5px, -2px) rotate(-2.2deg);
+  }
+  30% {
+    transform: translate(-1px, 0) rotate(1.8deg);
+  }
+  45% {
+    transform: translate(1px, -3px) rotate(-1deg);
+  }
+  60% {
+    transform: translate(-1.5px, -1px) rotate(2.4deg);
+  }
+  80% {
+    transform: translate(0.5px, -2px) rotate(-1.6deg);
+  }
+}
+
+/* Wide screens (768px and up): centred, 980px max, three cards in a row, Side-by-side in the middle and a bit bigger. */
+@media (min-width: 768px) {
+  .fr-cards {
+    display: grid;
+    grid-template-columns: 1fr 1.18fr 1fr;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 980px;
+  }
+  .fr-cards .fr-card {
+    width: auto;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .fr-cardm {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .fr-cardhi {
+    grid-column: 2;
+    grid-row: 1;
+    padding: 28px 24px;
+  }
+  .fr-cardc {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .fr-cardhi .fr-ct {
+    font-size: 22px;
+  }
+  .fr-cardhi svg {
+    width: 128px;
+    height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fr-leaves {
+    display: none;
+  }
+  .fr-role *,
+  .fr-bg * {
+    animation: none !important;
+  }
 }

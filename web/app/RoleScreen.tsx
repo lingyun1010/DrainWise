@@ -1,4 +1,5 @@
 import Image from "next/image";
+import HomeBackdrop from "./HomeBackdrop";
 import RoomChip from "./RoomChip";
 
 const FACE = (
@@ -30,11 +31,12 @@ export default function RoleScreen({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "safe center",
         gap: 24,
         padding: "32px 20px",
       }}
     >
+      <HomeBackdrop />
       <div style={{ textAlign: "center", maxWidth: 720 }}>
         <Image
           className="fr-rolemascot"
@@ -57,17 +59,14 @@ export default function RoleScreen({
         </h1>
         <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
         <p className="fr-intro" style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
-          Leaves block gross pollutant traps (GPTs), and most of them have no camera. DrainWise predicts which ones are
-          about to block and tells crews where to go first. Crews fill the truck on one run, and every job is closed
-          with proof: a camera check or before and after photos. Pick a role to start. No sign-in needed.
+          Checking drains by hand is slow, and most Parramatta gross pollutant traps (GPTs) have no camera. DrainWise
+          uses AI to predict which ones will block next, so crews clean the right ones first and keep pollution out of
+          the river. Every job is closed with proof. Pick a role to start. No sign-in needed.
         </p>
       </div>
-      <div
-        className="fr-cards"
-        style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", maxWidth: 1000 }}
-      >
-        <button type="button" className="fr-card" onClick={onManager}>
-          <svg width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
+      <div className="fr-cards">
+        <button type="button" className="fr-card fr-cardm" onClick={onManager}>
+          <svg className="fr-face fr-face-a" width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
             {FACE}
             <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
             <circle cx="11" cy="8" r="3" fill="#FFB38A" />
@@ -76,8 +75,26 @@ export default function RoleScreen({
           <span className="fr-ct">Manager</span>
           <span className="fr-cd">See risk across the whole map and send crews.</span>
         </button>
-        <button type="button" className="fr-card" onClick={onCrew}>
-          <svg width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
+        <button type="button" className="fr-card fr-cardhi" onClick={onSplit}>
+          <svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true">
+            <g transform="translate(24,24)">
+              <g className="fr-face-g fr-face-c">
+                {FACE}
+                <path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#FFD27A" stroke="#0B2233" strokeWidth="2.5" />
+              </g>
+            </g>
+            <g transform="translate(66,24)">
+              <g className="fr-face-g fr-face-d">
+                {FACE}
+                <path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#7ED9A3" stroke="#0B2233" strokeWidth="2.5" />
+              </g>
+            </g>
+          </svg>
+          <span className="fr-ct">Side-by-side demo</span>
+          <span className="fr-cd">Manager map and crew phone together. For demonstration.</span>
+        </button>
+        <button type="button" className="fr-card fr-cardc" onClick={onCrew}>
+          <svg className="fr-face fr-face-b" width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
             {FACE}
             <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
             <circle cx="11" cy="8" r="3" fill="#FFB38A" />
@@ -92,20 +109,6 @@ export default function RoleScreen({
           </svg>
           <span className="fr-ct">Crew (phone)</span>
           <span className="fr-cd">Get a run, photograph before and after, mark each stop cleaned.</span>
-        </button>
-        <button type="button" className="fr-card fr-cardhi" onClick={onSplit}>
-          <svg width="96" height="48" viewBox="0 0 96 48" aria-hidden="true">
-            <g transform="translate(24,24)">
-              {FACE}
-              <path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#FFD27A" stroke="#0B2233" strokeWidth="2.5" />
-            </g>
-            <g transform="translate(66,24)">
-              {FACE}
-              <path d="M-19 -3 a19 17 0 0 1 38 0 Z" fill="#7ED9A3" stroke="#0B2233" strokeWidth="2.5" />
-            </g>
-          </svg>
-          <span className="fr-ct">Side-by-side demo</span>
-          <span className="fr-cd">Manager map and crew phone together. Best for judges.</span>
         </button>
       </div>
       <RoomChip />
