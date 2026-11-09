@@ -700,10 +700,11 @@ body {
     font-size: 14px !important;
   }
   .fr-cards {
+    display: flex;
     flex-direction: column;
     flex-wrap: nowrap !important;
     width: 100%;
-    gap: 12px !important;
+    gap: 20px !important;
   }
   .fr-card {
     display: grid;
