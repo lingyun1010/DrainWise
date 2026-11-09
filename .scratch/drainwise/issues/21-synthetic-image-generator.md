@@ -7,12 +7,12 @@ Spec: `.scratch/drainwise/map.md`; relates to tickets 13, 17, 18
 
 ## What to build
 
-A script `python -m ml.synth_images` that writes synthetic camera-style images of a GPT net: a clean reference, 10 fullness bands (0-9% ... 90-100%), net broken, net fallen off. Experts accepted synthetic data. Real camera images may not arrive in time.
+A script `python -m ml.synth_images` that edits the 7 council sample photos (one per camera, cam-01 to cam-07; owner decision 2026-11-09, the first drawn-scene version looked fake). Per camera: 1 clean reference, 10 fullness bands x 5, net broken x 5, net fallen x 5 (61 per camera, 427 in all). Experts accepted synthetic data. Real camera images may not arrive in time.
 
 ## Decisions
 
 - Every output file and every UI use says "synthetic". Filenames carry `synthetic`; a metadata JSON records seed, band, damage type, generator version.
-- Start by looking at the 7 sample photos in `.local/sample-photos/` for a usable base (same camera angle). If none is usable, draw the scene procedurally (Pillow). Do not commit council photos.
+- Real photos only (the 7 in `.local/sample-photos/`); the net area in each is a hand-marked polygon. Do not commit council photos or outputs.
 - Output goes to a gitignored folder; only a few small examples (if any) may be committed, after the owner agrees.
 
 ## Acceptance criteria

@@ -15,6 +15,6 @@ Make the product match the 9 Nov decisions.
 - [ ] "Crew" stays in the phone flow, but copy says the run is a suggestion for the contractor, who picks the day and people.
 - [ ] Truck capacity default 3 m3, labelled "assumption". No dollar figures anywhere.
 - [ ] A "How it works" page or dialog: what the score means (70% full within 7 days, sample data), what the planner does step by step, what is simulated.
-- [ ] Count `has_camera` in `web/lib/seed.ts` (experts said 8 to 10 cameras; seed currently uses `rnd() < 0.3`) and set it to a fixed, documented number if it differs.
+- [ ] `has_camera` in `web/lib/seed.ts` is exactly 7 of the 36 GPTs (owner decision 2026-11-09; seed currently uses `rnd() < 0.3`), camera k = sample photo k = `cam-0k` of ticket 21. Update the ticket 17 photo mapping and `ml/sample_assets.json` (planner drift test), re-run `export_scores`.
 - [ ] Copy follows the UI consistency list: English, short, no emoji, "sample data".
 - [ ] tsc, eslint, prettier; checked at desktop and 375px.
