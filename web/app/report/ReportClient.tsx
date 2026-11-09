@@ -95,7 +95,7 @@ export default function ReportClient() {
         setResult({ ok: true, msg: `Nothing sent. ${data.reason}` });
       }
     } catch (e) {
-      setResult({ ok: false, msg: e instanceof Error ? e.message : "request failed" });
+      setResult({ ok: false, msg: `Could not send: ${e instanceof Error ? e.message : "request failed"}` });
     } finally {
       setSending(false);
     }
@@ -136,6 +136,7 @@ export default function ReportClient() {
             <label key={f.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
               <input
                 type="radio"
+                style={{ marginTop: 2, width: 20, height: 20, accentColor: "#4FC3E8", flexShrink: 0 }}
                 name="force"
                 checked={force === f.id}
                 onChange={() => {
@@ -143,7 +144,6 @@ export default function ReportClient() {
                   setAsk({ state: "idle" }); // a preview belongs to one choice; preview again before sending
                   setResult(null);
                 }}
-                style={{ marginTop: 4 }}
               />
               <span>
                 {f.label}
@@ -177,6 +177,11 @@ export default function ReportClient() {
             {sending ? "Sending" : "Send report"}
           </button>
         </div>
+        {!p && (
+          <div style={{ color: "var(--fr-mute)", fontSize: 14 }}>
+            Preview first. Send turns on when there is something to send and the address is valid.
+          </div>
+        )}
         {!willSend && p && (
           <div style={{ color: "var(--fr-mute)", fontSize: 14 }}>
             Send is off because the last preview has nothing to send.
@@ -224,6 +229,7 @@ export default function ReportClient() {
               )}
               <pre
                 tabIndex={0}
+                role="region"
                 aria-label="Email body"
                 style={{
                   whiteSpace: "pre-wrap",
