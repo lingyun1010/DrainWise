@@ -93,6 +93,12 @@ describe("readImage (stand-in images, a pipeline check, not accuracy)", () => {
     expect(r.region![0]).toBeGreaterThanOrEqual(100);
   });
 
+  it("does not call a change outside the net a fallen net", () => {
+    const passer = px((x, y) => (x >= 105 && x < 150 && y >= 50 && y < 110 ? [200, 30, 30] : mesh(x, y)), 1, 7);
+    const r = readImage(reference, passer, NET);
+    expect(r.damage).not.toBe("net_fallen");
+  });
+
   it("rejects images of different size and empty nets", () => {
     expect(() => readImage(reference, { ...reference, width: 10 }, NET)).toThrow();
     expect(() =>

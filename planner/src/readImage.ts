@@ -169,8 +169,9 @@ export function readImage(reference: Pixels, today: Pixels, net: readonly Point[
 
   const base = { changedFraction: Math.round(insideFrac * 1000) / 1000 };
 
-  // Net fallen: a lot changed OUTSIDE the net area (the net now sits somewhere else).
-  if (outsideFrac > 0.25) {
+  // Net fallen: the net area itself changed AND a lot changed OUTSIDE it (the net now sits somewhere else).
+  // Requiring both keeps a person or a car passing by (change outside only) from reading as a fallen net.
+  if (outsideFrac > 0.25 && insideFrac > 0.1) {
     const region = boxOf(changed, w, outNet, full);
     return {
       ...base,
@@ -188,7 +189,7 @@ export function readImage(reference: Pixels, today: Pixels, net: readonly Point[
 
   // Net broken: a compact dark patch (a hole) inside the net, not a fill from the bottom.
   const holeBox = boxOf(
-    changed.map((v, p) => (v && gray(today.data, p * 4) / gain < 24 ? 1 : 0)) as unknown as Uint8Array,
+    changed.map((v, p) => (v && gray(today.data, p * 4) / gain < 24 ? 1 : 0)),
     w,
     inNet,
     box,

@@ -39,17 +39,27 @@ export default function CameraView({ assetId }: { assetId: string }) {
       live = false;
     };
   }, [assetId]);
-  if (failed) return <p style={{ margin: "0 0 12px" }}>Camera reading not available. The crew confirms on site.</p>;
-  if (!r) return <p style={{ margin: "0 0 12px", color: "#8FB8CC" }}>Loading the camera reading (sample data)...</p>;
+  if (failed)
+    return (
+      <p role="status" style={{ margin: "0 0 12px" }}>
+        Camera reading not available. The crew confirms on site.
+      </p>
+    );
+  if (!r)
+    return (
+      <p role="status" style={{ margin: "0 0 12px", color: "#8FB8CC" }}>
+        Loading the camera reading (sample data)...
+      </p>
+    );
   const ir = r.image_reading?.reading;
   if (!ir) {
     return (
       <section aria-label="Camera view" style={{ margin: "0 0 12px" }}>
         <div style={{ fontWeight: 700, fontSize: 16 }}>
-          Level {r.level} · {r.name}
+          Mock blockage level {r.level} · {r.name}
         </div>
         <div style={{ fontSize: 13, color: "#8FB8CC", marginTop: 4 }}>
-          Mock placeholder, not read from a photo. Prototype, no accuracy claim.
+          Mock placeholder (sample data), not read from a photo. Prototype, no accuracy claim.
         </div>
       </section>
     );
@@ -89,14 +99,14 @@ export default function CameraView({ assetId }: { assetId: string }) {
                   <path d="M0,0 L8,4 L0,8 z" fill="#FFFFFF" />
                 </marker>
               </defs>
-              <circle cx={a.circle.cx} cy={a.circle.cy} r={a.circle.r} fill="none" stroke="#FFFFFF" strokeWidth={5} />
+              <circle cx={a.circle.cx} cy={a.circle.cy} r={a.circle.r} fill="none" stroke="#FFFFFF" strokeWidth={9} />
               <circle
                 cx={a.circle.cx}
                 cy={a.circle.cy}
                 r={a.circle.r}
                 fill="none"
                 stroke="#0B2233"
-                strokeWidth={2}
+                strokeWidth={4}
                 strokeDasharray="10 8"
               />
               <line
@@ -105,11 +115,18 @@ export default function CameraView({ assetId }: { assetId: string }) {
                 x2={a.arrow.x2}
                 y2={a.arrow.y2}
                 stroke="#FFFFFF"
-                strokeWidth={5}
+                strokeWidth={9}
                 markerEnd="url(#cv-head)"
               />
-              <circle cx={a.arrow.x1} cy={a.arrow.y1} r={18} fill="#FFFFFF" />
-              <text x={a.arrow.x1} y={a.arrow.y1 + 8} textAnchor="middle" fontSize={24} fontWeight={800} fill="#0B2233">
+              <circle cx={a.arrow.x1} cy={a.arrow.y1} r={34} fill="#FFFFFF" />
+              <text
+                x={a.arrow.x1}
+                y={a.arrow.y1 + 15}
+                textAnchor="middle"
+                fontSize={46}
+                fontWeight={800}
+                fill="#0B2233"
+              >
                 {a.caption.n}
               </text>
             </svg>
@@ -117,11 +134,11 @@ export default function CameraView({ assetId }: { assetId: string }) {
         </div>
       )}
       <div style={{ fontSize: 13, color: "#8FB8CC", margin: "4px 0 8px" }}>
-        Synthetic image (an edit of a council sample photo), not a live camera.
+        Synthetic image (sample data: an edit of a council sample photo), not a live camera.
         {!imgOk && " The image is not available on this build; the reading is shown as text."}
       </div>
       <p style={{ margin: "0 0 8px" }}>
-        {imgOk && <strong>1. </strong>}
+        {imgOk && <strong aria-hidden="true">1. </strong>}
         {a ? a.caption.text : "No change against the clean reference."}
       </p>
       <div style={{ fontWeight: 700, fontSize: 16 }}>
