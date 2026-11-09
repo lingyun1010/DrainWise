@@ -103,10 +103,10 @@ When real records arrive, only the training data is swapped and the model retrai
 
 We need these from council experts. Until then everything stays sample data.
 
-1. Drain pit and GPT locations, even a sample or anonymised.
+1. GPT locations, even a sample or anonymised.
 2. How many GPTs and cameras there are, and how cameras are monitored today.
 3. Any cleaning or blockage history, and its format.
-4. Truck and bin volumes, typical load per inlet and per GPT, cost per clean, crews per day.
+4. Truck and bin volumes, typical load per GPT, cost per clean (not shown in the UI), crews per day.
 5. An existing work-order or inspection system to integrate with, and rules for photo evidence.
 6. Confirmation that **"GPT" means Gross Pollutant Trap.** We assume so; it is not confirmed.
 

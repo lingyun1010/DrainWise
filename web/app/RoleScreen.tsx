@@ -62,9 +62,9 @@ export default function RoleScreen({
         </p>
         <p className="fr-intro" style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
           Checking gross pollutant traps (GPTs) by hand is slow, and most Parramatta GPTs have no camera. DrainWise uses
-          AI to predict which nets will fill next and suggests a truck run for the contractor, so the right ones are
-          cleaned first and pollution stays out of the river. Every job is closed with proof. Pick a role to start. No
-          sign-in needed.
+          a model trained on sample data to predict which nets will fill next and suggests a truck run for the
+          contractor, so the right ones are cleaned first and pollution stays out of the river. Every job is closed with
+          proof. Pick a role to start. No sign-in needed.
         </p>
       </div>
       <div className="fr-cards">

@@ -33,9 +33,9 @@ export default function HowItWorks({ className = "fr-btn fr-ghost" }: { classNam
           </p>
           <h3 style={h}>What the score means</h3>
           <p style={p}>
-            Each GPT gets a risk from the model: the chance it blocks soon. High (60%+), Medium (30%+) or Low. Every
-            score lists its top reasons, such as tree cover or days since the last clean. It is not a fullness reading
-            from a photo.
+            Each GPT gets a risk from the model: the chance it blocks soon. High (60%+), Medium (30 to 59%) or Low
+            (under 30%). Every score lists its top reasons, such as tree cover or days since the last clean. It is not a
+            fullness reading from a photo.
           </p>
           <h3 style={h}>What the planner does</h3>
           <ol style={{ ...p, paddingLeft: 24, listStyle: "decimal" }}>

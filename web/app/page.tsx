@@ -1321,12 +1321,12 @@ export default function Home() {
             </section>
 
             <section className="fr-section" {...panelProps("plan", "Run plan")}>
-              <div className="fr-label">Truck run planner</div>
-              <div style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
-                A suggestion for the contractor, who picks the day and the people.
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <div className="fr-label">Truck run planner</div>
+                <HowItWorks className="fr-btn fr-ghost" />
               </div>
-              <div style={{ marginTop: 6 }}>
-                <HowItWorks className="fr-btn fr-sec" />
+              <div style={{ margin: "2px 0 0", fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
+                A suggestion for the contractor, who picks the day and the people.
               </div>
               <label
                 htmlFor="fr-cap"

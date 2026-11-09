@@ -6,7 +6,7 @@ import { makeSeedAssets } from "../web/lib/seed";
 import { mockSuggestion } from "../planner/src/mockSuggestion";
 import precomputed from "../web/lib/precomputedScores.json";
 
-export const PHOTO_COUNT = 7;
+export const PHOTO_COUNT = 7; // one sample photo per camera; the seed has exactly this many camera GPTs
 const NAMES = ["Clear", "Light debris", "Half blocked", "Blocked"];
 
 const pct = new Map(precomputed.scores.map((s) => [s.asset_id, s.p_block * 100]));

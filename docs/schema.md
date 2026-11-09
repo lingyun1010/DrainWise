@@ -13,7 +13,7 @@
 
 | Table             | MVP equivalent today                  | Main columns                                                                                                  |
 | ----------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `assets`          | `SeedAsset` in `web/lib/seed.ts`      | `id`, `type` (inlet or gpt), `geom`, `has_camera`, `source`                                                   |
+| `assets`          | `SeedAsset` in `web/lib/seed.ts`      | `id`, `type` (gpt; the contract still accepts inlet for old data), `geom`, `has_camera`, `source`             |
 | `observations`    | none (paper only, needs real history) | `asset_id`, `ts`, `origin` (photo, camera, inspection), `blocked_level` (0-3), `source`                       |
 | `runs`            | `SavedRun` in `web/lib/runStore.ts`   | `id`, `crew_id`, `capacity_m3`, `planned_at`, `accepted_at`, `source`                                         |
 | `run_stops`       | `RunStop`                             | `run_id`, `seq`, `asset_id`, `load_m3`, `photos_needed`, `source`                                             |

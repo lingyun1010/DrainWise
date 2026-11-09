@@ -336,6 +336,9 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
 
           {!run!.accepted ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
+                A suggested run from the planner. The contractor decides the day and the people.
+              </div>
               <button className="fr-btn fr-pri" type="button" onClick={accept} style={{ width: "100%" }}>
                 Accept task
               </button>

@@ -36,7 +36,7 @@ Design principles: original characters only (never reuse Disney/Pixar/Inside Out
 
 Demo scoring formula (placeholder, **not a trained model**):
 `s = (0.45*canopy/70 + 0.35*leaf/100 + 0.2*rain) * (0.2 + 0.8*min(1, days/150))`; High >= 0.46, Medium >= 0.28.
-Load estimate (m³ of debris, made-up): inlet `0.06 + 0.22*f`, GPT `0.35 + 1.0*f`, `f = min(1, s*1.3)`. Truck default 3 m³ is an assumption (owner decision 9 Nov 2026).
+Load estimate (m³ of debris, made-up): inlet `0.06 + 0.22*f` (legacy, unused in the UI since GPT-only), GPT `0.35 + 1.0*f`, `f = min(1, s*1.3)`. Truck default 3 m³ is an assumption (owner decision 9 Nov 2026).
 
 ## 3. Data reality (be honest in the product and in the pitch)
 
@@ -99,7 +99,7 @@ Suggested build order: (1) seed data + map + ranked queue, (2) risk service on s
 ### What the model does
 
 - Predicts probability that a GPT (net) blocks within the next N days, plus top reasons (feature contributions).
-- Features: tree canopy near asset, season / leaf-fall index, recent and forecast rainfall, days since last clean, catchment/terrain, asset type (inlet|gpt), has_camera.
+- Features: tree canopy near asset, season / leaf-fall index, recent and forecast rainfall, days since last clean, catchment/terrain, asset type (the contract still accepts inlet|gpt for old data; the product is GPT only), has_camera.
 - Start with scikit-learn gradient boosting. Do not add TensorFlow unless there is a clear reason.
 
 ### Data rules (important)

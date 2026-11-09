@@ -52,7 +52,7 @@ export function makeSeedAssets(): SeedAsset[] {
     const y = s.a.y + (s.b.y - s.a.y) * t + ny * off;
     if (x < 50 || x > 700 || y < 45 || y > 455 || (x < 150 && y > 380)) continue;
     if (out.some((q) => Math.abs(q.x - x) < 24 && Math.abs(q.y - y) < 24)) continue;
-    rnd(); // keeps the random stream (and so every position) as before; cameras are set below
+    rnd(); // discarded on purpose: keeps the random stream (and so every position) as before; cameras are set below
     out.push({
       id: "GPT-" + String(out.length + 1).padStart(3, "0"),
       type: "gpt",
