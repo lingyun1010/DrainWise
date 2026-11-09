@@ -138,7 +138,11 @@ export default function ReportClient() {
                 type="radio"
                 name="force"
                 checked={force === f.id}
-                onChange={() => setForce(f.id)}
+                onChange={() => {
+                  setForce(f.id);
+                  setAsk({ state: "idle" }); // a preview belongs to one choice; preview again before sending
+                  setResult(null);
+                }}
                 style={{ marginTop: 4 }}
               />
               <span>
