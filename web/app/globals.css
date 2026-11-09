@@ -167,7 +167,9 @@ body {
   padding: 20px;
   border-radius: 28px;
   border: 3px solid #2d6182;
-  background: #102f45;
+  background: rgba(11, 31, 48, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   color: #eaf6fb;
   font-family: inherit;
   cursor: pointer;
@@ -175,7 +177,7 @@ body {
 .fr-card:hover {
   transform: translateY(-4px) rotate(-1deg);
   border-color: #4fc3e8;
-  background: #14405c;
+  background: rgba(20, 64, 92, 0.85);
 }
 .fr-cardhi {
   border-color: #ff8a4c;
@@ -740,14 +742,14 @@ body {
   .fr-card:hover {
     transform: scale(1.03);
     border-color: #4fc3e8;
-    background: #14405c;
+    background: rgba(20, 64, 92, 0.85);
   }
 }
 @media (hover: none) {
   .fr-card:hover {
     transform: none;
     border-color: #2d6182;
-    background: #102f45;
+    background: rgba(11, 31, 48, 0.78);
   }
   .fr-cardhi:hover {
     border-color: #ff8a4c;
@@ -756,7 +758,7 @@ body {
 .fr-card:active {
   transform: scale(0.98);
   border-color: #4fc3e8;
-  background: #14405c;
+  background: rgba(20, 64, 92, 0.85);
 }
 .fr-cardhi:active {
   border-color: #ffa06b;
@@ -771,7 +773,7 @@ body {
 }
 html:has(.fr-role),
 html:has(.fr-role) body {
-  background: linear-gradient(180deg, #14506f 0%, #0b2233 75%) fixed;
+  background: linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%) fixed;
 }
 
 /* Records panel actions: two equal buttons, note underneath. */
@@ -866,23 +868,37 @@ html:has(.fr-role) body {
   z-index: 1;
 }
 .fr-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
   pointer-events: none;
 }
+/* Wide screens: horizon glow, skyline and river sit along the bottom of the screen (fixed).
+   Phones: see the 767px block, they sit behind the logo and intro like the reference prototype. */
+.fr-glow {
+  position: fixed;
+  left: 50%;
+  bottom: -140px;
+  width: 1100px;
+  height: 560px;
+  max-width: 100%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(255, 170, 90, 0.5), transparent 68%);
+  animation: fr-pulse 6s ease-in-out infinite;
+}
+@keyframes fr-pulse {
+  50% {
+    opacity: 0.55;
+    transform: translateX(-50%) scale(1.08);
+  }
+}
 .fr-sky {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
-  bottom: 34px;
+  bottom: 28px;
   height: 260px;
-  opacity: 0.6;
+  opacity: 0.9;
 }
-.fr-role > p:last-child,
-.fr-role > :nth-last-child(2) {
-  text-shadow: 0 1px 6px #0b2233;
+.fr-sky-phone {
+  display: none;
 }
 .fr-sky svg {
   display: block;
@@ -890,34 +906,33 @@ html:has(.fr-role) body {
   height: 100%;
 }
 .fr-water {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 40px;
+  height: 34px;
   overflow: hidden;
-  background: linear-gradient(180deg, #14486a, #0f3a55);
 }
 .fr-water i {
   position: absolute;
   left: -20%;
   width: 140%;
-  height: 12px;
+  height: 14px;
   border-radius: 50%;
   background: rgba(79, 195, 232, 0.35);
   animation: fr-flow 7s ease-in-out infinite alternate;
 }
 .fr-water i:nth-child(1) {
-  top: 4px;
+  top: 0;
 }
 .fr-water i:nth-child(2) {
-  top: 16px;
+  top: 12px;
   background: rgba(79, 195, 232, 0.22);
   animation-duration: 10s;
   animation-direction: alternate-reverse;
 }
 .fr-water i:nth-child(3) {
-  top: 28px;
+  top: 22px;
   background: rgba(79, 195, 232, 0.15);
   animation-duration: 13s;
 }
@@ -930,8 +945,9 @@ html:has(.fr-role) body {
   }
 }
 .fr-leaves {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  overflow: hidden;
 }
 .fr-leaf {
   position: absolute;
@@ -983,24 +999,29 @@ html:has(.fr-role) body {
   .fr-leaf:nth-child(n + 13) {
     display: none;
   }
-  /* Phone: the skyline sits behind the logo and intro and scrolls with them; leaves stay fixed. */
-  .fr-bg {
-    position: static;
-    overflow: visible;
-  }
-  .fr-leaves {
-    position: fixed;
-  }
-  .fr-sky {
-    top: 150px;
+  /* Phone: the prototype's own skyline drawing, 150px down behind the logo and intro, river at 372px; scrolls with the content. */
+  .fr-glow {
+    position: absolute;
+    width: 340px;
+    height: 340px;
+    top: 70px;
     bottom: auto;
-    height: 210px;
-    opacity: 0.4;
+    background: radial-gradient(circle, rgba(255, 170, 90, 0.35), transparent 65%);
   }
   .fr-water {
-    top: 360px;
+    position: absolute;
+    top: 372px;
     bottom: auto;
-    height: 36px;
+  }
+  .fr-sky-wide {
+    display: none;
+  }
+  .fr-sky-phone {
+    display: block;
+    position: absolute;
+    top: 150px;
+    bottom: auto;
+    height: 230px;
   }
   .fr-cardhi {
     order: 3;
@@ -1009,7 +1030,7 @@ html:has(.fr-role) body {
 
 /* Logo sways up and down; avatars shake a little, each on its own rhythm. */
 .fr-rolemascot {
-  animation: fr-bob 3.2s ease-in-out infinite;
+  animation: fr-bob 2.4s ease-in-out infinite;
 }
 @keyframes fr-bob {
   0%,
