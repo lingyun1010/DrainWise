@@ -1,7 +1,7 @@
 # 22: Image reading: fullness band, damage type, location, annotated image
 
 Type: task
-Status: ready-for-agent
+Status: done (PR pending; stacked on #37)
 Blocked by: 21 (needs images and reference); soft link to 13, 17, 18
 Spec: `.scratch/drainwise/map.md` ("Image recognition" decision)
 
@@ -19,9 +19,16 @@ For a camera GPT: compare today's image with a clean reference image of the same
 
 ## Acceptance criteria
 
-- [ ] Pure function (TS in `planner/` or Python in `ml/`, owner's call at start) `readImage(reference, today)` returning band, damage, region, confidence, rationale. Unit tests on the synthetic set from ticket 21 (true band within one band is reported as a pipeline check, not accuracy).
-- [ ] Annotated image: circle, arrow and numbered caption drawn from the region.
-- [ ] Camera popup (ticket 17) shows band, damage, annotated image, "Synthetic image" and "Prototype, no accuracy claim".
-- [ ] Hosted vision call is server only; absent on the public build; human confirm step kept.
-- [ ] Faces / number-plate gate still applies before any training use.
-- [ ] Browser check at desktop and 375px.
+- [x] Pure function (TS in `planner/` or Python in `ml/`, owner's call at start) `readImage(reference, today)` returning band, damage, region, confidence, rationale. Unit tests on the synthetic set from ticket 21 (true band within one band is reported as a pipeline check, not accuracy).
+- [x] Annotated image: circle, arrow and numbered caption drawn from the region.
+- [x] Camera popup (ticket 17) shows band, damage, annotated image, "Synthetic image" and "Prototype, no accuracy claim".
+- [x] Hosted vision call is server only; absent on the public build; human confirm step kept.
+- [x] Faces / number-plate gate still applies before any training use.
+- [x] Browser check at desktop and 375px.
+
+## Built (2026-11-09)
+
+- TS in `planner/`: `readImage(reference, today, netPolygon)` (`planner/src/readImage.ts`), `annotate` (`annotateReading.ts`), net polygons per camera (`cameraNets.ts`, drift test against `ml/synth_images.py`). Changed pixels inside the net after removing the global light change, mapped to 10% bands; a lot of change outside the net = `net_fallen`; a compact dark patch inside = `net_broken`.
+- `cd planner && node --experimental-strip-types scripts/checkSynthetic.ts <dir> [--write ../web/lib/imageReadings.json]` is the local pipeline check on the 420 non-reference synthetic images. Last run (seed 42, synthetic-images-2): damage type matched 389/420, band within one band 332/350, same side of the 70% line 330/350. Pipeline check on synthetic data only, NOT accuracy. Weak spot: small holes in dark nets are read as `none`.
+- Popup (`web/app/CameraView.tsx`) shows the stored reading for the camera (`web/lib/imageReadings.json`, one example image per camera, SVG circle, arrow and caption over the image). The synthetic image is served only locally (`/api/camera/<id>/synthetic`, files in `.local/`, `SYNTHETIC_IMAGES_DIR` overrides the folder); the public build shows the reading as text only.
+- Hosted vision helper: no new call added. `needs a person` is flagged by `unclear`; ticket 13's server-only route and human confirm are unchanged. Fields band, damage and region are not yet in `parseSuggestion`.
