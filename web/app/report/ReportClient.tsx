@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Dialog, { ConfirmDialog } from "../Dialog";
 import { addLog, loadState, saveState, sydneyClock } from "@/lib/runStore";
+import { validAddress } from "../../../planner/src/sendReport";
 import { STORM_MIN_CHANCE_PCT, STORM_MIN_MM } from "../../../planner/src/reportRule";
 
 type Force = "bom" | "storm" | "calm";
@@ -41,6 +42,7 @@ const field: React.CSSProperties = {
 export default function ReportClient() {
   const [force, setForce] = useState<Force>("bom");
   const [to, setTo] = useState("");
+  const [key, setKey] = useState(""); // admin key, typed now, kept in memory only
   const [ask, setAsk] = useState<Ask>({ state: "idle" });
   const [confirm, setConfirm] = useState(false);
   const [sending, setSending] = useState(false);
@@ -71,7 +73,7 @@ export default function ReportClient() {
     try {
       const res = await fetch("/api/send-report", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-report-key": key },
         body: JSON.stringify({ to: to.trim(), force }),
       });
       const data = await res.json();
@@ -102,7 +104,7 @@ export default function ReportClient() {
   }
 
   const p = ask.state === "done" ? ask.p : null;
-  const addressOk = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(to.trim());
+  const addressOk = validAddress(to.trim());
   const willSend = !!p && p.decision.kind !== "none" && !!p.report?.send;
 
   return (
@@ -136,7 +138,7 @@ export default function ReportClient() {
             <label key={f.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}>
               <input
                 type="radio"
-                style={{ marginTop: 2, width: 20, height: 20, accentColor: "#4FC3E8", flexShrink: 0 }}
+                style={{ marginTop: 2, width: 20, height: 20, flexShrink: 0 }}
                 name="force"
                 checked={force === f.id}
                 onChange={() => {
@@ -164,6 +166,16 @@ export default function ReportClient() {
             style={field}
           />
         </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span className="fr-label">Admin key (needed to send, not stored)</span>
+          <input
+            type="password"
+            autoComplete="off"
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+            style={field}
+          />
+        </label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
           <button className="fr-btn fr-sec" type="button" onClick={preview} disabled={ask.state === "loading"}>
             {ask.state === "loading" ? "Checking" : "Preview report"}
@@ -172,7 +184,7 @@ export default function ReportClient() {
             className="fr-btn fr-pri"
             type="button"
             onClick={() => setConfirm(true)}
-            disabled={!addressOk || !willSend || sending}
+            disabled={!addressOk || !key || !willSend || sending}
           >
             {sending ? "Sending" : "Send report"}
           </button>

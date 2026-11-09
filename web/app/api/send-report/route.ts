@@ -7,6 +7,7 @@ import { lastSent, markSent } from "@/lib/reportHistory";
 import {
   makeLimiter,
   maskAddress,
+  keyMatches,
   sendBlocked,
   sendReportMail,
   validAddress,
@@ -17,10 +18,22 @@ const overall = makeLimiter(10, Date.now); // 10 sends per hour in total (keeps 
 
 export async function POST(request: Request) {
   // REPORT_EMAIL_MOCK=1 is for local tests and the smoke run: the whole flow runs but nothing leaves the server.
-  const mock = process.env.REPORT_EMAIL_MOCK === "1";
-  const blocked = sendBlocked(mock ? { ...process.env, GMAIL_USER: "mock", GMAIL_APP_PASSWORD: "mock" } : process.env);
+  const mock = process.env.REPORT_EMAIL_MOCK === "1" && process.env.NODE_ENV !== "production"; // never in production
+  const blocked = sendBlocked(
+    mock
+      ? {
+          ...process.env,
+          GMAIL_USER: "mock",
+          GMAIL_APP_PASSWORD: "mock",
+          REPORT_ADMIN_KEY: process.env.REPORT_ADMIN_KEY ?? "mock",
+        }
+      : process.env,
+  );
   if (blocked) return Response.json({ error: blocked.error }, { status: blocked.status });
 
+  if (!keyMatches(request.headers.get("x-report-key"), process.env.REPORT_ADMIN_KEY ?? (mock ? "mock" : undefined))) {
+    return Response.json({ error: "Admin key missing or wrong." }, { status: 401 });
+  }
   const body = (await request.json().catch(() => ({}))) as { to?: unknown; force?: string };
   if (!validAddress(body.to)) return Response.json({ error: "Enter one valid email address." }, { status: 400 });
   const force = (FORCES as readonly string[]).includes(body.force ?? "") ? (body.force as Force) : "bom";
@@ -38,7 +51,8 @@ export async function POST(request: Request) {
   }
 
   // Counted only when a mail is really about to go out, so a "nothing to send" answer does not use up the quota.
-  const client = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local";
+  const client =
+    request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",").pop()?.trim() || "local";
   if (!perClient(client) || !overall("all")) {
     return Response.json({ error: "Too many reports this hour. Try again later." }, { status: 429 });
   }
@@ -58,5 +72,5 @@ export async function POST(request: Request) {
   }
   if (force === "bom") markSent(decision.kind);
   console.log(`[send-report] sent rule=${decision.kind} to=${masked}`);
-  return Response.json({ sent: true, rule: decision.kind, masked, reason: decision.reason });
+  return Response.json({ mock, sent: true, rule: decision.kind, masked, reason: decision.reason });
 }

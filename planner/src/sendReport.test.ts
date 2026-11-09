@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { makeLimiter, maskAddress, sendBlocked, sendReportMail, validAddress, type Mail } from "./sendReport";
+import {
+  keyMatches,
+  makeLimiter,
+  maskAddress,
+  sendBlocked,
+  sendReportMail,
+  validAddress,
+  type Mail,
+} from "./sendReport";
 
 describe("address", () => {
   it("accepts one plain address and masks it", () => {
@@ -25,9 +33,19 @@ describe("limiter", () => {
 
 describe("kill switch and setup", () => {
   it("returns 503 when switched off or not configured", () => {
-    expect(sendBlocked({ GMAIL_USER: "u", GMAIL_APP_PASSWORD: "p", REPORT_EMAIL_OFF: "1" })?.status).toBe(503);
+    const ok = { GMAIL_USER: "u", GMAIL_APP_PASSWORD: "p", REPORT_ADMIN_KEY: "k" };
+    expect(sendBlocked({ ...ok, REPORT_EMAIL_OFF: "1" })?.status).toBe(503);
     expect(sendBlocked({})?.status).toBe(503);
-    expect(sendBlocked({ GMAIL_USER: "u", GMAIL_APP_PASSWORD: "p" })).toBeNull();
+    expect(sendBlocked({ GMAIL_USER: "u", GMAIL_APP_PASSWORD: "p" })?.status).toBe(503); // no admin key
+    expect(sendBlocked(ok)).toBeNull();
+  });
+});
+
+describe("admin key", () => {
+  it("matches only the exact key", () => {
+    expect(keyMatches("secret", "secret")).toBe(true);
+    for (const bad of ["secreT", "secre", "", null]) expect(keyMatches(bad, "secret")).toBe(false);
+    expect(keyMatches("x", undefined)).toBe(false);
   });
 });
 

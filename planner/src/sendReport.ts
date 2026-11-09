@@ -39,8 +39,19 @@ export type SendEnv = Record<string, string | undefined>;
 // null = sending is allowed. Otherwise the HTTP status and message to return.
 export function sendBlocked(env: SendEnv): { status: number; error: string } | null {
   if (env.REPORT_EMAIL_OFF === "1") return { status: 503, error: "Sending is switched off (kill switch)." };
-  if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD) return { status: 503, error: "Email is not set up on this server." };
+  // The admin key is required: without it anybody who finds /report could send mail from the owner's Gmail.
+  if (!env.GMAIL_USER || !env.GMAIL_APP_PASSWORD || !env.REPORT_ADMIN_KEY) {
+    return { status: 503, error: "Email is not set up on this server." };
+  }
   return null;
+}
+
+// Constant-time comparison of the admin key from the request header with the one in the env.
+export function keyMatches(given: string | null, expected: string | undefined): boolean {
+  if (!given || !expected || given.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < given.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i);
+  return diff === 0;
 }
 
 export async function sendReportMail(
