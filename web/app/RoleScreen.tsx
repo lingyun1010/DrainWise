@@ -27,7 +27,7 @@ export default function RoleScreen({
         position: "fixed",
         inset: 0,
         zIndex: 20,
-        background: "linear-gradient(180deg, #14506F 0%, #0B2233 75%)",
+        background: "linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

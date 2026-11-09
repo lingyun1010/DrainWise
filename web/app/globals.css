@@ -771,7 +771,7 @@ body {
 }
 html:has(.fr-role),
 html:has(.fr-role) body {
-  background: linear-gradient(180deg, #14506f 0%, #0b2233 75%) fixed;
+  background: linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%) fixed;
 }
 
 /* Records panel actions: two equal buttons, note underneath. */
@@ -866,23 +866,37 @@ html:has(.fr-role) body {
   z-index: 1;
 }
 .fr-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
   pointer-events: none;
+}
+/* Glow behind the heading, then the skyline and river as in the reference prototype.
+   Positioned inside the role screen, so on phones they scroll with the logo and intro. */
+.fr-glow {
+  position: absolute;
+  left: 50%;
+  top: 20px;
+  width: 520px;
+  height: 520px;
+  max-width: 100%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255, 170, 90, 0.35), transparent 65%);
+  animation: fr-pulse 6s ease-in-out infinite;
+}
+@keyframes fr-pulse {
+  50% {
+    opacity: 0.55;
+    transform: translateX(-50%) scale(1.08);
+  }
 }
 .fr-sky {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 34px;
+  top: 120px;
   height: 260px;
-  opacity: 0.6;
+  opacity: 0.9;
 }
-.fr-role > p:last-child,
-.fr-role > :nth-last-child(2) {
-  text-shadow: 0 1px 6px #0b2233;
+.fr-sky-phone {
+  display: none;
 }
 .fr-sky svg {
   display: block;
@@ -893,31 +907,30 @@ html:has(.fr-role) body {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 40px;
+  top: 372px;
+  height: 34px;
   overflow: hidden;
-  background: linear-gradient(180deg, #14486a, #0f3a55);
 }
 .fr-water i {
   position: absolute;
   left: -20%;
   width: 140%;
-  height: 12px;
+  height: 14px;
   border-radius: 50%;
   background: rgba(79, 195, 232, 0.35);
   animation: fr-flow 7s ease-in-out infinite alternate;
 }
 .fr-water i:nth-child(1) {
-  top: 4px;
+  top: 0;
 }
 .fr-water i:nth-child(2) {
-  top: 16px;
+  top: 12px;
   background: rgba(79, 195, 232, 0.22);
   animation-duration: 10s;
   animation-direction: alternate-reverse;
 }
 .fr-water i:nth-child(3) {
-  top: 28px;
+  top: 22px;
   background: rgba(79, 195, 232, 0.15);
   animation-duration: 13s;
 }
@@ -930,8 +943,9 @@ html:has(.fr-role) body {
   }
 }
 .fr-leaves {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  overflow: hidden;
 }
 .fr-leaf {
   position: absolute;
@@ -983,24 +997,19 @@ html:has(.fr-role) body {
   .fr-leaf:nth-child(n + 13) {
     display: none;
   }
-  /* Phone: the skyline sits behind the logo and intro and scrolls with them; leaves stay fixed. */
-  .fr-bg {
-    position: static;
-    overflow: visible;
+  /* Phone: the prototype's own skyline drawing, 150px down, river at 372px. */
+  .fr-glow {
+    width: 340px;
+    height: 340px;
+    top: 70px;
   }
-  .fr-leaves {
-    position: fixed;
+  .fr-sky-wide {
+    display: none;
   }
-  .fr-sky {
+  .fr-sky-phone {
+    display: block;
     top: 150px;
-    bottom: auto;
-    height: 210px;
-    opacity: 0.4;
-  }
-  .fr-water {
-    top: 360px;
-    bottom: auto;
-    height: 36px;
+    height: 230px;
   }
   .fr-cardhi {
     order: 3;
@@ -1009,7 +1018,7 @@ html:has(.fr-role) body {
 
 /* Logo sways up and down; avatars shake a little, each on its own rhythm. */
 .fr-rolemascot {
-  animation: fr-bob 3.2s ease-in-out infinite;
+  animation: fr-bob 2.4s ease-in-out infinite;
 }
 @keyframes fr-bob {
   0%,
