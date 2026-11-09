@@ -868,17 +868,17 @@ html:has(.fr-role) body {
 .fr-bg {
   pointer-events: none;
 }
-/* Glow behind the heading, then the skyline and river as in the reference prototype.
-   Positioned inside the role screen, so on phones they scroll with the logo and intro. */
+/* Wide screens: horizon glow, skyline and river sit along the bottom of the screen (fixed).
+   Phones: see the 767px block, they sit behind the logo and intro like the reference prototype. */
 .fr-glow {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  top: 20px;
-  width: 520px;
-  height: 520px;
+  bottom: -140px;
+  width: 1100px;
+  height: 560px;
   max-width: 100%;
   transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(255, 170, 90, 0.35), transparent 65%);
+  background: radial-gradient(ellipse, rgba(255, 170, 90, 0.5), transparent 68%);
   animation: fr-pulse 6s ease-in-out infinite;
 }
 @keyframes fr-pulse {
@@ -888,10 +888,10 @@ html:has(.fr-role) body {
   }
 }
 .fr-sky {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
-  top: 120px;
+  bottom: 28px;
   height: 260px;
   opacity: 0.9;
 }
@@ -904,10 +904,10 @@ html:has(.fr-role) body {
   height: 100%;
 }
 .fr-water {
-  position: absolute;
+  position: fixed;
   left: 0;
   right: 0;
-  top: 372px;
+  bottom: 0;
   height: 34px;
   overflow: hidden;
 }
@@ -997,18 +997,28 @@ html:has(.fr-role) body {
   .fr-leaf:nth-child(n + 13) {
     display: none;
   }
-  /* Phone: the prototype's own skyline drawing, 150px down, river at 372px. */
+  /* Phone: the prototype's own skyline drawing, 150px down behind the logo and intro, river at 372px; scrolls with the content. */
   .fr-glow {
+    position: absolute;
     width: 340px;
     height: 340px;
     top: 70px;
+    bottom: auto;
+    background: radial-gradient(circle, rgba(255, 170, 90, 0.35), transparent 65%);
+  }
+  .fr-water {
+    position: absolute;
+    top: 372px;
+    bottom: auto;
   }
   .fr-sky-wide {
     display: none;
   }
   .fr-sky-phone {
     display: block;
+    position: absolute;
     top: 150px;
+    bottom: auto;
     height: 230px;
   }
   .fr-cardhi {
