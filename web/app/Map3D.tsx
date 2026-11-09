@@ -157,7 +157,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     el.setAttribute("role", "img");
     el.setAttribute(
       "aria-label",
-      "3D view of sample terrain with a rising water level and drain markers. Drag to rotate, scroll to zoom. Illustration only, not a flood forecast.",
+      "3D view of sample terrain with a rising water level and GPT markers. Drag to rotate, scroll to zoom. Illustration only, not a flood forecast.",
     );
     host.appendChild(el);
 

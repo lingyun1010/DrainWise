@@ -4,10 +4,10 @@
 import type { BlockLevel, Suggestion } from "./parseSuggestion";
 
 const TEXT: Record<BlockLevel, string> = {
-  0: "Mock: the inlet looks open.",
-  1: "Mock: a few leaves on the grate, water can still pass.",
-  2: "Mock: about half of the grate is covered with leaves.",
-  3: "Mock: the grate looks covered with leaves and debris.",
+  0: "Mock: the net looks open.",
+  1: "Mock: a few leaves on the net, water can still pass.",
+  2: "Mock: about half of the net is covered with leaves.",
+  3: "Mock: the net looks covered with leaves and debris.",
 };
 
 // pct = the stop's estimated risk in percent (sample data); seed = any number that varies per photo.

@@ -358,7 +358,7 @@ export default function ModelClient() {
       <Section eb="2 · Validation" title="Photos and people check the model">
         <p style={soft}>
           Crews take a BEFORE photo, clean, then take an AFTER photo. The before photo is the model&apos;s test: did it
-          say this drain was blocked, and was it?
+          say this GPT was blocked, and was it?
         </p>
         <ol
           style={{
@@ -418,7 +418,7 @@ export default function ModelClient() {
         </ol>
         <p style={{ ...soft, marginTop: 12, marginBottom: 0 }}>
           The sample data was made with an assumed rule, so a model that matches it only proves the pipeline works. It
-          is not evidence about real drains.
+          is not evidence about real GPTs.
         </p>
       </Section>
 

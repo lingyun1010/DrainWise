@@ -1,22 +1,22 @@
 # DrainWise — project brief for Claude Code
 
 Working name: **DrainWise** (the demo page still says "FloodReady"; rename is pending the owner's confirmation).
-Tagline: **Clean the right drains before they block.**
+Tagline: **Clean the right gross pollutant traps before they fill.** (was "drains before they block")
 Owner: Lingyun (Sydney, solo, front-end developer moving into AI engineering). Reply in Chinese when she writes Chinese; code, UI copy and docs in English.
 
 ## 1. What this is
 
 Entry for the City of Parramatta hackathon (WSTI Festi). Final submission around 18–20 Nov 2026. Council experts are online Mon 9 Nov and Fri 13 Nov.
 
-Problem (from council experts): hundreds of stormwater drain inlets and gross pollutant traps (GPTs) fill with leaves and block. Inspection is manual. Only some sites have cameras.
+Problem (from council experts): hundreds of gross pollutant traps (GPTs) fill with leaves and debris and block. Inspection is manual. Only some sites have cameras.
 
-Idea: predict which drain inlets / GPTs will block next, rank them, and plan a truck run that cleans the riskiest nearby ones without exceeding the truck's capacity. Crews close each job with proof. Photos taken before cleaning become training data for the model; photos after cleaning are evidence of work. Sites with a camera need no photos.
+Idea: predict which GPTs will fill next, rank them, and suggest a truck run (for the outsourced contractor, who picks the day and the people) that cleans the riskiest nearby ones without exceeding the truck's capacity (default 3 m³, an assumption). Crews close each job with proof. Photos taken before cleaning become training data for the model; photos after cleaning are evidence of work. Sites with a camera need no photos.
 
 Chosen hackathon challenge: **5. AI for Smarter Asset and Environmental Management** (primary), with 1 (Climate Resilience) as secondary. Select "City challenges", not "Open Innovation".
 
-Scope decision (final): **drains and GPTs only.** No roads, sandbags, resident notices or SES. Real-time flood warning already exists (FloodSmart/FLASH, BoM forecast + 3Di); we do not compete with it. Our value is operational action on blockage.
+Scope decision (final, updated 9 Nov 2026 after the council session): **GPTs (net type) only.** No drain inlets, no roads, sandbags, resident notices or SES. Real-time flood warning already exists (FloodSmart/FLASH, BoM forecast + 3Di); we do not compete with it. Our value is operational action on blockage.
 
-"GPT" is interpreted as Gross Pollutant Trap. The owner has not confirmed this.
+"GPT" is Gross Pollutant Trap (confirmed by the council session on 9 Nov). No dollar figures in the UI: the purpose is operational first, cost second.
 
 ## 2. What the demo already does (reference implementation)
 
@@ -36,7 +36,7 @@ Design principles: original characters only (never reuse Disney/Pixar/Inside Out
 
 Demo scoring formula (placeholder, **not a trained model**):
 `s = (0.45*canopy/70 + 0.35*leaf/100 + 0.2*rain) * (0.2 + 0.8*min(1, days/150))`; High >= 0.46, Medium >= 0.28.
-Load estimate (m³ of debris, made-up): inlet `0.06 + 0.22*f`, GPT `0.35 + 1.0*f`, `f = min(1, s*1.3)`. Truck default 2.0 m³ is an assumption.
+Load estimate (m³ of debris, made-up): inlet `0.06 + 0.22*f`, GPT `0.35 + 1.0*f`, `f = min(1, s*1.3)`. Truck default 3 m³ is an assumption (owner decision 9 Nov 2026).
 
 ## 3. Data reality (be honest in the product and in the pitch)
 
@@ -67,17 +67,17 @@ Suggested build order: (1) seed data + map + ranked queue, (2) risk service on s
 
 ## 5. Open questions for council experts (9 and 13 Nov)
 
-1. Can we get asset locations (drain pits, GPTs), even a sample or anonymised?
+1. Can we get asset locations (GPTs), even a sample or anonymised?
 2. How many GPTs and cameras are there, and how are cameras monitored today?
 3. Is there any cleaning/blockage history, and in what format?
-4. Truck and bin volumes, typical load per inlet and per GPT, cost per clean, crews per day?
+4. Truck and bin volumes, typical load per GPT, cost per clean (not shown in the UI), crews per day?
 5. Existing work-order or inspection system we should integrate with, and rules for photo evidence?
 6. Do judges prefer depth (one well-grounded model) or breadth?
-7. Confirm "GPT" means Gross Pollutant Trap.
+7. (Answered 9 Nov: GPT means Gross Pollutant Trap.)
 
 ## 6. Open decisions for the owner
 
-- Final name: DrainWise vs FloodReady.
+- Final name: DrainWise vs FloodReady. Scope line (section 1) is settled: GPT (net) only.
 - Train a small model on simulated data now (recommended) vs. keep the transparent formula.
 - Whether to extract tables from the flood-study PDFs for context.
 
@@ -98,7 +98,7 @@ Suggested build order: (1) seed data + map + ranked queue, (2) risk service on s
 
 ### What the model does
 
-- Predicts probability that a drain inlet / GPT blocks within the next N days, plus top reasons (feature contributions).
+- Predicts probability that a GPT (net) blocks within the next N days, plus top reasons (feature contributions).
 - Features: tree canopy near asset, season / leaf-fall index, recent and forecast rainfall, days since last clean, catchment/terrain, asset type (inlet|gpt), has_camera.
 - Start with scikit-learn gradient boosting. Do not add TensorFlow unless there is a clear reason.
 

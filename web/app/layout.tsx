@@ -7,7 +7,7 @@ const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: [
 
 export const metadata: Metadata = {
   title: "DrainWise",
-  description: "Clean the right drains before they block. Sample data.",
+  description: "Clean the right gross pollutant traps before they fill. Sample data.",
 };
 
 export const viewport: Viewport = { themeColor: "#0B2233", viewportFit: "cover", colorScheme: "dark" };

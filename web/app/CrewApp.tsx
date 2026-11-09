@@ -391,7 +391,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
               {!before ? (
                 <>
                   <div style={{ fontSize: 14, color: "#CFE6F0", lineHeight: 1.4 }}>
-                    <b>Step 1.</b> Photograph the drain as you found it. Drain only, no people or number plates.
+                    <b>Step 1.</b> Photograph the GPT as you found it. GPT only, no people or number plates.
                   </div>
                   <label className="fr-btn fr-pri" style={{ width: "100%" }}>
                     Take BEFORE photo
@@ -445,7 +445,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
               {before && !after && (
                 <>
                   <div style={{ fontSize: 14, color: "#CFE6F0", lineHeight: 1.4 }}>
-                    <b>Step 2.</b> Clear the leaves and debris, then photograph the clean drain.
+                    <b>Step 2.</b> Clear the leaves and debris, then photograph the clean GPT.
                   </div>
                   <label className="fr-btn fr-pri" style={{ width: "100%" }}>
                     Take AFTER photo

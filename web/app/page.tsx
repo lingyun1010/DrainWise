@@ -36,6 +36,7 @@ import Link from "next/link";
 import RoomChip from "./RoomChip";
 import CameraView from "./CameraView";
 import Dialog, { ConfirmDialog } from "./Dialog";
+import HowItWorks from "./HowItWorks";
 import dynamic from "next/dynamic";
 
 // three.js is only loaded when the 3D view is opened.
@@ -90,7 +91,7 @@ export default function Home() {
   const [leaf, setLeaf] = useState(DEFAULT_LEAF);
   const [day, setDay] = useState(0); // 0 = Today; later days score tomorrow's conditions so crews can be planned ahead
   const [extra, setExtra] = useState(0);
-  const [capacity, setCapacity] = useState(2);
+  const [capacity, setCapacity] = useState(3); // assumption: the real truck size is not known
   const [preds, setPreds] = useState<Prediction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [offline, setOffline] = useState(false); // true when the scores come from the precomputed file
@@ -1321,6 +1322,12 @@ export default function Home() {
 
             <section className="fr-section" {...panelProps("plan", "Run plan")}>
               <div className="fr-label">Truck run planner</div>
+              <div style={{ margin: "6px 0 0", fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
+                A suggestion for the contractor, who picks the day and the people.
+              </div>
+              <div style={{ marginTop: 6 }}>
+                <HowItWorks className="fr-btn fr-sec" />
+              </div>
               <label
                 htmlFor="fr-cap"
                 style={{
@@ -1432,8 +1439,8 @@ export default function Home() {
               )}
               <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
                 Only Medium and High risk assets (30% or more) are considered. Stops maximise total risk within
-                capacity, then are ordered nearest-first from the depot. Load sizes are sample estimates. Real truck and
-                bin volumes come from council.
+                capacity, then are ordered nearest-first from the depot. Load sizes are sample estimates. The 3 m³ truck
+                default is an assumption; real truck and bin volumes come from the contractor and council.
               </div>
             </section>
 
@@ -1817,7 +1824,8 @@ function CrewChooser({
       }
     >
       <p style={{ margin: "0 0 14px", fontSize: 14, color: "#B9D6E3" }}>
-        {count > 1 ? `A run of ${count} stops.` : "One stop."} Crews already out on a run can&apos;t take it.
+        {count > 1 ? `A run of ${count} stops.` : "One stop."} This is a suggestion for the contractor, who picks the
+        day and the people. Crews already out on a run can&apos;t take it.
       </p>
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
         {list.map(({ c, color, isBusy: out }, i) => (

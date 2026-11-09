@@ -15,6 +15,9 @@ export type SeedAsset = {
 
 export const ASSET_COUNT = 36; // demo size; the real network is expected to be about 200 GPTs (later)
 
+// Positions in the list (0-based) of the 7 camera GPTs, spread across the 36. Sample choice, not real camera sites.
+export const CAMERA_INDEX = [2, 7, 12, 18, 23, 28, 33];
+
 export const DEPOT = { x: 110, y: 400 };
 
 export function makeSeedAssets(): SeedAsset[] {
@@ -49,7 +52,7 @@ export function makeSeedAssets(): SeedAsset[] {
     const y = s.a.y + (s.b.y - s.a.y) * t + ny * off;
     if (x < 50 || x > 700 || y < 45 || y > 455 || (x < 150 && y > 380)) continue;
     if (out.some((q) => Math.abs(q.x - x) < 24 && Math.abs(q.y - y) < 24)) continue;
-    const cam = rnd() < 0.3; // only some sites have a camera
+    rnd(); // keeps the random stream (and so every position) as before; cameras are set below
     out.push({
       id: "GPT-" + String(out.length + 1).padStart(3, "0"),
       type: "gpt",
@@ -58,8 +61,11 @@ export function makeSeedAssets(): SeedAsset[] {
       y: Math.round(y),
       canopyPct: Math.round(8 + rnd() * 62),
       daysSinceClean: Math.round(5 + rnd() * 170),
-      hasCamera: cam,
+      hasCamera: false,
     });
   }
+  // Owner decision 2026-11-09: exactly 7 of the 36 sample GPTs have a camera, one per council sample photo.
+  // Camera k (k = 1..7, in GPT order) shows sample photo k, which is cam-0k in the synthetic images (ticket 21).
+  for (const i of CAMERA_INDEX) if (out[i]) out[i].hasCamera = true;
   return out;
 }

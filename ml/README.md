@@ -1,6 +1,6 @@
 # Risk model (ml/)
 
-Predicts the probability that a drain inlet / GPT blocks soon. scikit-learn `HistGradientBoostingClassifier` with monotonic constraints (more canopy, leaf fall, rain or days since clean never lowers risk).
+Predicts the probability that a GPT (net) blocks soon. scikit-learn `HistGradientBoostingClassifier` with monotonic constraints (more canopy, leaf fall, rain or days since clean never lowers risk).
 
 ## Commands
 

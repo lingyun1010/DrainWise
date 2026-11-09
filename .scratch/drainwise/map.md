@@ -37,9 +37,42 @@ A **decision-locked build spec** for the DrainWise hackathon MVP: stack, scope, 
 - [Hosting and deploy](issues/07-hosting-and-deploy.md): live demo local, Vercel public link; public build reads baked precomputed scores JSON, local build calls risk-api and falls back to the JSON with a banner; vision key only in env vars and off on the public build.
 - [Risk model evaluation on simulated data](issues/08-risk-model-evaluation.md): simulator rules ~ demo formula, so metrics are only a pipeline recovery check (`ml/evaluate.py`, not shown to judges); real result = beats formula and days-since-clean baselines on a time-split recent period.
 
+## Council session 9 Nov 2026 (owner's notes; not yet confirmed in writing)
+
+What the council experts said:
+
+- Non-camera GPTs get routine cleaning about every 3 months. After a sudden storm or flood event they must be cleaned soon, so the useful prediction horizon is 1 day or 1 week.
+- Today staff are told to empty specific GPTs by email. A monthly or event-triggered email/report with images is wanted, not an app that stays open.
+- GPT types: net and bars. Focus on net. Problems seen: net full, net broken, net fallen off. A contractor goes out to fix or clean.
+- Cameras: about 8 to 10, installed 1 to 3 years ago, one image per day. Camera images and GPT locations can be accessed. "About 30 GPTs extra" was noted but its meaning is unclear (ask again).
+- Council does not roster crews. It hands the work to an outsourced contractor, who picks the day and the people. Who the contractor is, their work-order format and truck size are unknown to the experts.
+- Council does not know the cost per GPT or the weight per clean. Repair reports are hard to access today.
+- A net should be cleaned when about 70 to 80% full, not when completely full.
+- Other councils use cameras plus smart water-level sensors to predict flooding (dashboard, about 6 hours ahead) and then send public warnings. Not our scope.
+- Labelling: someone may label images by pointing an arrow at the hole (our reading, to confirm).
+- Synthetic image data is acceptable to them.
+
+Owner decisions after the session:
+
+- Scope: **GPT (net) only**, no drain inlets. The 36 sample assets stay (seed is already all GPTs since #12).
+- Purpose is operational first, cost second. No dollar figures in the UI. Truck capacity stays a slider; default assumption 3 m3 (label as assumption). Planner logic unchanged; its output is a suggestion for the contractor. Crew phone flow unchanged (it is the contractor's crew).
+- "Needs cleaning" line = **70% full** (the owner's own pick; experts said 70 or 80 both fine). Image recognition uses **fullness bands of 10%** (70 to 79 is one band; a prediction in the right band counts as correct). Bands are only for image recognition; High / Medium / Low risk levels and their cut-offs do not change. Avoid confusing the two in copy.
+- Image recognition: for camera sites, compare today's image with a clean reference image of the same camera (changed area as a fullness proxy, changed region drives the circle and arrow); net broken / net fallen shown as a mismatch against the reference. Hosted vision model is a helper for unclear cases and for sites without a reference; human confirms. Show circles and an arrow on the image with a short caption. No accuracy claim. Real photos may not arrive in time, so use synthetic images (clearly labelled), plus the 7 sample photos.
+- Trigger email: weekly automatic, storm automatic, plus a manual Generate / Send option in an admin area (also for the demo). Sent over Gmail SMTP from the owner's account; the recipient address is typed (editable) at send time and is not stored. Every send is written to the activity log, with a masked address only. Rate limits, fixed template, a kill switch env var, and "Demo with sample data" in the mail. Automatic sending needs a scheduler; the earlier decision is "no cron in the demo", so the demo may only show the rule and the manual button. Say that honestly in the pitch.
+
 ## Open tickets
 
-None. Stage 2 gate passed 2026-11-08; remaining unknowns wait for the 9 and 13 Nov expert answers (see 01-expert-questions.md).
+Sliced 2026-11-09 into ticket files, in build order:
+
+1. [20](issues/20-risk-target-70-band.md): risk target relabel: dropped by the owner (Forecast day slider already covers 1 to 7 days).
+2. [21](issues/21-synthetic-image-generator.md): synthetic image generator (ready-for-agent).
+3. [22](issues/22-image-reading-fullness-damage.md): image reading with fullness band, damage, location, annotated image; blocked by 21 (ready-for-agent). Relates to 13, 17, 18.
+4. [23](issues/23-trigger-email-report.md): risk trigger email: storm in forecast gives a 1-day report the day before, otherwise one 7-day report per week; Gmail SMTP; not blocked (open: Gmail limit, owner's app password, storm threshold).
+5. [24](issues/24-copy-and-scope-pass.md): copy and scope pass, includes the camera-count check (ready-for-agent).
+6. More tickets (2026-11-09, found while reviewing the map): [25](issues/25-privacy-gate-faces-plates.md) face and plate gate; [26](issues/26-map3d-parity.md) 3D view parity; [27](issues/27-photo-delete-cascade.md) photo delete pairs; [28](issues/28-ui-leftovers.md) UI leftovers (after 23 and 24 merge).
+7. Ticket 15 (demo rehearsal) and the ticket 12 leftovers stay last.
+
+Still waiting on the 13 Nov answers (see 01-expert-questions.md).
 
 ## Not yet specified
 
@@ -48,7 +81,9 @@ None. Stage 2 gate passed 2026-11-08; remaining unknowns wait for the 9 and 13 N
 ## Out of scope
 
 - Roads, sandbags, resident notices, SES: ruled out by the scope decision (drains and GPTs only).
-- Real-time flood warning: already covered by FloodSmart/FLASH (BoM forecast + 3Di); we do not compete with it.
+- Real-time flood warning: already covered by FloodSmart/FLASH (BoM forecast + 3Di); we do not compete with it. Other councils' camera + water-level-sensor flood prediction is likewise not our scope.
+- Drain inlets (decided after the 9 Nov session): GPT (net) only.
+- Rostering crews or choosing the work day: the contractor does this, not council and not DrainWise. Our planner output is a suggestion.
 
 ## Progress 2026-11-08
 
@@ -101,3 +136,6 @@ None. Stage 2 gate passed 2026-11-08; remaining unknowns wait for the 9 and 13 N
 - 2026-11-09 same PR: map Full screen on a wide window (900px+) now starts below the dashboard header (header stays visible; phone unchanged). Camera GPT dialog shows the sample still at full dialog width, no thumbnail or click-to-enlarge (480 px thumb files and the `thumb` field removed).
 - 2026-11-09 branch `fix/crew-edge-fullscreen-log`: Activity log names every GPT (run sent, declined, early end lists the not-cleaned GPTs and the ones already cleaned; skip names the GPT). Map Full screen sets the header offset before first paint and keeps the map box hidden until the basemap re-fit lands (no zoom flash). Phone `/crew`: `viewport-fit=cover`, `color-scheme: dark`, 100dvh and safe-area padding against a white edge; owner could not be matched in a 375px emulation, NOT verified on a real iPhone. Smoke not run (copy and layout only).
 - 2026-11-09 branch `feat/home-animated-role-screen`: role screen has a backdrop (`web/app/HomeBackdrop.tsx`: 22 CSS leaves, 12 on phones; original Parramatta skyline SVG, faint on phones; moving water strip), jittering avatars and a swaying logo, all off under prefers-reduced-motion. Cards stack under 768px, row at 768px+ (980px max, Side-by-side in the middle and larger). "Best for judges" replaced by "For demonstration." Content uses `safe center` so a short window no longer clips the logo. Smoke not run (visual only); all three entry buttons clicked by hand at 390px.
+- 2026-11-09 council session recorded (see "Council session 9 Nov 2026" above): GPT net only, 70% full line, fullness bands of 10% for image recognition only, trigger email (Gmail SMTP, weekly + storm automatic, manual option, logged), reference-image diff first for camera sites, synthetic images accepted, planner and crew flow unchanged. No code changed in this step. Not checked: the current camera-site count in `web/lib/seed.ts` against the experts' "8 to 10"; whether the deploy host can run a scheduler.
+- 2026-11-09: tickets 20 to 24 written from the council session (no code changed). Camera count: owner decided on 7 cameras among the 36 GPTs, one per council sample photo (ticket 21 builds 61 synthetic images per camera from the real photos; `web/lib/seed.ts` still uses `rnd() < 0.3` until ticket 24).
+- 2026-11-09 branch `claude/24-copy-scope-2f6f9f` (ticket 24): GPT (net) only wording in the UI and docs, run copy says the run is a suggestion for the contractor, truck default 3 m3 (assumption), exactly 7 camera GPTs (camera k = sample photo k = cam-0k), `ml/sample_assets.json` and scores regenerated, new "How it works" dialog. No dollar figures. Not checked: ticket 22/23 copy once they land.

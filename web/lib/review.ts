@@ -55,12 +55,12 @@ export async function readSample(n: number): Promise<Buffer | null> {
 }
 
 const PROMPT = [
-  "You look at one photo of a stormwater drain inlet or gross pollutant trap (GPT) taken by a fixed camera.",
+  "You look at one photo of a stormwater gross pollutant trap (GPT, net type) taken by a fixed camera.",
   "Rate how blocked it is with leaves, litter or debris:",
   "0 = clear, 1 = light debris, 2 = about half blocked, 3 = blocked or overflowing.",
-  "If you cannot see the drain, say so in the rationale and lower the confidence.",
+  "If you cannot see the GPT, say so in the rationale and lower the confidence.",
   "Give a confidence from 0 to 1 and a rationale of at most 25 words.",
-  "Describe only the drain and debris. Do not describe or identify people or number plates.",
+  "Describe only the GPT and debris. Do not describe or identify people or number plates.",
 ].join(" ");
 
 export async function suggestLevel(image: Buffer): Promise<ParsedSuggestion> {
