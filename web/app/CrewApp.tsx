@@ -336,6 +336,9 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
 
           {!run!.accepted ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
+                A suggested run from the planner. The contractor decides the day and the people.
+              </div>
               <button className="fr-btn fr-pri" type="button" onClick={accept} style={{ width: "100%" }}>
                 Accept task
               </button>
@@ -391,7 +394,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
               {!before ? (
                 <>
                   <div style={{ fontSize: 14, color: "#CFE6F0", lineHeight: 1.4 }}>
-                    <b>Step 1.</b> Photograph the drain as you found it. Drain only, no people or number plates.
+                    <b>Step 1.</b> Photograph the GPT as you found it. GPT only, no people or number plates.
                   </div>
                   <label className="fr-btn fr-pri" style={{ width: "100%" }}>
                     Take BEFORE photo
@@ -445,7 +448,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
               {before && !after && (
                 <>
                   <div style={{ fontSize: 14, color: "#CFE6F0", lineHeight: 1.4 }}>
-                    <b>Step 2.</b> Clear the leaves and debris, then photograph the clean drain.
+                    <b>Step 2.</b> Clear the leaves and debris, then photograph the clean GPT.
                   </div>
                   <label className="fr-btn fr-pri" style={{ width: "100%" }}>
                     Take AFTER photo

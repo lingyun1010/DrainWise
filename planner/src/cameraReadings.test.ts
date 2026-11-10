@@ -11,11 +11,15 @@ describe("camera readings", () => {
     expect(readings.readings.map((r) => r.asset_id).sort()).toEqual(cams.map((a) => a.id).sort());
   });
 
-  it("has a level 0-3, a photo 1-7 from the fixed rule, and a reason", () => {
+  it("has exactly 7 camera GPTs (owner decision 2026-11-09)", () => {
+    expect(cams).toHaveLength(7);
+  });
+
+  it("has a level 0-3, a photo 1-7 from the fixed rule (camera k shows sample photo k), and a reason", () => {
+    const order = cams.map((a) => a.id);
     for (const r of readings.readings) {
-      const n = Number(r.asset_id.replace(/\D/g, ""));
       expect([0, 1, 2, 3]).toContain(r.level);
-      expect(r.photo).toBe(((n - 1) % 7) + 1);
+      expect(r.photo).toBe(order.indexOf(r.asset_id) + 1);
       expect(r.reason.length).toBeGreaterThan(0);
     }
   });
