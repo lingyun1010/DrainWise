@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import * as THREE from "three";
 import { ROADS, heightAt, waterLevel, wx, wz } from "@/lib/terrain";
 import type { Level, MapAsset, MapCrew } from "./MapView";
@@ -15,6 +16,9 @@ type Props = {
 
 const TIER: Record<Level, string> = { high: "High", medium: "Medium", low: "Low" };
 
+const texKey = (a: MapAsset) =>
+  `${a.level}-${a.state}-${a.hasCamera ? 1 : 0}-${a.crewColor ?? ""}-${a.crewLetter ?? ""}-${a.planN ?? 0}`;
+
 function canvasTex(size: number, draw: (ctx: CanvasRenderingContext2D, s: number) => void) {
   const c = document.createElement("canvas");
   c.width = c.height = size;
@@ -24,15 +28,36 @@ function canvasTex(size: number, draw: (ctx: CanvasRenderingContext2D, s: number
   return t;
 }
 
-// Drop mascot, same faces as the 2D map: frowning = High, neutral = Medium, smiling = Low.
-function dropTex(level: Level, state: MapAsset["state"]) {
+// Texture size in canvas units; the drop is drawn in a 128-unit space, so sprites are scaled by TEX / 128.
+const TEX = 176;
+const TEX_K = TEX / 128;
+
+// Taller canvas on phones so the stat tiles do not cover the markers.
+const heightFor = (w: number) => Math.round(w * (w < 520 ? 1.1 : 0.625));
+
+// Drop mascot, same faces and overlays as the 2D map: frowning = High, neutral = Medium, smiling = Low;
+// camera icon on camera GPTs, crew ring + letter badge while a crew is assigned, stop number in the proposed run.
+function dropTex(a: MapAsset) {
+  const { level, state } = a;
   const busy = state === "busy";
   const done = state === "done";
+  const showN = !done && !busy && a.planN ? a.planN : 0;
   const fill = done || level === "low" ? "#4FC3E8" : level === "high" ? "#FF8A4C" : "#FFD27A";
-  return canvasTex(128, (ctx, s) => {
-    const k = s / 128;
-    ctx.scale(k, k);
-    ctx.translate(64, 70);
+  return canvasTex(TEX, (ctx) => {
+    ctx.translate(TEX / 2, 96);
+    // White ring (always, like the 2D marker), crew-coloured ring on top while a crew is assigned.
+    ctx.beginPath();
+    ctx.arc(0, 6, 68, 0, 7);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#EAF6FB";
+    ctx.stroke();
+    if (a.crewColor) {
+      ctx.beginPath();
+      ctx.arc(0, 6, 60, 0, 7);
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = a.crewColor;
+      ctx.stroke();
+    }
     ctx.beginPath();
     ctx.moveTo(0, -56);
     ctx.bezierCurveTo(24, -28, 42, -8, 42, 16);
@@ -65,10 +90,39 @@ function dropTex(level: Level, state: MapAsset["state"]) {
       ctx.lineTo(8, 32);
     }
     ctx.stroke();
-    if (busy || done) {
+    if (a.hasCamera) {
+      // Same camera icon as the 2D map (top-left of the drop).
+      ctx.save();
+      ctx.translate(-36, -30);
       ctx.beginPath();
-      ctx.arc(34, -36, 20, 0, 7);
-      ctx.fillStyle = done ? "#fff" : "#FFD27A";
+      ctx.arc(0, 0, 24, 0, 7);
+      ctx.fillStyle = "#0B2233";
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#EAF6FB";
+      ctx.stroke();
+      ctx.fillStyle = "#4FC3E8";
+      ctx.beginPath();
+      ctx.roundRect(-14, -10, 20, 20, 5);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(7, -3);
+      ctx.lineTo(16, -9);
+      ctx.lineTo(16, 9);
+      ctx.lineTo(7, 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#0B2233";
+      ctx.beginPath();
+      ctx.arc(-4, 0, 4.4, 0, 7);
+      ctx.fill();
+      ctx.restore();
+    }
+    if (a.crewColor && a.crewLetter) {
+      // Crew letter badge (colour + letter, never colour alone).
+      ctx.beginPath();
+      ctx.arc(42, 40, 21, 0, 7);
+      ctx.fillStyle = a.crewColor;
       ctx.fill();
       ctx.lineWidth = 4;
       ctx.strokeStyle = "#0B2233";
@@ -76,7 +130,20 @@ function dropTex(level: Level, state: MapAsset["state"]) {
       ctx.fillStyle = "#0B2233";
       ctx.font = "800 26px sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(done ? "✓" : "…", 34, -27);
+      ctx.fillText(a.crewLetter, 42, 49);
+    }
+    if (busy || done || showN) {
+      ctx.beginPath();
+      ctx.arc(34, -36, 20, 0, 7);
+      ctx.fillStyle = done ? "#fff" : busy ? "#FFD27A" : "#EAF6FB";
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#0B2233";
+      ctx.stroke();
+      ctx.fillStyle = "#0B2233";
+      ctx.font = "800 26px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(done ? "✓" : busy ? "…" : String(showN), 34, -27);
     }
   });
 }
@@ -134,6 +201,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
   });
   const [stats, setStats] = useState({ level: 0, reached: 0, reachedHigh: 0 });
   const [failed, setFailed] = useState(false);
+  const [tip, setTip] = useState<{ id: string; x: number; top: number; bottom: number } | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -149,7 +217,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
       return;
     }
     const W = host.clientWidth || 800;
-    const H = Math.round(W * 0.625);
+    const H = heightFor(W);
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(W, H);
     const el = renderer.domElement;
@@ -233,10 +301,10 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     // Sprites. Textures are cached per level/state/type.
     const texCache = new Map<string, THREE.Texture>();
     const texFor = (a: MapAsset) => {
-      const key = `${a.type}-${a.level}-${a.state}`;
+      const key = texKey(a);
       let t = texCache.get(key);
       if (!t) {
-        t = dropTex(a.level, a.state);
+        t = dropTex(a);
         texCache.set(key, t);
       }
       return t;
@@ -262,8 +330,30 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
       el.setPointerCapture(e.pointerId);
       el.style.cursor = "grabbing";
     };
+    const hover = (e: PointerEvent) => {
+      const r = el.getBoundingClientRect();
+      const m = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      const rc = new THREE.Raycaster();
+      rc.setFromCamera(m, cam);
+      const hit = rc.intersectObjects([...dropSprites.values()])[0];
+      if (!hit) {
+        el.style.cursor = "grab";
+        setTip((t) => (t ? null : t));
+        return;
+      }
+      el.style.cursor = "pointer";
+      const id = (hit.object as AssetSprite).userData.id;
+      setTip((t) => (t && t.id === id ? t : { id, x: e.clientX, top: e.clientY - 18, bottom: e.clientY + 18 }));
+    };
+    const onLeave = () => {
+      setTip(null);
+    };
     const onMove = (e: PointerEvent) => {
-      if (!dn) return;
+      if (!dn) {
+        if (e.pointerType === "mouse") hover(e);
+        return;
+      }
+      setTip(null);
       const dx = e.clientX - dn.x;
       const dy = e.clientY - dn.y;
       moved += Math.abs(dx) + Math.abs(dy);
@@ -306,13 +396,17 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
     el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointerleave", onLeave);
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("keydown", onKey);
 
     const resize = () => {
       const w = host.clientWidth;
       if (!w) return;
-      renderer.setSize(w, Math.round(w * 0.625));
+      const h = heightFor(w);
+      renderer.setSize(w, h);
+      cam.aspect = w / h;
+      cam.updateProjectionMatrix();
     };
     const ro = new ResizeObserver(resize);
     ro.observe(host);
@@ -348,7 +442,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
         const x = wx(a.x);
         const z = wz(a.y);
         const h = heightAt(x, z);
-        const key = `${a.type}-${a.level}-${a.state}`;
+        const key = texKey(a);
         if (sp.userData.key !== key) {
           sp.userData.key = key;
           sp.material.map = texFor(a);
@@ -360,8 +454,11 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
         }
         const base = a.level === "high" ? 4.2 : a.level === "medium" ? 3.2 : 2.4;
         const pulse = a.level === "high" && a.state === "idle" ? 1 + 0.12 * Math.sin(tm * 3) : 1;
-        sp.scale.set(base * pulse, base * pulse, 1);
-        sp.position.set(x, h + 0.8 + base * 0.5 + 0.15 * Math.sin(tm * 2 + a.x), z);
+        const planned = a.state === "idle" && !!a.planN;
+        const size = base * pulse * (planned ? 1.15 : 1) * TEX_K;
+        sp.renderOrder = planned ? 12 : 10; // planned stops draw above every other GPT, like the 2D map
+        sp.scale.set(size, size, 1);
+        sp.position.set(x, h + 0.8 + base * 0.5 * TEX_K + 0.15 * Math.sin(tm * 2 + a.x), z);
       });
       dropSprites.forEach((sp, id) => {
         if (!seen.has(id)) {
@@ -380,7 +477,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
           }
           sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthTest: false, transparent: true }));
           sp.scale.set(3.4, 3.4, 1);
-          sp.renderOrder = 11;
+          sp.renderOrder = 13;
           scene.add(sp);
           crewSprites.set(c.name, sp);
         }
@@ -406,6 +503,7 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
       el.removeEventListener("pointerdown", onDown);
       el.removeEventListener("pointermove", onMove);
       el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointerleave", onLeave);
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("keydown", onKey);
       scene.traverse((o) => {
@@ -430,10 +528,41 @@ export default function Map3D({ assets, crews, rainMmH, extra, onOpen }: Props) 
     );
   }
 
+  const tipAsset = tip ? assets.find((a) => a.id === tip.id) : undefined;
   const highCount = assets.filter((a) => a.level === "high" && a.state !== "done").length;
   return (
     <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", border: "2px solid #2D6182" }}>
       <div ref={hostRef} />
+      {tip && tipAsset && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              role="tooltip"
+              className="fr-tip"
+              style={{
+                left: Math.min(Math.max(tip.x, 108), window.innerWidth - 108),
+                top: tip.top < 150 ? tip.bottom + 6 : tip.top - 6,
+                transform: tip.top < 150 ? "translate(-50%, 0)" : "translate(-50%, -100%)",
+              }}
+            >
+              <b>{tipAsset.id}</b>
+              <span className="fr-tip-sub">{tipAsset.typeLabel}</span>
+              <span>
+                {tipAsset.state === "done" ? "Cleaned" : `${TIER[tipAsset.level]} risk`}
+                {tipAsset.pct != null && tipAsset.state !== "done" ? ` · ${tipAsset.pct}%` : ""}
+              </span>
+              {tipAsset.daysSinceClean != null && (
+                <span>
+                  {tipAsset.state === "done" ? "Cleaned today" : `Last cleaned ${tipAsset.daysSinceClean} days ago`}
+                </span>
+              )}
+              <span>{tipAsset.hasCamera ? "Has a camera" : "No camera"}</span>
+              {tipAsset.planN && tipAsset.state === "idle" && <span>Stop {tipAsset.planN} in the proposed run</span>}
+              {tipAsset.crewLetter && <span>Crew {tipAsset.crewLetter} assigned</span>}
+              <span className="fr-tip-sub">Sample data</span>
+            </div>,
+            document.body,
+          )
+        : null}
       <div
         style={{
           position: "absolute",
