@@ -1,64 +1,64 @@
 {
   "data_source": "SAMPLE DATA. Placeholder readings from planner/src/mockSuggestion.ts. No image model was run.",
   "level_source": "mock",
-  "photo_rule": "photo = ((GPT number - 1) mod 7) + 1, one of the 7 council sample photos in web/public/camera",
-  "generated_at": "2026-11-08T20:33:47.415Z",
+  "photo_rule": "photo = position of the camera GPT among the 7 camera GPTs (1 to 7), one of the 7 council sample photos in web/public/camera",
+  "generated_at": "2026-11-09T04:32:20.342Z",
   "readings": [
     {
       "asset_id": "GPT-003",
-      "photo": 3,
-      "level": 2,
-      "name": "Half blocked",
-      "confidence": "low",
-      "reason": "About half of the grate is covered with leaves."
-    },
-    {
-      "asset_id": "GPT-008",
       "photo": 1,
       "level": 2,
       "name": "Half blocked",
       "confidence": "low",
-      "reason": "About half of the grate is covered with leaves."
+      "reason": "About half of the net is covered with leaves."
     },
     {
-      "asset_id": "GPT-009",
+      "asset_id": "GPT-008",
       "photo": 2,
-      "level": 3,
-      "name": "Blocked",
+      "level": 2,
+      "name": "Half blocked",
       "confidence": "low",
-      "reason": "The grate looks covered with leaves and debris."
+      "reason": "About half of the net is covered with leaves."
     },
     {
-      "asset_id": "GPT-010",
-      "photo": 3,
-      "level": 3,
-      "name": "Blocked",
-      "confidence": "medium",
-      "reason": "The grate looks covered with leaves and debris."
-    },
-    {
-      "asset_id": "GPT-011",
-      "photo": 4,
-      "level": 1,
-      "name": "Light debris",
-      "confidence": "medium",
-      "reason": "A few leaves on the grate, water can still pass."
-    },
-    {
-      "asset_id": "GPT-018",
-      "photo": 4,
-      "level": 3,
-      "name": "Blocked",
-      "confidence": "medium",
-      "reason": "The grate looks covered with leaves and debris."
-    },
-    {
-      "asset_id": "GPT-031",
+      "asset_id": "GPT-013",
       "photo": 3,
       "level": 2,
       "name": "Half blocked",
+      "confidence": "medium",
+      "reason": "About half of the net is covered with leaves."
+    },
+    {
+      "asset_id": "GPT-019",
+      "photo": 4,
+      "level": 3,
+      "name": "Blocked",
+      "confidence": "medium",
+      "reason": "The net looks covered with leaves and debris."
+    },
+    {
+      "asset_id": "GPT-024",
+      "photo": 5,
+      "level": 2,
+      "name": "Half blocked",
+      "confidence": "medium",
+      "reason": "About half of the net is covered with leaves."
+    },
+    {
+      "asset_id": "GPT-029",
+      "photo": 6,
+      "level": 3,
+      "name": "Blocked",
       "confidence": "high",
-      "reason": "About half of the grate is covered with leaves."
+      "reason": "The net looks covered with leaves and debris."
+    },
+    {
+      "asset_id": "GPT-034",
+      "photo": 7,
+      "level": 3,
+      "name": "Blocked",
+      "confidence": "high",
+      "reason": "The net looks covered with leaves and debris."
     }
   ]
 }

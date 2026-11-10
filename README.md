@@ -1,8 +1,8 @@
 # DrainWise
 
-**Clean the right drains before they block.**
+**Clean the right gross pollutant traps before they fill.**
 
-A hackathon prototype for the City of Parramatta challenge _5. AI for Smarter Asset and Environmental Management_ (primary), with a nod to _1. Climate Resilience_. It predicts which stormwater drain inlets and gross pollutant traps (GPTs) are most likely to block next, ranks them, and plans a truck run that cleans the riskiest nearby ones without exceeding the truck's capacity. Crews close each job with proof: before photos are designed to become training data, after photos are evidence of work, and sites with a camera need no photos.
+A hackathon prototype for the City of Parramatta challenge _5. AI for Smarter Asset and Environmental Management_ (primary), with a nod to _1. Climate Resilience_. It predicts which gross pollutant traps (GPTs, net type only) are most likely to fill next, ranks them, and suggests a truck run for the contractor that cleans the riskiest nearby ones without exceeding the truck's capacity (3 m³ is an assumption). Crews close each job with proof: before photos are designed to become training data, after photos are evidence of work, and sites with a camera need no photos.
 
 ## What is real and what is sample data
 
@@ -95,7 +95,7 @@ POST /predict
   out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 ```
 
-Features: tree canopy near the asset, leaf-fall index, recent and forecast rainfall, days since last clean, asset type (inlet or GPT) and whether it has a camera. More canopy, leaf fall, rain or days since clean never lowers the risk (monotonic constraints).
+Features: tree canopy near the asset, leaf-fall index, recent and forecast rainfall, days since last clean, asset type and whether it has a camera. More canopy, leaf fall, rain or days since clean never lowers the risk (monotonic constraints).
 
 When real records arrive, only the training data is swapped and the model retrained. The API contract stays the same. Runs are reproducible (fixed random seed, data source logged).
 
@@ -103,10 +103,10 @@ When real records arrive, only the training data is swapped and the model retrai
 
 We need these from council experts. Until then everything stays sample data.
 
-1. Drain pit and GPT locations, even a sample or anonymised.
+1. GPT locations, even a sample or anonymised.
 2. How many GPTs and cameras there are, and how cameras are monitored today.
 3. Any cleaning or blockage history, and its format.
-4. Truck and bin volumes, typical load per inlet and per GPT, cost per clean, crews per day.
+4. Truck and bin volumes, typical load per GPT, cost per clean (not shown in the UI), crews per day.
 5. An existing work-order or inspection system to integrate with, and rules for photo evidence.
 6. Confirmation that **"GPT" means Gross Pollutant Trap.** We assume so; it is not confirmed.
 

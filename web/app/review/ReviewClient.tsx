@@ -182,7 +182,7 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
         {/* eslint-disable-next-line @next/next/no-img-element -- local route, small set, no optimiser needed */}
         <img
           src={it.src}
-          alt={`${it.title} of a drain site`}
+          alt={`${it.title} of a GPT site`}
           width={960}
           height={720}
           style={{ width: "100%", height: "auto", borderRadius: 14, background: "var(--fr-bg)" }}

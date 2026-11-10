@@ -57,11 +57,14 @@ export default function RoleScreen({
             style={{ margin: "0 auto" }}
           />
         </h1>
-        <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>Clean the right drains before they block.</p>
+        <p style={{ margin: "0 0 8px", fontSize: 20, color: "#EAF6FB" }}>
+          Clean the right gross pollutant traps before they fill.
+        </p>
         <p className="fr-intro" style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
-          Checking drains by hand is slow, and most Parramatta gross pollutant traps (GPTs) have no camera. DrainWise
-          uses AI to predict which ones will block next, so crews clean the right ones first and keep pollution out of
-          the river. Every job is closed with proof. Pick a role to start. No sign-in needed.
+          Checking gross pollutant traps (GPTs) by hand is slow, and most Parramatta GPTs have no camera. DrainWise uses
+          a model trained on sample data to predict which nets will fill next and suggests a truck run for the
+          contractor, so the right ones are cleaned first and pollution stays out of the river. Every job is closed with
+          proof. Pick a role to start. No sign-in needed.
         </p>
       </div>
       <div className="fr-cards">

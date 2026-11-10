@@ -60,21 +60,21 @@
     "type": "gpt",
     "canopy_pct": 57,
     "days_since_clean": 153,
-    "has_camera": true
+    "has_camera": false
   },
   {
     "asset_id": "GPT-010",
     "type": "gpt",
     "canopy_pct": 56,
     "days_since_clean": 69,
-    "has_camera": true
+    "has_camera": false
   },
   {
     "asset_id": "GPT-011",
     "type": "gpt",
     "canopy_pct": 23,
     "days_since_clean": 58,
-    "has_camera": true
+    "has_camera": false
   },
   {
     "asset_id": "GPT-012",
@@ -88,7 +88,7 @@
     "type": "gpt",
     "canopy_pct": 8,
     "days_since_clean": 92,
-    "has_camera": false
+    "has_camera": true
   },
   {
     "asset_id": "GPT-014",
@@ -123,14 +123,14 @@
     "type": "gpt",
     "canopy_pct": 65,
     "days_since_clean": 58,
-    "has_camera": true
+    "has_camera": false
   },
   {
     "asset_id": "GPT-019",
     "type": "gpt",
     "canopy_pct": 47,
     "days_since_clean": 65,
-    "has_camera": false
+    "has_camera": true
   },
   {
     "asset_id": "GPT-020",
@@ -165,7 +165,7 @@
     "type": "gpt",
     "canopy_pct": 67,
     "days_since_clean": 173,
-    "has_camera": false
+    "has_camera": true
   },
   {
     "asset_id": "GPT-025",
@@ -200,7 +200,7 @@
     "type": "gpt",
     "canopy_pct": 35,
     "days_since_clean": 126,
-    "has_camera": false
+    "has_camera": true
   },
   {
     "asset_id": "GPT-030",
@@ -214,7 +214,7 @@
     "type": "gpt",
     "canopy_pct": 22,
     "days_since_clean": 68,
-    "has_camera": true
+    "has_camera": false
   },
   {
     "asset_id": "GPT-032",
@@ -235,7 +235,7 @@
     "type": "gpt",
     "canopy_pct": 42,
     "days_since_clean": 133,
-    "has_camera": false
+    "has_camera": true
   },
   {
     "asset_id": "GPT-035",

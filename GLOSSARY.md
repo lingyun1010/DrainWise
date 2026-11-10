@@ -1,8 +1,8 @@
 # Glossary
 
-- **Asset**: a stormwater drain inlet or a GPT that can block and be cleaned.
-- **Inlet**: a drain pit that takes water from the road. Small debris load.
-- **GPT**: Gross Pollutant Trap. Larger debris load. _Unconfirmed until council confirms this meaning._
+- **Asset**: a GPT (net type) that can fill and be cleaned. Drain inlets are out of scope since the 9 Nov 2026 council session.
+- **GPT**: Gross Pollutant Trap. The council focus is the net type (problems: net full, broken, fallen off). _Meaning confirmed by the 9 Nov council session._
+- **Contractor**: the outsourced company that cleans GPTs for the council and picks the day and the people. A planned run is a suggestion for them.
 - **Risk score**: probability that an asset blocks in the next N days, with top reasons. Never shown without reasons.
 - **Run**: one truck trip planned within the truck capacity, made of ordered stops.
 - **Stop**: one asset visit inside a run.

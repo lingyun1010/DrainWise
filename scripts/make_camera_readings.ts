@@ -6,18 +6,18 @@ import { makeSeedAssets } from "../web/lib/seed";
 import { mockSuggestion } from "../planner/src/mockSuggestion";
 import precomputed from "../web/lib/precomputedScores.json";
 
-export const PHOTO_COUNT = 7;
+export const PHOTO_COUNT = 7; // one sample photo per camera; the seed has exactly this many camera GPTs
 const NAMES = ["Clear", "Light debris", "Half blocked", "Blocked"];
 
 const pct = new Map(precomputed.scores.map((s) => [s.asset_id, s.p_block * 100]));
 const readings = makeSeedAssets()
   .filter((a) => a.hasCamera)
-  .map((a) => {
+  .map((a, k) => {
     const n = Number(a.id.replace(/\D/g, ""));
     const s = mockSuggestion(pct.get(a.id), n);
     return {
       asset_id: a.id,
-      photo: ((n - 1) % PHOTO_COUNT) + 1, // fixed rule: GPT number modulo 7
+      photo: (k % PHOTO_COUNT) + 1, // fixed rule: the k-th camera GPT (in GPT order) shows sample photo k
       level: s.level,
       name: NAMES[s.level],
       confidence: s.confidence >= 0.8 ? "high" : s.confidence >= 0.65 ? "medium" : "low",
@@ -31,7 +31,8 @@ writeFileSync(
     {
       data_source: "SAMPLE DATA. Placeholder readings from planner/src/mockSuggestion.ts. No image model was run.",
       level_source: "mock",
-      photo_rule: "photo = ((GPT number - 1) mod 7) + 1, one of the 7 council sample photos in web/public/camera",
+      photo_rule:
+        "photo = position of the camera GPT among the 7 camera GPTs (1 to 7), one of the 7 council sample photos in web/public/camera",
       generated_at: new Date().toISOString(),
       readings,
     },

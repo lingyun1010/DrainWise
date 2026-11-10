@@ -1,6 +1,6 @@
 {
  "data_source": "simulated (ml/simulate.py) - SAMPLE DATA, not observed council records; sample assets, SAMPLE DATA",
- "generated_at": "2026-11-08T11:05:03+00:00",
+ "generated_at": "2026-11-09T04:32:18+00:00",
  "model_version": "HistGradientBoosting seed=0 n=20000 sha256=13b5afb60d7f",
  "scenario": {
   "leaf_index": 60,
@@ -89,7 +89,7 @@
   },
   {
    "asset_id": "GPT-009",
-   "p_block": 0.9254,
+   "p_block": 0.9266,
    "level": "high",
    "reasons": [
     "Last cleaned 153 days ago",
@@ -99,7 +99,7 @@
   },
   {
    "asset_id": "GPT-010",
-   "p_block": 0.6541,
+   "p_block": 0.6702,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
@@ -109,8 +109,8 @@
   },
   {
    "asset_id": "GPT-011",
-   "p_block": 0.2838,
-   "level": "low",
+   "p_block": 0.3345,
+   "level": "medium",
    "reasons": [
     "Asset type: GPT",
     "High leaf-fall season"
@@ -128,7 +128,7 @@
   },
   {
    "asset_id": "GPT-013",
-   "p_block": 0.362,
+   "p_block": 0.3453,
    "level": "medium",
    "reasons": [
     "High leaf-fall season",
@@ -177,7 +177,7 @@
   },
   {
    "asset_id": "GPT-018",
-   "p_block": 0.6365,
+   "p_block": 0.6873,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
@@ -187,7 +187,7 @@
   },
   {
    "asset_id": "GPT-019",
-   "p_block": 0.646,
+   "p_block": 0.6294,
    "level": "high",
    "reasons": [
     "Heavy tree cover nearby",
@@ -236,7 +236,7 @@
   },
   {
    "asset_id": "GPT-024",
-   "p_block": 0.9553,
+   "p_block": 0.9561,
    "level": "high",
    "reasons": [
     "Last cleaned 173 days ago",
@@ -283,7 +283,7 @@
   },
   {
    "asset_id": "GPT-029",
-   "p_block": 0.7752,
+   "p_block": 0.7624,
    "level": "high",
    "reasons": [
     "Last cleaned 126 days ago",
@@ -303,7 +303,7 @@
   },
   {
    "asset_id": "GPT-031",
-   "p_block": 0.3435,
+   "p_block": 0.3597,
    "level": "medium",
    "reasons": [
     "Asset type: GPT",
@@ -331,7 +331,7 @@
   },
   {
    "asset_id": "GPT-034",
-   "p_block": 0.8239,
+   "p_block": 0.8132,
    "level": "high",
    "reasons": [
     "Last cleaned 133 days ago",

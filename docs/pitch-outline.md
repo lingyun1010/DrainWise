@@ -4,11 +4,11 @@ Decided in ticket 05. No accuracy numbers anywhere: not on slides, not in the de
 
 ## The one sentence
 
-"DrainWise tells Parramatta's crews which drains to clean before they block, plans the truck run, and turns every job's photos into proof of work."
+"DrainWise tells Parramatta's crews which gross pollutant traps (GPTs) to clean before they fill, suggests the truck run for the contractor, and turns every job's photos into proof of work."
 
 ## Story
 
-Action. The council already has flood warning (FloodSmart / FLASH). We answer: which drains does the truck clean today, and where is the proof. The data flywheel is one line: "designed to become training data, nothing retrained yet."
+Action. The council already has flood warning (FloodSmart / FLASH). We answer: which GPTs does the truck clean today, and where is the proof. The data flywheel is one line: "designed to become training data, nothing retrained yet."
 
 ## Challenge fit
 
