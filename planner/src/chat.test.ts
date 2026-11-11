@@ -71,3 +71,23 @@ describe("tool results", () => {
     expect(crewProgress(null)).toEqual([]);
   });
 });
+
+describe("rulesSummary", () => {
+  it("lists only approved rules and counts the proposed ones", async () => {
+    const { rulesSummary } = await import("./chatTools");
+    const out = rulesSummary(
+      [
+        { id: "a", status: "approved", count: 4 },
+        { id: "b", status: "rejected", count: 3 },
+        { id: "c", status: "proposed", count: 3 },
+      ],
+      [
+        { lesson_id: "a", text: "Creek-side GPTs first", enabled: true, version: 2 },
+        { lesson_id: "b", text: "Rejected rule", enabled: true, version: 1 },
+      ],
+    );
+    expect(out.rules).toEqual([{ text: "Creek-side GPTs first", on: true, version: 2, supporting_edits: 4 }]);
+    expect(out.proposed_waiting_for_approval).toBe(1);
+    expect(out.data).toContain("SIMULATION");
+  });
+});

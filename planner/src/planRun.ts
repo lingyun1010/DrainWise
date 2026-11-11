@@ -1,3 +1,5 @@
+import { applyRules, type Rule, type RuleContext } from "./rules";
+
 export type Asset = {
   id: string;
   type: "inlet" | "gpt";
@@ -5,10 +7,12 @@ export type Asset = {
   x: number;
   y: number;
   hasCamera: boolean;
+  nearCreek?: boolean; // sample flag, used only by the creek_first rule
 };
 
-export type Stop = { id: string; load: number; photosNeeded: boolean };
+export type Stop = { id: string; load: number; photosNeeded: boolean; adjustedBy?: string[] };
 export type Plan = { stops: Stop[]; totalLoad: number };
+export type PlanRules = { rules: Rule[]; ctx: RuleContext };
 
 // Demo placeholder load estimate (m3, made-up), not observed data.
 function estimateLoad(a: Asset): number {
@@ -67,12 +71,25 @@ function orderByProximity<T extends { asset: Asset }>(items: T[], depot: { x: nu
   return out;
 }
 
-export function planRun(assets: Asset[], capacity: number, depot = { x: 0, y: 0 }, minRisk = 0): Plan {
-  const items = assets.filter((a) => a.risk >= minRisk).map((asset) => ({ asset, load: estimateLoad(asset) }));
-  const stops = orderByProximity(selectStops(items, capacity), depot).map(({ asset, load }) => ({
-    id: asset.id,
-    load,
-    photosNeeded: !asset.hasCamera,
-  }));
+export function planRun(
+  assets: Asset[],
+  capacity: number,
+  depot = { x: 0, y: 0 },
+  minRisk = 0,
+  opts?: PlanRules,
+): Plan {
+  // Rules only change which stops are chosen (adjusted risk); the load stays from the real risk.
+  const real = new Map(assets.map((a) => [a.id, a]));
+  const adj = opts ? applyRules(assets, opts.rules, opts.ctx, depot) : null;
+  const pool = adj ? adj.assets : assets;
+  const items = pool
+    .filter((a) => (real.get(a.id)?.risk ?? a.risk) >= minRisk)
+    .map((asset) => ({ asset, load: estimateLoad(real.get(asset.id) ?? asset) }));
+  const stops = orderByProximity(selectStops(items, capacity), depot).map(({ asset, load }) => {
+    const notes = adj?.notes.get(asset.id);
+    const stop: Stop = { id: asset.id, load, photosNeeded: !asset.hasCamera };
+    if (notes && notes.length > 0) stop.adjustedBy = notes;
+    return stop;
+  });
   return { stops, totalLoad: stops.reduce((sum, s) => sum + s.load, 0) };
 }

@@ -1,7 +1,7 @@
 # 32: AI OS: memory, reflection and approved preference rules
 
 Type: task
-Status: ready-for-agent
+Status: done (PR pending)
 Blocked by: 30 (plan edits and reasons are the input), 31 (shares the Claude key, rate limits and chat context)
 Spec: `design/AI_OS_DESIGN.md` sections 3, 5, 6, 8, 10; `.scratch/drainwise/map.md` ("AI OS scope update 2026-11-11")
 
