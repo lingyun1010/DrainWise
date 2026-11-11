@@ -1,7 +1,15 @@
 // Guards and sending for the report email. The transport is passed in, so tests use a mock SMTP transport and the
 // real route passes a nodemailer Gmail transport. The recipient is never stored; only a masked form is logged.
 
-export type Mail = { from: string; to: string; subject: string; text: string };
+export type Attachment = { filename: string; path: string; cid: string };
+export type Mail = {
+  from: string;
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  attachments?: Attachment[];
+};
 export type Transport = { sendMail(mail: Mail): Promise<unknown> };
 
 const ADDRESS =
@@ -60,6 +68,8 @@ export async function sendReportMail(
   to: string,
   subject: string,
   text: string,
+  extra?: { html: string; attachments?: Attachment[] },
 ): Promise<void> {
-  await transport.sendMail({ from, to, subject, text });
+  // text stays as the plain-text part for clients that do not show HTML.
+  await transport.sendMail({ from, to, subject, text, ...(extra ?? {}) });
 }

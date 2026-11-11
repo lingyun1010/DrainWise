@@ -8,7 +8,7 @@ Owner: Lingyun (Sydney, solo, front-end developer moving into AI engineering). R
 
 Entry for the City of Parramatta hackathon (WSTI Festi). Final submission around 18–20 Nov 2026. Council experts are online Mon 9 Nov and Fri 13 Nov.
 
-Problem (from council experts): hundreds of gross pollutant traps (GPTs) fill with leaves and debris and block. Inspection is manual. Only some sites have cameras.
+Problem (from council experts): gross pollutant traps (GPTs) fill with leaves and debris and block. Owner correction 11 Nov: only 30+ GPTs are known to us, so never say "hundreds". Inspection is manual. Only some sites have cameras.
 
 Idea: predict which GPTs will fill next, rank them, and suggest a truck run (for the outsourced contractor, who picks the day and the people) that cleans the riskiest nearby ones without exceeding the truck's capacity (default 3 m³, an assumption). Crews close each job with proof. Photos taken before cleaning become training data for the model; photos after cleaning are evidence of work. Sites with a camera need no photos.
 

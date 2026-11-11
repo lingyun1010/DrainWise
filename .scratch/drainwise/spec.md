@@ -7,7 +7,7 @@ This spec is partly retrospective: the manager view, crew view, planner, risk AP
 
 ## Problem Statement
 
-Council crews clean hundreds of stormwater drain inlets and gross pollutant traps (GPTs) that fill with leaves and block. Inspection is manual and only some sites have cameras, so crews clean by routine or after a complaint, not by risk. A manager cannot easily say "which drains should the truck clean today, within what the truck can carry", and a crew leaves no consistent proof that a job was done. Real-time flood warning already exists (FloodSmart/FLASH); the gap is operational action on blockage.
+Council crews clean the 30-plus gross pollutant traps (GPTs) known to us, which fill with leaves and block. Inspection is manual and only some sites have cameras, so crews clean by routine or after a complaint, not by risk. A manager cannot easily say "which drains should the truck clean today, within what the truck can carry", and a crew leaves no consistent proof that a job was done. Real-time flood warning already exists (FloodSmart/FLASH); the gap is operational action on blockage.
 
 ## Solution
 

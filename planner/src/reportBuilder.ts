@@ -17,6 +17,8 @@ export type Report = {
   subject: string;
   body: string;
   rows: ReportRow[];
+  dateLabel: string;
+  why: string;
   empty: boolean;
   send: boolean;
 };
@@ -105,6 +107,8 @@ export function buildReport(kind: ReportKind, rows: readonly ReportRow[], dateLa
     subject,
     body: lines.join("\n"),
     rows: [...rows],
+    dateLabel,
+    why: whyLine,
     empty: rows.length === 0,
     send: !(storm && rows.length === 0),
   };
