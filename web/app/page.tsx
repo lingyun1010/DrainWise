@@ -617,7 +617,11 @@ export default function Home() {
   const showPhone = role === "split";
   // Wide Manager shows every panel at once; side-by-side and phone-width Manager use tabs to save room.
   const tabbed = showPhone || narrow;
-  const high = idle.filter((r) => r.p.level === "high").length;
+  const highRows = idle.filter((r) => r.p.level === "high");
+  const high = highRows.length;
+  // Header tiles open a list of the GPTs behind the number.
+  const [tileList, setTileList] = useState<"high" | "cleaned" | null>(null);
+  const cleanedIds = [...new Set(records.map((r) => r.stopId))];
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
   const planPct = Math.min(100, Math.round((runLoad / capacity) * 100));
   const photoRecs = records.filter((r) => r.method === "photos");
@@ -1032,14 +1036,16 @@ export default function Home() {
           {logOpen ? "Show less" : `Show today's full log (${logRows.length})`}
         </button>
       )}
-      <button
-        type="button"
-        className="fr-btn fr-ghost"
-        style={{ marginTop: 8, padding: "6px 0", minHeight: 40, fontSize: 14 }}
-        onClick={() => setResetAsk(true)}
-      >
-        Reset sample session
-      </button>
+      <div style={{ marginTop: 20, paddingTop: 14, borderTop: "1px solid #1E4A63" }}>
+        <button
+          type="button"
+          className="fr-btn fr-ghost"
+          style={{ padding: "6px 0", minHeight: 40, fontSize: 14 }}
+          onClick={() => setResetAsk(true)}
+        >
+          Reset sample session
+        </button>
+      </div>
     </section>
   );
 
@@ -1151,16 +1157,28 @@ export default function Home() {
                 <div>RAIN SINCE 9AM</div>
                 <div>{obs ? `${obs.rainMm} mm` : obsFailed ? "no data" : "…"}</div>
               </Tip>
-              <div className="fr-tile" style={{ width: 132 }}>
+              <button
+                type="button"
+                className="fr-tile fr-tilebtn"
+                style={{ width: 132 }}
+                onClick={() => setTileList("high")}
+                aria-label={`High risk: ${high} of ${seed.length}. Show which GPTs`}
+              >
                 <div>HIGH RISK</div>
                 <div>
                   {high} of {seed.length}
                 </div>
-              </div>
-              <div className="fr-tile" style={{ width: 164 }}>
+              </button>
+              <button
+                type="button"
+                className="fr-tile fr-tilebtn"
+                style={{ width: 164 }}
+                onClick={() => setTileList("cleaned")}
+                aria-label={`Cleaned today: ${records.length}. Show which GPTs`}
+              >
                 <div>CLEANED TODAY</div>
                 <div>{records.length}</div>
-              </div>
+              </button>
             </div>
             <div className="fr-hdracts">
               {!narrow && <RoomChip />}
@@ -1585,18 +1603,9 @@ export default function Home() {
                 <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
                   <select
                     aria-label="Add a GPT to the run"
+                    className="fr-select"
                     value={pickAdd}
                     onChange={(e) => setPickAdd(e.target.value)}
-                    style={{
-                      flex: 1,
-                      minHeight: 40,
-                      borderRadius: 10,
-                      border: "2px solid #1E4A63",
-                      background: "#071A28",
-                      color: "#E8F4FA",
-                      padding: "0 8px",
-                      fontSize: 14,
-                    }}
                   >
                     <option value="">Add a GPT to the run...</option>
                     {idle
@@ -1842,6 +1851,53 @@ export default function Home() {
             </div>
           )}
         </div>
+      )}
+
+      {tileList && showMap && (
+        <Dialog
+          label={tileList === "high" ? "High risk GPTs" : "GPTs cleaned today"}
+          eyebrow="Sample data"
+          title={tileList === "high" ? `High risk (60%+): ${high}` : `Cleaned today: ${cleanedIds.length}`}
+          maxWidth={460}
+          closeOnOutside
+          onClose={() => setTileList(null)}
+          actions={
+            <button className="fr-btn fr-ghost" type="button" onClick={() => setTileList(null)}>
+              Close
+            </button>
+          }
+        >
+          {(tileList === "high" ? highRows.length : cleanedIds.length) === 0 ? (
+            <p style={{ margin: 0 }}>
+              {tileList === "high" ? "No GPT is High risk right now." : "No GPT has been cleaned yet."}
+            </p>
+          ) : (
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+              {(tileList === "high"
+                ? highRows.map((r) => ({ id: r.a.id, sub: `${Math.round(r.p.p_block * 100)}% chance of blocking` }))
+                : cleanedIds.map((id) => {
+                    const rec = records.find((r) => r.stopId === id);
+                    return { id, sub: rec ? `Cleaned at ${rec.clock}` : "Cleaned" };
+                  })
+              ).map((it) => (
+                <li key={it.id}>
+                  <button
+                    type="button"
+                    className="fr-btn fr-sec"
+                    style={{ width: "100%", justifyContent: "space-between", display: "flex", gap: 12 }}
+                    onClick={() => {
+                      setTileList(null);
+                      openAsset(it.id);
+                    }}
+                  >
+                    <strong>{it.id}</strong>
+                    <span>{it.sub}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Dialog>
       )}
 
       {curRow && showMap && (

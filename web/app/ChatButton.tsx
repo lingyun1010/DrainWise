@@ -142,6 +142,8 @@ export default function ChatButton() {
           eyebrow="Assistant · sample data"
           title="Ask DrainWise"
           maxWidth={520}
+          closeOnOutside
+          focusDialog
           onClose={() => setOpen(false)}
           actions={
             <>
@@ -174,7 +176,7 @@ export default function ChatButton() {
           </div>
           <div className="fr-chatchips" aria-label="Suggested questions">
             {EXAMPLES.map((e) => (
-              <button key={e} type="button" className="fr-btn fr-sec" disabled={busy} onClick={() => send(e)}>
+              <button key={e} type="button" className="fr-chip" disabled={busy} onClick={() => send(e)}>
                 {e}
               </button>
             ))}
@@ -193,7 +195,6 @@ export default function ChatButton() {
             <input
               id="fr-chatinput"
               className="fr-chatinput"
-              autoFocus
               maxLength={500}
               value={text}
               onChange={(e) => setText(e.target.value)}

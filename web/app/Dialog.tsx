@@ -17,6 +17,8 @@ export default function Dialog({
   title,
   tone = "info",
   maxWidth = 460,
+  closeOnOutside = false,
+  focusDialog = false,
   onClose,
   children,
   actions,
@@ -26,11 +28,14 @@ export default function Dialog({
   title: string;
   tone?: keyof typeof TONE; // danger = Remove or Withdraw style confirmations
   maxWidth?: number;
+  closeOnOutside?: boolean; // click on the dark backdrop closes (off for confirmations, so a stray click never cancels)
+  focusDialog?: boolean; // focus the card itself, not the first control (chat: no keyboard pop-up on phones)
   onClose: () => void;
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
+  const focusDialogRef = useRef(focusDialog);
   const closeRef = useRef(onClose); // the listener below is added once, not on every parent render
   useEffect(() => {
     closeRef.current = onClose;
@@ -63,7 +68,10 @@ export default function Dialog({
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
     if (box.current && !box.current.contains(document.activeElement)) {
-      (box.current.querySelector<HTMLElement>(FOCUSABLE) ?? box.current).focus();
+      (focusDialogRef.current
+        ? box.current
+        : (box.current.querySelector<HTMLElement>(FOCUSABLE) ?? box.current)
+      ).focus();
     }
     return () => {
       if (opener && opener.isConnected) opener.focus();
@@ -76,6 +84,9 @@ export default function Dialog({
       role="dialog"
       aria-modal="true"
       aria-label={label}
+      onMouseDown={(e) => {
+        if (closeOnOutside && e.target === e.currentTarget) onClose();
+      }}
       style={{
         position: "fixed",
         inset: 0,

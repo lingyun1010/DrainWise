@@ -1301,10 +1301,29 @@ body {
   gap: 8px;
   margin-top: 12px;
 }
-.fr-chatchips .fr-btn {
-  min-height: 40px;
-  padding: 8px 14px;
-  font-size: 14px;
+/* Suggested questions: small quiet pills, clearly lower than the main Send button. */
+.fr-chip {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 32px;
+  padding: 4px 12px;
+  color: var(--fr-text);
+  background: transparent;
+  border: 1px solid var(--fr-line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.fr-chip:hover:not(:disabled) {
+  border-color: var(--fr-blue);
+}
+.fr-chip:focus-visible {
+  outline: 3px solid var(--fr-yellow);
+  outline-offset: 2px;
+}
+.fr-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* The chat log scrolls (wheel, touch, auto-scroll to the newest answer) but shows no scroll bar. */
@@ -1320,4 +1339,51 @@ body {
   .fr-chathint {
     display: none;
   }
+}
+
+/* A header tile that opens a list (High risk, Cleaned today): same look as a plain tile, plus hover and focus. */
+.fr-tilebtn {
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fr-tilebtn:hover {
+  border-color: var(--fr-blue);
+}
+.fr-tilebtn:focus-visible {
+  outline: 3px solid var(--fr-yellow);
+  outline-offset: 2px;
+}
+
+/* Native dropdown restyled to match the text input and buttons (custom chevron, same font, border and radius). */
+.fr-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fr-text);
+  background-color: var(--fr-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238FB8CC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 2px solid var(--fr-line);
+  border-radius: 12px;
+  padding: 0 34px 0 12px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.fr-select:hover {
+  border-color: var(--fr-blue);
+}
+.fr-select:focus-visible {
+  outline: 3px solid var(--fr-yellow);
+  outline-offset: 2px;
+}
+.fr-select option {
+  background: var(--fr-bg);
+  color: var(--fr-text);
 }
