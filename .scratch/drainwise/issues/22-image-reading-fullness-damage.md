@@ -1,7 +1,7 @@
 # 22: Image reading: fullness band, damage type, location, annotated image
 
 Type: task
-Status: done (PR pending; stacked on #37)
+Status: done (merged, PR #43)
 Blocked by: 21 (needs images and reference); soft link to 13, 17, 18
 Spec: `.scratch/drainwise/map.md` ("Image recognition" decision)
 
@@ -10,6 +10,8 @@ Spec: `.scratch/drainwise/map.md` ("Image recognition" decision)
 For a camera GPT: compare today's image with a clean reference image of the same camera. Output: **fullness band** (10% steps), **damage** (`none`, `net_full`, `net_broken`, `net_fallen`), the **changed region**, and an **annotated image** (circle on the region, arrow, numbered caption). Reference diff comes first; the hosted vision model (server only, as in ticket 13) is a helper for unclear cases and sites without a reference. A human confirms before anything becomes a label.
 
 ## Decisions
+
+- **Updated 2026-11-11 (owner): no AI model is called for photos, locally or on the public build.** Remove the hosted-vision criterion. Camera sites use the deterministic reference diff (not an AI model); crew photos and unclear cases get a MOCK reading and the admin marks the problem by hand (ticket 29). Annotation of the changed region by the reference diff is welcome where it works; the admin can delete and redraw it.
 
 - Changed area fraction is a fullness proxy, not a measurement. Say so in the UI.
 - Broken or fallen net shows as a mismatch against the reference.
@@ -22,7 +24,7 @@ For a camera GPT: compare today's image with a clean reference image of the same
 - [x] Pure function (TS in `planner/` or Python in `ml/`, owner's call at start) `readImage(reference, today)` returning band, damage, region, confidence, rationale. Unit tests on the synthetic set from ticket 21 (true band within one band is reported as a pipeline check, not accuracy).
 - [x] Annotated image: circle, arrow and numbered caption drawn from the region.
 - [x] Camera popup (ticket 17) shows band, damage, annotated image, "Synthetic image" and "Prototype, no accuracy claim".
-- [x] Hosted vision call is server only; absent on the public build; human confirm step kept.
+- [x] No hosted vision call anywhere (owner decision 2026-11-11); human confirm step kept (ticket 29).
 - [x] Faces / number-plate gate still applies before any training use.
 - [x] Browser check at desktop and 375px.
 

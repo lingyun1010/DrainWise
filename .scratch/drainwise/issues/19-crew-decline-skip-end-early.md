@@ -1,7 +1,7 @@
 # 19: Crew can decline a run, skip a stop or end a run early, with a reason
 
 Type: task
-Status: done (PR pending)
+Status: done
 Blocked by: None
 Spec: `.scratch/drainwise/spec.md`
 

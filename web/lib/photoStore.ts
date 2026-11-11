@@ -5,6 +5,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { afterCounts, deleteJobPhotos, type DeleteResult, type PhotoStore } from "../../planner/src/photoPairs";
+import type { Shape } from "../../planner/src/annotations";
 import { MAX_STORED_PHOTOS, cleanId, photoPath, type PhotoKind } from "../../planner/src/photoUpload";
 
 const BUCKET = "job-photos";
@@ -41,9 +42,17 @@ export type PhotoRow = {
   suggested_level: number | null;
   confirmed_level: number | null;
   confirmed_at: string | null;
+  admin_band: number | null;
+  admin_damage: string | null;
+  admin_note: string | null;
+  band_source: string | null;
+  damage_source: string | null;
+  annotations: unknown;
+  reviewed_at: string | null;
 };
 const COLUMNS =
-  "id,created_at,run_id,stop_id,asset_id,crew_id,kind,path,expires_at,suggested_level,confirmed_level,confirmed_at";
+  "id,created_at,run_id,stop_id,asset_id,crew_id,kind,path,expires_at,suggested_level,confirmed_level,confirmed_at," +
+  "admin_band,admin_damage,admin_note,band_source,damage_source,annotations,reviewed_at";
 
 async function rows(query: string, init?: RequestInit): Promise<{ data: PhotoRow[]; count: number | null } | null> {
   const c = config();
@@ -177,9 +186,44 @@ export async function confirmPhoto(id: string, level: number, suggested: number 
       confirmed_level: level,
       suggested_level: suggested,
       confirmed_at: new Date().toISOString(),
+      reviewed_at: new Date().toISOString(), // confirming a level counts as reviewed: clears the bell
     }),
   });
   return !!res && res.data.length === 1;
+}
+
+export type AdminReview = {
+  band: number | null;
+  damage: string | null;
+  note: string;
+  bandSource: string | null;
+  damageSource: string | null;
+  shapes: Shape[];
+};
+
+// Saves the admin's own band, damage, note and marks (ticket 29) and marks the photo reviewed.
+export async function saveAdminReview(id: string, r: AdminReview): Promise<boolean> {
+  if (!isUuid(id)) return false;
+  const res = await rows(`id=eq.${id}&select=id`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+    body: JSON.stringify({
+      admin_band: r.band,
+      admin_damage: r.damage,
+      admin_note: r.note,
+      band_source: r.bandSource,
+      damage_source: r.damageSource,
+      annotations: r.shapes,
+      reviewed_at: new Date().toISOString(),
+    }),
+  });
+  return !!res && res.data.length === 1;
+}
+
+// Photos nobody has reviewed yet, newest first, for the bell and the Records badge. Null if unreachable.
+export async function listUnreviewed(): Promise<PhotoRow[] | null> {
+  const res = await rows(`select=${COLUMNS}&kind=eq.before&reviewed_at=is.null&order=created_at.desc&limit=50`);
+  return res ? res.data : null;
 }
 
 // After photos per job, so the review page can say whether a job has an after photo. Null if unreachable.

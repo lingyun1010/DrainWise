@@ -1,9 +1,11 @@
 # 27: Deleting a before photo should handle the after photo of the same job
 
 Type: task
-Status: done
+Status: done (merged, PR #44); ticket 29 builds on its pair delete in the review view
 Blocked by: None
 Spec: ticket 16 ("Known gap")
+
+> Update 2026-11-11 (owner): handle the paired after photo while reworking the review view in ticket 29.
 
 ## What to build
 

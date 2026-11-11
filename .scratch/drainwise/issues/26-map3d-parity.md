@@ -1,9 +1,11 @@
 # 26: 3D view parity with the 2D map
 
 Type: task
-Status: done
+Status: done (merged, PR #40)
 Blocked by: None
 Spec: `.scratch/drainwise/map.md` ("Known gaps after #12")
+
+> Update 2026-11-11 (owner): 3D parity is cosmetic; do only if time is left.
 
 ## What to build
 

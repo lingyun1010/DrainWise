@@ -1,9 +1,11 @@
 # 25: Face and number-plate gate for photos
 
 Type: task
-Status: ready-for-agent
+Status: deferred (roadmap)
 Blocked by: None
 Spec: `CLAUDE.md` section 8; tickets 04 and 16
+
+> Update 2026-11-11 (owner): only needed before any training; nothing is trained now. Say in the pitch that it is a required gate before training.
 
 ## What to build
 

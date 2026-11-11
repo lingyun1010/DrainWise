@@ -1130,3 +1130,18 @@ html:has(.fr-role) body {
     animation: none !important;
   }
 }
+
+/* Form fields (ticket 29): text input, select and textarea in dialogs and the review page. */
+.fr-field {
+  background: var(--fr-bg);
+  color: var(--fr-text);
+  border: 2px solid var(--fr-line2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font: inherit;
+  min-height: 40px;
+}
+.fr-field:focus-visible {
+  outline: 3px solid var(--fr-blue);
+  outline-offset: 2px;
+}

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../Dialog";
+import type { Damage, Shape, Source } from "../../../planner/src/annotations";
+import AnnotateDialog, { type Reading } from "./AnnotateDialog";
 
 type Level = 0 | 1 | 2 | 3;
 type Suggestion = { level: Level; confidence: number; rationale: string };
@@ -20,6 +22,8 @@ type Item = {
   stopId?: string;
   afterCount?: number | null; // null = could not be looked up
 };
+// What the admin saved by hand for a stored photo (ticket 29).
+type Admin = Reading & { bandSource: Source | null; damageSource: Source | null; reviewed: boolean };
 type StoredPhoto = {
   id: string;
   at: string;
@@ -30,6 +34,13 @@ type StoredPhoto = {
   suggested: Level | null;
   confirmed: Level | null;
   confirmedAt: string | null;
+  reviewedAt: string | null;
+  band: number | null;
+  damage: Damage | null;
+  note: string;
+  bandSource: Source | null;
+  damageSource: Source | null;
+  shapes: Shape[];
 };
 
 const STORE = "drainwise.reviewLabels";
@@ -63,6 +74,8 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
   const [asks, setAsks] = useState<Record<string, Ask>>({});
   const [picked, setPicked] = useState<Record<string, Level>>({});
   const [clearing, setClearing] = useState(false);
+  const [admin, setAdmin] = useState<Record<string, Admin>>({});
+  const [marking, setMarking] = useState<Item | null>(null);
   const [removing, setRemoving] = useState<Item | null>(null);
   const [alsoAfter, setAlsoAfter] = useState(true);
   const [crew, setCrew] = useState<
@@ -92,6 +105,22 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
             detail: `${p.crewId} · ${p.runId} · ${new Date(p.at).toLocaleString()}`,
           })),
         });
+        setAdmin(
+          Object.fromEntries(
+            photos.map((p) => [
+              `p-${p.id}`,
+              {
+                band: p.band,
+                damage: p.damage,
+                note: p.note,
+                shapes: p.shapes,
+                bandSource: p.bandSource,
+                damageSource: p.damageSource,
+                reviewed: p.reviewedAt !== null,
+              },
+            ]),
+          ),
+        );
         setLabels((prev) => {
           const next = { ...prev };
           for (const p of photos) {
@@ -160,6 +189,22 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
     saveLabels(next);
   }
 
+  async function saveReview(it: Item, r: Reading & { bandSource: Source | null; damageSource: Source | null }) {
+    try {
+      const res = await fetch("/api/review/photos/annotate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: it.photoId, ...r }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "request failed");
+    } catch (e) {
+      return e instanceof Error ? e.message : "request failed";
+    }
+    setAdmin((m) => ({ ...m, [it.key]: { ...r, reviewed: true } }));
+    setMarking(null);
+    return null;
+  }
+
   function clearSamples() {
     const next = Object.fromEntries(Object.entries(labels).filter(([k]) => k.startsWith("p-")));
     setLabels(next);
@@ -194,19 +239,63 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
     const a = asks[n] ?? { state: "idle" as const };
     const label = labels[n];
     return (
-      <section key={n} className="fr-section" aria-labelledby={`rv-h-${n}`}>
+      <section key={n} id={n} className="fr-section" aria-labelledby={`rv-h-${n}`}>
         <h2 id={`rv-h-${n}`} style={{ margin: "0 0 4px", fontSize: 20 }}>
           {it.title}
         </h2>
         {it.detail && <div style={{ color: "var(--fr-mute)", fontSize: 13, marginBottom: 8 }}>{it.detail}</div>}
-        {/* eslint-disable-next-line @next/next/no-img-element -- local route, small set, no optimiser needed */}
-        <img
-          src={it.src}
-          alt={`${it.title} of a GPT site`}
-          width={960}
-          height={720}
-          style={{ width: "100%", height: "auto", borderRadius: 14, background: "var(--fr-bg)" }}
-        />
+        <div style={{ position: "relative" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local route, small set, no optimiser needed */}
+          <img
+            src={it.src}
+            alt={`${it.title} of a GPT site`}
+            width={960}
+            height={720}
+            style={{ width: "100%", height: "auto", borderRadius: 14, background: "var(--fr-bg)" }}
+          />
+          {admin[n]?.shapes.length ? (
+            <svg
+              viewBox="0 0 1 0.75"
+              preserveAspectRatio="none"
+              aria-hidden
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+            >
+              {admin[n].shapes.map((s) =>
+                s.kind === "circle" ? (
+                  <ellipse
+                    key={s.id}
+                    cx={s.x}
+                    cy={s.y * 0.75}
+                    rx={s.r}
+                    ry={s.r}
+                    fill="none"
+                    stroke="#FFD27A"
+                    strokeWidth={0.005}
+                  />
+                ) : (
+                  <line
+                    key={s.id}
+                    x1={s.x}
+                    y1={s.y * 0.75}
+                    x2={s.x2}
+                    y2={s.y2 * 0.75}
+                    stroke="#FFD27A"
+                    strokeWidth={0.005}
+                  />
+                ),
+              )}
+            </svg>
+          ) : null}
+        </div>
+        {admin[n] && (admin[n].band !== null || admin[n].damage || admin[n].note) && (
+          <div style={{ marginTop: 8, fontSize: 14, color: "var(--fr-soft)" }}>
+            Marked by admin:{" "}
+            {admin[n].band !== null ? `${admin[n].band}% full (${admin[n].bandSource})` : "band not set"}
+            {" · "}
+            {admin[n].damage ? `${admin[n].damage} (${admin[n].damageSource})` : "damage not set"}
+            {admin[n].note ? ` · ${admin[n].note}` : ""}
+          </div>
+        )}
 
         <div style={{ marginTop: 12, minHeight: 64 }} aria-live="polite">
           {a.state === "idle" && <span style={{ color: "var(--fr-mute)" }}>No suggestion yet.</span>}
@@ -273,6 +362,11 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
           >
             {picked[n] === undefined ? "Confirm level" : `Confirm level ${picked[n]}`}
           </button>
+          {it.photoId && (
+            <button className="fr-btn fr-sec" type="button" style={{ minHeight: 40 }} onClick={() => setMarking(it)}>
+              {admin[n]?.shapes.length ? "Edit marks and reading" : "Mark and correct"}
+            </button>
+          )}
           {it.photoId && (
             <button
               className="fr-btn fr-ghost"
@@ -378,6 +472,21 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
         <div style={grid}>{samples.map(card)}</div>
       </div>
 
+      {marking && (
+        <AnnotateDialog
+          title={marking.title}
+          src={marking.src}
+          start={admin[marking.key] ?? { band: null, damage: null, note: "", shapes: [] }}
+          prefill={{
+            band: null,
+            bandSource: "mock",
+            damage: null,
+            damageSource: "mock",
+          }}
+          onSave={(r) => saveReview(marking, r)}
+          onClose={() => setMarking(null)}
+        />
+      )}
       {clearing && (
         <ConfirmDialog
           label="Clear sample labels"

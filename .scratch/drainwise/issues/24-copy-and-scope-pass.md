@@ -1,7 +1,7 @@
 # 24: Copy and scope pass: GPT only, contractor wording, How it works
 
 Type: task
-Status: done (PR pending)
+Status: done (merged, PR #38)
 Blocked by: None (best after 20, so the score wording is final)
 Spec: `.scratch/drainwise/map.md` (owner decisions after 9 Nov)
 
