@@ -4,7 +4,8 @@
 // The bucket is private and the table has no policies, so nothing here is reachable without that key.
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { MAX_STORED_PHOTOS, photoPath, type PhotoKind } from "../../planner/src/photoUpload";
+import { afterCounts, deleteJobPhotos, type DeleteResult, type PhotoStore } from "../../planner/src/photoPairs";
+import { MAX_STORED_PHOTOS, cleanId, photoPath, type PhotoKind } from "../../planner/src/photoUpload";
 
 const BUCKET = "job-photos";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -181,11 +182,34 @@ export async function confirmPhoto(id: string, level: number, suggested: number 
   return !!res && res.data.length === 1;
 }
 
-// Deletes the file, the row and with it the label.
-export async function deletePhoto(id: string): Promise<boolean> {
-  const row = isUuid(id) ? await oneRow(id) : null;
-  if (!row) return false;
-  if (!(await removeObjects([row.path]))) return false;
-  const res = await rows(`id=eq.${id}&select=id`, { method: "DELETE", headers: { Prefer: "return=representation" } });
-  return !!res;
+// After photos per job, so the review page can say whether a job has an after photo. Null if unreachable.
+export async function afterCountsByJob(): Promise<Map<string, number> | null> {
+  const res = await rows("select=run_id,stop_id&kind=eq.after&limit=1000");
+  return res ? afterCounts(res.data) : null; // at most MAX_STORED_PHOTOS (300) rows exist, so 1000 is enough
+}
+
+// The real store behind deleteJobPhotos (ticket 27). Tests use a mock with the same shape.
+const supabaseStore: PhotoStore = {
+  getRow: oneRow,
+  findJob: async (runId, stopId) => {
+    if (!cleanId(runId) || !cleanId(stopId)) return null; // ids go into a query string
+    const res = await rows(`select=${COLUMNS}&run_id=eq.${runId}&stop_id=eq.${stopId}&limit=200`);
+    return res ? res.data : null;
+  },
+  removeObjects,
+  removeRows: async (ids) => {
+    if (!ids.every(isUuid)) return false;
+    const res = await rows(`id=in.(${ids.join(",")})&select=id`, {
+      method: "DELETE",
+      headers: { Prefer: "return=representation" },
+    });
+    return !!res;
+  },
+};
+
+// Deletes the file, the row and with it the label. With withAfter, the after photo of the same job goes
+// too, so no half-deleted job is left behind.
+export async function deletePhoto(id: string, withAfter = true): Promise<DeleteResult> {
+  if (!isUuid(id)) return { ok: false, reason: "not_found" };
+  return deleteJobPhotos(supabaseStore, id, withAfter);
 }

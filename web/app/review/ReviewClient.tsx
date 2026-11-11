@@ -10,13 +10,23 @@ type Ask =
 // Only metadata is kept (no image): which image, the confirmed level, what the model suggested, when.
 type Label = { level: Level; suggested: Level | null; at: string };
 // One card: either one of the 7 local samples (key "1".."7") or a stored crew photo (key "p-<uuid>").
-type Item = { key: string; src: string; title: string; detail?: string; photoId?: string };
+type Item = {
+  key: string;
+  src: string;
+  title: string;
+  detail?: string;
+  photoId?: string;
+  runId?: string;
+  stopId?: string;
+  afterCount?: number | null; // null = could not be looked up
+};
 type StoredPhoto = {
   id: string;
   at: string;
   runId: string;
   stopId: string;
   crewId: string;
+  afterCount: number | null;
   suggested: Level | null;
   confirmed: Level | null;
   confirmedAt: string | null;
@@ -54,6 +64,7 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
   const [picked, setPicked] = useState<Record<string, Level>>({});
   const [clearing, setClearing] = useState(false);
   const [removing, setRemoving] = useState<Item | null>(null);
+  const [alsoAfter, setAlsoAfter] = useState(true);
   const [crew, setCrew] = useState<
     { state: "loading" } | { state: "error"; msg: string } | { state: "ok"; items: Item[] }
   >({ state: "loading" });
@@ -73,6 +84,9 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
           items: photos.map((p) => ({
             key: `p-${p.id}`,
             photoId: p.id,
+            afterCount: p.afterCount,
+            runId: p.runId,
+            stopId: p.stopId,
             src: `/api/review/image?id=${p.id}`,
             title: `Crew photo · ${p.stopId}`,
             detail: `${p.crewId} · ${p.runId} · ${new Date(p.at).toLocaleString()}`,
@@ -159,7 +173,7 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
       const res = await fetch("/api/review/photos/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: it.photoId }),
+        body: JSON.stringify({ id: it.photoId, withAfter: alsoAfter }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "request failed");
       setCrew((c) => (c.state === "ok" ? { state: "ok", items: c.items.filter((x) => x.key !== it.key) } : c));
@@ -168,6 +182,12 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
       setAsks((m) => ({ ...m, [it.key]: { state: "error", msg: e instanceof Error ? e.message : "request failed" } }));
     }
   }
+
+  const otherBefores = removing
+    ? crewItems.filter((x) => x.key !== removing.key && x.runId === removing.runId && x.stopId === removing.stopId)
+        .length
+    : 0;
+  const afterWord = (n: number) => (n === 1 ? "" : `s (${n})`);
 
   function card(it: Item) {
     const n = it.key;
@@ -254,7 +274,15 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
             {picked[n] === undefined ? "Confirm level" : `Confirm level ${picked[n]}`}
           </button>
           {it.photoId && (
-            <button className="fr-btn fr-ghost" type="button" style={{ minHeight: 40 }} onClick={() => setRemoving(it)}>
+            <button
+              className="fr-btn fr-ghost"
+              type="button"
+              style={{ minHeight: 40 }}
+              onClick={() => {
+                setAlsoAfter(true);
+                setRemoving(it);
+              }}
+            >
               Delete photo
             </button>
           )}
@@ -370,16 +398,43 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
         <ConfirmDialog
           label="Delete photo"
           eyebrow="Photo review"
-          title={`Delete ${removing.title}?`}
+          title="Delete this BEFORE photo?"
           confirmLabel="Delete photo"
           tone="danger"
           onConfirm={() => removePhoto(removing)}
           onCancel={() => setRemoving(null)}
         >
           <p style={{ margin: 0, lineHeight: 1.5 }}>
-            This deletes the photo file and its confirmed label from the DrainWise sample project. It cannot be undone.
-            The job record in the crew app stays, and the AFTER photo of the same job is not deleted.
+            This deletes the BEFORE photo of {removing.stopId} (run {removing.runId}) and its confirmed label from the
+            DrainWise sample project. It cannot be undone. The job record, run history and records in the crew app stay.
           </p>
+          {otherBefores > 0 ? (
+            <p style={{ margin: "12px 0 0", lineHeight: 1.5, color: "var(--fr-soft)" }}>
+              This job has {otherBefores} other BEFORE photo{otherBefores === 1 ? "" : "s"}, so its AFTER photo
+              {removing.afterCount === 1 ? "" : "s"} stay as work evidence.
+            </p>
+          ) : removing.afterCount === 0 ? (
+            <p style={{ margin: "12px 0 0", lineHeight: 1.5, color: "var(--fr-soft)" }}>
+              This job has no AFTER photo stored, so nothing else is deleted.
+            </p>
+          ) : (
+            <label style={{ display: "flex", gap: 10, alignItems: "flex-start", marginTop: 12, lineHeight: 1.5 }}>
+              <input
+                type="checkbox"
+                checked={alsoAfter}
+                onChange={(e) => setAlsoAfter(e.target.checked)}
+                style={{ width: 20, height: 20, marginTop: 2, flex: "none" }}
+              />
+              <span>
+                Also delete the AFTER photo
+                {typeof removing.afterCount === "number" ? afterWord(removing.afterCount) : ""} of the same job
+                {removing.afterCount === null ? " (could not check whether there is one)" : ""}.{" "}
+                {alsoAfter
+                  ? "The after photo file is deleted too."
+                  : "The after photo stays as work evidence and is not shown here."}
+              </span>
+            </label>
+          )}
         </ConfirmDialog>
       )}
     </main>
