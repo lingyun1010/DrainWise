@@ -53,6 +53,10 @@ body {
   outline: 3px solid #ffd27a;
   outline-offset: 3px;
 }
+footer a:focus-visible {
+  outline: 3px solid #ffd27a;
+  outline-offset: 2px;
+}
 .fr-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
