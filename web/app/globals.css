@@ -1290,3 +1290,11 @@ body {
   padding: 8px 14px;
   font-size: 14px;
 }
+
+/* The chat log scrolls (wheel, touch, auto-scroll to the newest answer) but shows no scroll bar. */
+.fr-chatlog {
+  scrollbar-width: none;
+}
+.fr-chatlog::-webkit-scrollbar {
+  display: none;
+}
