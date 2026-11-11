@@ -3,6 +3,7 @@
 // laptop and a phone see the same session.
 // Photos are NOT stored here: they live in memory only and are never persisted.
 import { openStops, type Ended, type Returned, type Skip } from "../../planner/src/runActions";
+import type { PlanRecord } from "../../planner/src/planReview";
 
 export type RunStop = {
   id: string;
@@ -45,6 +46,7 @@ export type SavedState = {
   records: JobRecord[];
   log: LogEntry[];
   returns?: Returned[]; // stops a crew sent back (declined, skipped, ended early), newest first
+  plans?: PlanRecord[]; // run suggestions the admin reviewed (ticket 30), newest first
 };
 export const DEFAULT_CREWS: Crew[] = [
   { id: "c1", name: "Crew A" },

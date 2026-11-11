@@ -19,6 +19,7 @@ import {
   DEFAULT_CREWS,
   HATS,
   addLog,
+  getRoomCode,
   crewLetter,
   sydneyClock,
   isBusy,
@@ -38,6 +39,16 @@ import ReviewBell from "./ReviewBell";
 import CameraView from "./CameraView";
 import Dialog, { ConfirmDialog } from "./Dialog";
 import HowItWorks from "./HowItWorks";
+import { PlanEditorBody, usePlanEditor } from "./PlanReview";
+import { MAX_LOCAL_PLANS, loadPlan, savePlan } from "@/lib/planClient";
+import { cleanRoomCode } from "../../planner/src/roomCode";
+import {
+  editLogLine,
+  editReasonText,
+  type PlanInput,
+  type PlanRecord,
+  type PlanStop,
+} from "../../planner/src/planReview";
 import dynamic from "next/dynamic";
 
 // three.js is only loaded when the 3D view is opened.
@@ -102,6 +113,8 @@ export default function Home() {
   const [confirm, setConfirm] = useState<{ kind: "withdraw" | "remove"; crewId: string } | null>(null);
   const [resetAsk, setResetAsk] = useState(false); // confirm before clearing the sample session
   const [choose, setChoose] = useState<RunStop[] | null>(null); // stops waiting for the manager to pick a crew
+  const [review, setReview] = useState<PlanStop[] | null>(null); // run suggestion open for review (ticket 30)
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [whatIfBlock, setWhatIfBlock] = useState(false); // a send was stopped because the what-if sliders are moved
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
@@ -490,6 +503,41 @@ export default function Home() {
     if (whatIfOn) setWhatIfBlock(true);
     else setChoose(stops);
   }
+
+  // Arrive from /plan after the admin confirmed a suggestion: open the crew chooser with the final stops.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const planId = q.get("plan");
+    const planTeam = cleanRoomCode(q.get("planTeam"));
+    if (!planId || !planTeam) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete("plan");
+    url.searchParams.delete("planTeam");
+    window.history.replaceState(null, "", url.pathname + url.search);
+    void loadPlan(planTeam, planId).then((r) => {
+      setRole("manager");
+      if (!r.ok || r.plan.status !== "confirmed") return setToast(r.ok ? "That plan is not confirmed yet." : r.error);
+      const p = r.plan;
+      setSt((cur) => {
+        if (cur.plans?.some((x) => x.id === p.id)) return cur;
+        const t = sydneyClock();
+        const log = p.edits.reduce((l, e) => addLog(l, t, editLogLine(e)), cur.log);
+        const next = {
+          ...cur,
+          log: addLog(
+            log,
+            t,
+            `Admin confirmed a run of ${p.final.length} ${p.final.length === 1 ? "stop" : "stops"} from a review link.`,
+          ),
+          plans: [p, ...(cur.plans ?? [])].slice(0, MAX_LOCAL_PLANS),
+        };
+        saveState(next);
+        return next;
+      });
+      setChoose(p.final.map((s) => stopFor(s.id, s.load, s.photosNeeded)));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival; stopFor only reads fixed seed assets
+  }, []);
 
   const openAsset = (id: string) => {
     if (rows.find((r) => r.a.id === id)?.state === "idle") setCur(id);
@@ -986,8 +1034,8 @@ export default function Home() {
               </button>
               {narrow && (
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <ReviewBell />
                   <RoomChip />
+                  <ReviewBell />
                 </span>
               )}
             </div>
@@ -1051,21 +1099,8 @@ export default function Home() {
               </div>
             </div>
             <div className="fr-hdracts">
-              {!narrow && <ReviewBell />}
               {!narrow && <RoomChip />}
-              {!narrow && (
-                <button
-                  className="fr-btn fr-sec"
-                  type="button"
-                  onClick={() => {
-                    setRole(null);
-                    setCur(null);
-                  }}
-                  style={{ padding: "8px 16px", minHeight: 44 }}
-                >
-                  Switch role
-                </button>
-              )}
+              {!narrow && <ReviewBell />}
             </div>
           </div>
         </div>
@@ -1428,10 +1463,12 @@ export default function Home() {
                     className="fr-btn fr-pri"
                     type="button"
                     style={{ width: "100%" }}
-                    onClick={() => sendOrWarn(plan.stops.map((s) => stopFor(s.id, s.load, s.photosNeeded)))}
+                    onClick={() =>
+                      setReview(plan.stops.map((s) => ({ id: s.id, load: s.load, photosNeeded: s.photosNeeded })))
+                    }
                     disabled={busy}
                   >
-                    {busy ? "All crews are busy" : "Send a crew on this run"}
+                    {busy ? "All crews are busy" : "Review and send a crew"}
                   </button>
                   {busy && (
                     <div style={{ marginTop: 8, fontSize: 13, color: "#8FB8CC" }}>
@@ -1447,6 +1484,14 @@ export default function Home() {
                   several small ones. Send it on its own from Check next.
                 </div>
               )}
+              <button
+                className="fr-btn fr-ghost"
+                type="button"
+                style={{ marginTop: 8 }}
+                onClick={() => setHistoryOpen(true)}
+              >
+                Plan history{(st.plans?.length ?? 0) > 0 ? ` (${st.plans!.length})` : ""}
+              </button>
               <div style={{ marginTop: 10, fontSize: 12, color: "#8FB8CC", lineHeight: 1.4 }}>
                 Only Medium and High risk assets (30% or more) are considered. Stops maximise total risk within
                 capacity, then are ordered nearest-first from the depot. Load sizes are sample estimates. The 3 m³ truck
@@ -1735,6 +1780,33 @@ export default function Home() {
         </ConfirmDialog>
       )}
 
+      {review && showMap && (
+        <ReviewRun
+          proposed={review}
+          capacity={capacity}
+          day={DAYS[day]}
+          tierOf={(id) => {
+            const r = rows.find((x) => x.a.id === id);
+            return r ? TIER[r.p.level] : "";
+          }}
+          onCancel={() => setReview(null)}
+          onConfirm={(final, edits, rec) => {
+            const t = sydneyClock();
+            const log = edits.reduce((l, e) => addLog(l, t, editLogLine(e)), st.log);
+            const msg = `Admin confirmed a run of ${final.length} ${final.length === 1 ? "stop" : "stops"}${edits.length ? ` (${edits.length} changed)` : ""}.`;
+            save({
+              ...st,
+              log: addLog(log, t, msg),
+              plans: [rec, ...(st.plans ?? [])].slice(0, MAX_LOCAL_PLANS),
+            });
+            setReview(null);
+            sendOrWarn(final.map((s) => stopFor(s.id, s.load, s.photosNeeded)));
+          }}
+        />
+      )}
+
+      {historyOpen && showMap && <PlanHistory plans={st.plans ?? []} onClose={() => setHistoryOpen(false)} />}
+
       {choose && showMap && (
         <CrewChooser
           crews={st.crews}
@@ -1878,6 +1950,159 @@ function CrewChooser({
           </li>
         ))}
       </ul>
+    </Dialog>
+  );
+}
+
+// Run suggestion review: remove stops with a reason, then confirm. The same editor is used by /plan.
+function ReviewRun({
+  proposed,
+  capacity,
+  day,
+  tierOf,
+  onCancel,
+  onConfirm,
+}: {
+  proposed: PlanStop[];
+  capacity: number;
+  day: string;
+  tierOf: (id: string) => string;
+  onCancel: () => void;
+  onConfirm: (final: PlanStop[], edits: PlanRecord["edits"], rec: PlanRecord) => void;
+}) {
+  const ed = usePlanEditor(proposed, capacity);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const team = typeof window === "undefined" ? null : getRoomCode();
+  const input = (status: PlanInput["status"]): PlanInput => ({
+    team,
+    source: "manual",
+    status,
+    proposed,
+    final: ed.final,
+    edits: ed.edits,
+    context: { day, capacity },
+  });
+
+  async function confirmNow() {
+    if (!ed.check.ok) return;
+    setBusy(true);
+    // Saved on the server when a shared team exists; the run is sent either way.
+    const saved = team ? await savePlan(input("confirmed")) : null;
+    const now = new Date().toISOString();
+    const rec: PlanRecord = saved?.ok
+      ? saved.plan
+      : {
+          id: `local-${Date.now()}`,
+          team,
+          source: "manual",
+          status: "confirmed",
+          proposed,
+          final: ed.final,
+          edits: ed.edits,
+          context: { day, capacity },
+          createdAt: now,
+          confirmedAt: now,
+        };
+    onConfirm(ed.final, ed.edits, rec);
+  }
+
+  async function copyLink() {
+    if (!team) return;
+    setBusy(true);
+    const saved = await savePlan(input("pending"));
+    setBusy(false);
+    if (!saved.ok) return setNote(saved.error);
+    const link = `${window.location.origin}/plan?team=${team}&id=${saved.plan.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setNote("Review link copied. Anyone with the team code can open it (production would use real sign-in).");
+    } catch {
+      setNote(`Review link: ${link}`);
+    }
+  }
+
+  return (
+    <Dialog
+      label="Review the run suggestion"
+      eyebrow="Run suggestion"
+      title="Review before sending a crew"
+      maxWidth={560}
+      onClose={onCancel}
+      actions={
+        <>
+          <button className="fr-btn fr-pri" type="button" disabled={!ed.check.ok || busy} onClick={confirmNow}>
+            Confirm and send a crew
+          </button>
+          <button
+            className="fr-btn fr-sec"
+            type="button"
+            disabled={!team || busy}
+            onClick={copyLink}
+            title={team ? undefined : "Create a shared team first"}
+          >
+            Copy review link
+          </button>
+          <button className="fr-btn fr-ghost" type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        </>
+      }
+    >
+      <PlanEditorBody ed={ed} proposed={proposed} capacity={capacity} tierOf={tierOf} />
+      {note && (
+        <div role="status" style={{ marginTop: 8, fontSize: 13, color: "#8FD8F0" }}>
+          {note}
+        </div>
+      )}
+      {!team && (
+        <div style={{ marginTop: 8, fontSize: 12, color: "#8FB8CC" }}>
+          No shared team: the review stays on this device. Join a team to share a review link.
+        </div>
+      )}
+    </Dialog>
+  );
+}
+
+function PlanHistory({ plans, onClose }: { plans: PlanRecord[]; onClose: () => void }) {
+  return (
+    <Dialog
+      label="Plan history"
+      eyebrow="Plan history"
+      title="Reviewed run suggestions"
+      maxWidth={560}
+      onClose={onClose}
+      actions={
+        <button className="fr-btn fr-ghost" type="button" autoFocus onClick={onClose}>
+          Close
+        </button>
+      }
+    >
+      {plans.length === 0 ? (
+        <p style={{ margin: 0, color: "#8FB8CC" }}>No reviewed runs yet. Sample data.</p>
+      ) : (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+          {plans.map((p) => (
+            <li key={p.id} style={{ background: "#0B2233", borderRadius: 12, padding: "8px 12px", fontSize: 14 }}>
+              <b>{new Date(p.confirmedAt ?? p.createdAt).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })}</b>
+              {" · "}
+              {p.proposed.length} proposed, {p.final.length} sent · {p.context.day}, {p.context.capacity.toFixed(1)} m³
+              <div style={{ fontSize: 12, color: "#8FB8CC" }}>Source: {p.source}</div>
+              {p.edits.length === 0 ? (
+                <div style={{ fontSize: 13 }}>Sent as suggested.</div>
+              ) : (
+                <ul style={{ margin: "4px 0 0", paddingLeft: 18, fontSize: 13 }}>
+                  {p.edits.map((e) => (
+                    <li key={`${e.action}-${e.id}`}>
+                      {e.action === "remove" ? "Removed" : "Added"} {e.id}: {editReasonText(e)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Dialog>
   );
 }
