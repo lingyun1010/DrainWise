@@ -23,6 +23,14 @@ const DAMAGE_TEXT: Record<ImageReading["damage"], string> = {
   net_fallen: "Net may have fallen off",
 };
 
+// Short label for the circled area (number 1 on the image). The numbers are written once, in the headline below.
+const CAPTION: Record<ImageReading["damage"], string> = {
+  none: "Changed area compared with the clean reference.",
+  net_full: "Changed area compared with the clean reference.",
+  net_broken: "Possible hole in the net.",
+  net_fallen: "The net sits away from its usual spot.",
+};
+
 // Fetched from /api/camera/<GPT id>. Camera still plus the placeholder image-model reading for a GPT that has a camera (ticket 17).
 // SAMPLE DATA: the still is one of 7 council sample photos, the level is a mock. No model runs when this opens.
 // The photo is shown at full dialog width.
@@ -149,20 +157,21 @@ export default function CameraView({ assetId }: { assetId: string }) {
       </div>
       <p style={{ margin: "0 0 8px" }}>
         {imgOk && a && <strong aria-hidden="true">1. </strong>}
-        {a ? a.caption.text : "No change against the clean reference."}
+        {!a ? "No change against the clean reference." : CAPTION[ir.damage]}
       </p>
       <div style={{ fontWeight: 700, fontSize: 16 }}>
         {ir.band === null
-          ? `Net fullness: not read (${ir.damage === "net_fallen" ? "net not in place" : "net may be damaged"})`
-          : `Net fullness: ${ir.bandLabel}`}
+          ? `Net fullness not read (${ir.damage === "net_fallen" ? "net not in place" : "net may be damaged"})`
+          : `Net ${ir.bandLabel} full${ir.needsCleaning ? ", at or past the 70% cleaning line" : ""}`}
       </div>
       <div>
-        {DAMAGE_TEXT[ir.damage]}. Confidence: {Math.round(ir.confidence * 100)}%
-        {ir.unclear ? " (unclear, a person should check)" : ""}.
+        Confidence {Math.round(ir.confidence * 100)}%
+        {ir.damage === "net_broken" || ir.damage === "net_fallen" ? `. ${DAMAGE_TEXT[ir.damage]}` : ""}
+        {ir.unclear ? ". Unclear, a person should check" : ""}
       </div>
       <div style={{ fontSize: 13, color: "#8FB8CC", marginTop: 4 }}>
-        {ir.rationale} Fullness bands are for the camera reading only and are separate from the High / Medium / Low risk
-        level. A person confirms before this becomes a label. Prototype, no accuracy claim.
+        A proxy from the changed area, not a measurement, and separate from High / Medium / Low risk. A person confirms
+        it. Prototype, no accuracy claim.
       </div>
     </section>
   );
