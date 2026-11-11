@@ -1,6 +1,7 @@
 // Lists stored crew BEFORE photos for the local review page. Same gate as the page.
 import { connection } from "next/server";
-import { listBeforePhotos, storageConfigured } from "@/lib/photoStore";
+import { jobKey } from "../../../../../planner/src/photoPairs";
+import { afterCountsByJob, listBeforePhotos, storageConfigured } from "@/lib/photoStore";
 import { reviewEnabled } from "@/lib/review";
 
 export async function GET() {
@@ -9,8 +10,10 @@ export async function GET() {
   if (!storageConfigured()) return Response.json({ error: "photo storage is not configured" }, { status: 503 });
   const photos = await listBeforePhotos();
   if (!photos) return Response.json({ error: "photo storage is not reachable" }, { status: 502 });
+  const afters = await afterCountsByJob(); // null if that lookup failed: the dialog then says it is unknown
   return Response.json({
     photos: photos.map((p) => ({
+      afterCount: afters ? (afters.get(jobKey(p.run_id, p.stop_id)) ?? 0) : null,
       id: p.id,
       at: p.created_at,
       runId: p.run_id,
