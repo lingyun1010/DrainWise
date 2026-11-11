@@ -1,24 +1,20 @@
 // Server-only helpers for the local photo review page (ticket 13).
-// The review page and its routes exist in every build (owner decision 2026-11-08: public too). With OPENAI_API_KEY in
-// the local, gitignored web/.env.local the suggestion comes from the vision service; without a key a
-// built-in MOCK stands in (no AI, no network). The key is read here and never sent to the browser.
+// The review page and its routes exist in every build (owner decision 2026-11-08: public too).
+// Suggestions come from a built-in MOCK (no AI, no network). The real vision call was removed on 2026-11-11.
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { parseSuggestion, type ParsedSuggestion } from "../../planner/src/parseSuggestion";
+import type { ParsedSuggestion } from "../../planner/src/parseSuggestion";
 
 export const SAMPLE_COUNT = 7;
-const MODEL = process.env.OPENAI_VISION_MODEL ?? "gpt-4o-mini";
-// Server-side only. Lets a local mock stand in for the service when testing without a real key.
-const BASE_URL = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 
 export function reviewEnabled(): boolean {
   return true;
 }
 
-// True when no vision key is set: suggestions are fake and must be labelled as such.
+// Suggestions are always fake and must be labelled as such.
 export function mockMode(): boolean {
-  return !process.env.OPENAI_API_KEY;
+  return true;
 }
 
 // Deterministic fake suggestion from the image bytes. Not a model: it only lets the review flow be
@@ -54,66 +50,7 @@ export async function readSample(n: number): Promise<Buffer | null> {
   }
 }
 
-const PROMPT = [
-  "You look at one photo of a stormwater gross pollutant trap (GPT, net type) taken by a fixed camera.",
-  "Rate how blocked it is with leaves, litter or debris:",
-  "0 = clear, 1 = light debris, 2 = about half blocked, 3 = blocked or overflowing.",
-  "If you cannot see the GPT, say so in the rationale and lower the confidence.",
-  "Give a confidence from 0 to 1 and a rationale of at most 25 words.",
-  "Describe only the GPT and debris. Do not describe or identify people or number plates.",
-].join(" ");
-
+// The real vision call was removed (owner decision 2026-11-11): photo suggestions stay a labelled mock.
 export async function suggestLevel(image: Buffer): Promise<ParsedSuggestion> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return mockSuggestion(image);
-  let res: Response;
-  try {
-    res = await fetch(`${BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      signal: AbortSignal.timeout(30_000),
-      body: JSON.stringify({
-        model: MODEL,
-        max_completion_tokens: 200,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: PROMPT },
-              { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image.toString("base64")}` } },
-            ],
-          },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "blockage",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                level: { type: "integer", enum: [0, 1, 2, 3] },
-                confidence: { type: "number" },
-                rationale: { type: "string" },
-              },
-              required: ["level", "confidence", "rationale"],
-              additionalProperties: false,
-            },
-          },
-        },
-      }),
-    });
-  } catch {
-    return { ok: false, error: "vision service is not reachable" };
-  }
-  // Never echo the response body: it can contain request details. Status code only.
-  if (!res.ok) return { ok: false, error: `vision service returned ${res.status}` };
-  let data: { choices?: { message?: { content?: string } }[] };
-  try {
-    data = await res.json();
-  } catch {
-    return { ok: false, error: "vision reply was not valid JSON" };
-  }
-  const text = data.choices?.[0]?.message?.content;
-  return typeof text === "string" ? parseSuggestion(text) : { ok: false, error: "vision reply was empty" };
+  return mockSuggestion(image);
 }

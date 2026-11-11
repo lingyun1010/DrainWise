@@ -1145,3 +1145,111 @@ html:has(.fr-role) body {
   outline: 3px solid var(--fr-blue);
   outline-offset: 2px;
 }
+
+/* Floating chatbot (ticket 31). Sits above the page, below dialogs (z-index 40). */
+.fr-chatfab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+.fr-chatfab > * {
+  pointer-events: auto;
+}
+.fr-chatbtn {
+  width: 72px;
+  height: 56px;
+  border-radius: 999px;
+  border: 3px solid var(--fr-blue);
+  background: var(--fr-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.fr-chatbtn:hover {
+  background: var(--fr-line);
+}
+.fr-chatbtn:focus-visible,
+.fr-chathint:focus-visible,
+.fr-chatinput:focus-visible {
+  outline: 3px solid var(--fr-yellow);
+  outline-offset: 2px;
+}
+.fr-chathint {
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--fr-text);
+  background: var(--fr-panel);
+  border: 2px solid var(--fr-blue);
+  border-radius: 16px;
+  padding: 8px 12px;
+  max-width: 220px;
+  text-align: left;
+  cursor: pointer;
+}
+.fr-blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: fr-blink 4s infinite;
+}
+@keyframes fr-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
+  }
+}
+.fr-chatlog {
+  max-height: min(50vh, 380px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fr-chatme,
+.fr-chatbot {
+  border-radius: 16px;
+  padding: 10px 14px;
+  max-width: 92%;
+}
+.fr-chatme {
+  align-self: flex-end;
+  background: var(--fr-line);
+  color: var(--fr-text);
+}
+.fr-chatbot {
+  align-self: flex-start;
+  background: var(--fr-bg);
+  border: 2px solid var(--fr-line);
+}
+.fr-chatused {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--fr-mute);
+}
+.fr-chatinput {
+  width: 100%;
+  min-height: 44px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--fr-text);
+  background: var(--fr-bg);
+  border: 2px solid var(--fr-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fr-blink {
+    animation: none;
+  }
+}
