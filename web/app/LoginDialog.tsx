@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Dialog from "./Dialog";
 import { checkLogin, setSession, type Session } from "../lib/demoAuth";
+import { loadState } from "../lib/runStore";
 
 // Simulated sign-in (see lib/demoAuth.ts). Same Dialog as every popup. The names and passwords are not shown here.
 export default function LoginDialog({
@@ -21,7 +22,7 @@ export default function LoginDialog({
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const s = checkLogin(kind, name, password);
+    const s = checkLogin(kind, name, password, loadState().crews);
     if (!s) return setError("Name or password is wrong.");
     setSession(s);
     onSuccess(s);
@@ -89,6 +90,18 @@ export default function LoginDialog({
             {error}
           </div>
         )}
+        <p style={{ margin: 0, fontSize: 14, color: "#CFE6F0", lineHeight: 1.5 }}>
+          {kind === "admin" ? (
+            <>
+              <b>Try it:</b> name <b>admin</b>, password <b>admin</b>.
+            </>
+          ) : (
+            <>
+              <b>Try it:</b> the name and the password are the same, the crew&apos;s name: <b>Crew A</b> and{" "}
+              <b>Crew A</b>. Also Crew B and Crew C. A renamed or new crew signs in with its new name.
+            </>
+          )}
+        </p>
         <p style={{ margin: 0, fontSize: 13, color: "#8FB8CC" }}>
           {kind === "admin"
             ? "The manager sees every crew and can send runs."

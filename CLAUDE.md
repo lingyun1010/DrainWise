@@ -153,7 +153,7 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 
 ### Simulated sign-in (2026-11-11)
 
-- `web/lib/demoAuth.ts`, `LoginDialog.tsx`: Manager needs name `admin` and its password; each crew (A, B, C) has its own password and sees only its own run (`CrewApp lockedCrewId`). Side-by-side needs no sign-in. Session is in sessionStorage. The credentials are in the client bundle: it is a demo of the idea, not security. Real deployment: council single sign-on. Do not write the passwords in the UI.
+- `web/lib/demoAuth.ts`, `LoginDialog.tsx`: Manager needs name `admin` and its password; each crew signs in with its name as name and password (renamed and new crews follow) and sees only its own run (`CrewApp lockedCrewId`). Side-by-side needs no sign-in. Session is in sessionStorage. The credentials are in the client bundle: it is a demo of the idea, not security. Real deployment: council single sign-on. The sign-in dialog shows the hint (admin/admin; a crew uses its name as name and password, so renamed or new crews follow).
 - Planned GPTs in the truck run planner can be removed with a reason (`RemoveStopDialog.tsx`); the reasons carry into the review dialog and the plan record.
 
 ### UI (updated 2026-11-08)
