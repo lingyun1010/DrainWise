@@ -34,7 +34,7 @@ import MapView, { type Level, type MapAsset, type MapCrew, type MapRoute } from 
 import RoleScreen from "./RoleScreen";
 import Link from "next/link";
 import RoomChip from "./RoomChip";
-import ReviewBell, { RecordsBadge } from "./ReviewBell";
+import ReviewBell from "./ReviewBell";
 import CameraView from "./CameraView";
 import Dialog, { ConfirmDialog } from "./Dialog";
 import HowItWorks from "./HowItWorks";
@@ -597,7 +597,6 @@ export default function Home() {
   const recordsPanel = (
     <section className="fr-section fr-wide" {...panelProps("records", "Records")}>
       <div className="fr-label">Compliance records</div>
-      <RecordsBadge />
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <Stat
           n={photoRecs.filter((r) => r.before && !(PHOTO_UPLOAD_ON && reviewed.has(`${r.runId}:${r.stopId}`))).length}

@@ -119,14 +119,3 @@ export default function ReviewBell() {
     </div>
   );
 }
-
-// Count and link shown at the top of the Records panel.
-export function RecordsBadge() {
-  const items = useUnread();
-  if (items.length === 0) return null;
-  return (
-    <Link href="/review" className="fr-btn fr-sec" style={{ minHeight: 40, marginTop: 8 }}>
-      {items.length} new photo{items.length === 1 ? "" : "s"} to review
-    </Link>
-  );
-}

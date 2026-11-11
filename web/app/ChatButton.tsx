@@ -14,9 +14,18 @@ const TOOL_LABEL: Record<string, string> = {
   get_risk_ranking: "risk model (sample data)",
   get_crew_progress: "crew progress (sample session)",
 };
+// Questions the panel always offers, and the short tips the closed button says out loud (bubble text -> question).
 const EXAMPLES = ["What is the rain outlook?", "Which GPTs are fullest?", "How far along is each crew?"];
-const HINT = "Ask me about rain, full GPTs or crews";
-const HINT_KEY = "dw-chat-hint-seen";
+const TIPS = [
+  { say: "Will it rain this week? Ask me.", q: "Will it rain this week?" },
+  { say: "Ask me about the rain outlook", q: "What is the rain outlook?" },
+  { say: "Which GPTs are fullest? Ask me.", q: "Which GPTs are fullest?" },
+  { say: "Want to know how far along each crew is?", q: "How far along is each crew?" },
+  { say: "Ask me what 40 mm more rain would do", q: "What if there is 40 mm of extra rain? Show the top 3 GPTs." },
+  { say: "Which GPTs need cleaning first? Ask me.", q: "Which GPTs should be cleaned first and why?" },
+];
+const SHOW_MS = 7000; // how long a tip stays
+const GAP_MS = 14000; // quiet time between tips
 
 function Cloud() {
   return (
@@ -41,40 +50,40 @@ function Cloud() {
 export default function ChatButton() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const [hint, setHint] = useState(false);
+  const [tip, setTip] = useState<number | null>(null); // index in TIPS while the bubble is showing
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const end = useRef<HTMLDivElement>(null);
 
-  // The hint bubble shows once per browser tab, a moment after load, and goes away by itself.
+  // While the chat is closed the cloud says a random tip now and then, so people learn what to ask.
   useEffect(() => {
-    let seen = false;
-    try {
-      seen = sessionStorage.getItem(HINT_KEY) === "1";
-    } catch {}
-    if (seen) return;
-    const on = setTimeout(() => setHint(true), 1500);
-    const off = setTimeout(() => setHint(false), 10_000);
-    return () => {
-      clearTimeout(on);
-      clearTimeout(off);
+    if (open) return;
+    let last = -1;
+    let timer: ReturnType<typeof setTimeout>;
+    const show = () => {
+      let next = Math.floor(Math.random() * TIPS.length);
+      if (next === last) next = (next + 1) % TIPS.length;
+      last = next;
+      setTip(next);
+      timer = setTimeout(hide, SHOW_MS);
     };
-  }, []);
+    const hide = () => {
+      setTip(null);
+      timer = setTimeout(show, GAP_MS);
+    };
+    timer = setTimeout(show, 1500);
+    return () => {
+      clearTimeout(timer);
+      setTip(null);
+    };
+  }, [open]);
 
   useEffect(() => {
     end.current?.scrollIntoView?.({ block: "end" });
   }, [msgs, busy, open]);
 
   if (path.startsWith("/crew")) return null; // the crew phone stays small and focused
-
-  const openChat = () => {
-    setHint(false);
-    try {
-      sessionStorage.setItem(HINT_KEY, "1");
-    } catch {}
-    setOpen(true);
-  };
 
   const send = async (question: string) => {
     const q = question.trim();
@@ -109,15 +118,21 @@ export default function ChatButton() {
     }
   };
 
+  const openChat = (question?: string) => {
+    setTip(null);
+    setOpen(true);
+    if (question) void send(question);
+  };
+
   return (
     <>
       <div className="fr-chatfab">
-        {hint && !open && (
-          <button type="button" className="fr-chathint" onClick={openChat}>
-            {HINT}
+        {tip !== null && !open && (
+          <button type="button" className="fr-chathint" onClick={() => openChat(TIPS[tip].q)}>
+            {TIPS[tip].say}
           </button>
         )}
-        <button type="button" className="fr-chatbtn" aria-label="Ask the assistant" onClick={openChat}>
+        <button type="button" className="fr-chatbtn" aria-label="Ask the assistant" onClick={() => openChat()}>
           <Cloud />
         </button>
       </div>
@@ -141,19 +156,10 @@ export default function ChatButton() {
         >
           <div className="fr-chatlog" role="log" aria-live="polite" aria-label="Conversation">
             {msgs.length === 0 && (
-              <div>
-                <p style={{ margin: "0 0 10px" }}>
-                  I read the rain forecast, the risk ranking and crew progress. GPT positions, crews and the risk model
-                  are sample data.
-                </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {EXAMPLES.map((e) => (
-                    <button key={e} type="button" className="fr-btn fr-sec" onClick={() => send(e)}>
-                      {e}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p style={{ margin: 0 }}>
+                I read the rain forecast, the risk ranking and crew progress. GPT positions, crews and the risk model
+                are sample data.
+              </p>
             )}
             {msgs.map((m, i) => (
               <div key={i} className={m.role === "user" ? "fr-chatme" : "fr-chatbot"}>
@@ -165,6 +171,13 @@ export default function ChatButton() {
             ))}
             {busy && <div className="fr-chatbot">Looking at the data...</div>}
             <div ref={end} />
+          </div>
+          <div className="fr-chatchips" aria-label="Suggested questions">
+            {EXAMPLES.map((e) => (
+              <button key={e} type="button" className="fr-btn fr-sec" disabled={busy} onClick={() => send(e)}>
+                {e}
+              </button>
+            ))}
           </div>
           <form
             id="fr-chatform"

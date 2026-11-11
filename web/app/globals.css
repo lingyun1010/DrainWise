@@ -1277,3 +1277,16 @@ body {
   border: 2px solid var(--fr-bg);
   box-sizing: content-box;
 }
+
+/* Suggested questions stay under the conversation, so they are always one tap away. */
+.fr-chatchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.fr-chatchips .fr-btn {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+}
