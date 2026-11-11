@@ -17,7 +17,7 @@ describe("scoreHorizon", () => {
     expect(rows.map((r) => r.id)).not.toContain("GPT-B");
     for (const r of rows) expect(r.p).toBeGreaterThanOrEqual(0.6);
   });
-  it("the 1-day view only looks at tomorrow", () => {
+  it("a single-day horizon only looks at that day", () => {
     expect(scoreHorizon(assets, M, DAY_RAIN_MM, 90, 1, 1).every((r) => r.day === 1)).toBe(true);
   });
 });
@@ -33,7 +33,7 @@ describe("buildReport", () => {
     expect(r.subject).toMatch(/Sample data/);
   });
   it("an empty storm report sends nothing, an empty weekly report sends a short note", () => {
-    expect(buildReport("storm_1day", [], "d", "w").send).toBe(false);
+    expect(buildReport("storm_alert", [], "d", "w").send).toBe(false);
     const weekly = buildReport("weekly_7day", [], "d", "w");
     expect(weekly.send).toBe(true);
     expect(weekly.body).toMatch(/No GPT is predicted/);

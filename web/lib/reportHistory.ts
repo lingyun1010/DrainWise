@@ -4,6 +4,6 @@ import type { LastSent } from "../../planner/src/reportRule";
 
 const sent: LastSent = { storm: null, weekly: null };
 export const lastSent = (): LastSent => ({ ...sent });
-export function markSent(kind: "storm_1day" | "weekly_7day", at: Date = new Date()): void {
-  sent[kind === "storm_1day" ? "storm" : "weekly"] = at.toISOString();
+export function markSent(kind: "storm_alert" | "weekly_7day", at: Date = new Date()): void {
+  sent[kind === "storm_alert" ? "storm" : "weekly"] = at.toISOString();
 }

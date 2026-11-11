@@ -102,6 +102,25 @@ export default function AboutPage() {
           ))}
         </ul>
       </section>
+      <section style={card} aria-label="Email rules">
+        <div style={eyebrow}>Emails</div>
+        <h2 style={h2}>When the admin gets an email</h2>
+        <ul style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 8, color: "var(--fr-soft)" }}>
+          <li>Once a day the system checks the whole 7-day BoM forecast.</li>
+          <li>Normally it sends one weekly 7-day report, at most every 7 days.</li>
+          <li>
+            If any of the next 7 days looks like a storm (60%+ chance of rain and 25 mm or more, our assumption), it
+            sends an alert at once, even if the weekly report went out yesterday. It repeats every day until a run has
+            been planned.
+          </li>
+          <li>These emails go to the admin only, who reviews the run and confirms it.</li>
+          <li>
+            A crew is never emailed automatically. The admin can send the planned run to a crew by hand from the
+            planner.
+          </li>
+          <li>In this demo there is no scheduler and nothing is really sent: emails are simulated.</li>
+        </ul>
+      </section>
       <section style={card} aria-label="Credits">
         <div style={eyebrow}>Credits</div>
         <p style={{ margin: "6px 0 0", color: "var(--fr-soft)" }}>
