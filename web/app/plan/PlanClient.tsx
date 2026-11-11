@@ -31,7 +31,7 @@ export default function PlanClient() {
 
   return (
     <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 16px" }}>
-      <Link href="/" className="fr-btn fr-ghost">
+      <Link href="/?role=manager" className="fr-btn fr-ghost">
         Back to Manager
       </Link>
       <h1 style={{ fontSize: 26, margin: "12px 0 4px" }}>Review the run suggestion</h1>
@@ -102,7 +102,7 @@ function Review({ plan, team }: { plan: PlanRecord; team: string }) {
         <button className="fr-btn fr-pri" type="button" disabled={!ed.check.ok || busy} onClick={confirm}>
           Confirm and choose a crew
         </button>
-        <Link href="/" className="fr-btn fr-ghost">
+        <Link href="/?role=manager" className="fr-btn fr-ghost">
           Cancel
         </Link>
       </div>

@@ -776,6 +776,18 @@ html:has(.fr-role) body {
   background: linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%) fixed;
 }
 
+/* Check next rows (all widths): name, chip and reasons on full width, the three buttons on their own line. */
+.fr-qrow {
+  flex-wrap: wrap;
+}
+.fr-qtext {
+  flex: 1 1 100%;
+}
+.fr-qrow .fr-btn {
+  flex: 1 1 0;
+  white-space: nowrap;
+}
+
 /* Records panel actions: two equal buttons, note underneath. */
 .fr-recact {
   display: flex;
@@ -1268,7 +1280,7 @@ body {
   height: 20px;
   padding: 0 5px;
   border-radius: 999px;
-  background: #e5484d;
+  background: #c8323a;
   color: #fff;
   font-size: 12px;
   font-weight: 800;
@@ -1297,4 +1309,11 @@ body {
 }
 .fr-chatlog::-webkit-scrollbar {
   display: none;
+}
+
+/* Phones: the tip bubble would sit over the tab bar, so only the cloud button shows. */
+@media (max-width: 767px) {
+  .fr-chathint {
+    display: none;
+  }
 }

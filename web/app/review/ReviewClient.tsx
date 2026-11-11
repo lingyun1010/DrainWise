@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "../Dialog";
 import type { Damage, Shape, Source } from "../../../planner/src/annotations";
@@ -75,6 +76,8 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
   const [picked, setPicked] = useState<Record<string, Level>>({});
   const [clearing, setClearing] = useState(false);
   const [admin, setAdmin] = useState<Record<string, Admin>>({});
+  const [filter, setFilter] = useState<"todo" | "done" | "all">("todo"); // which photos are listed
+  const [limit, setLimit] = useState(4); // photos listed per section until "Show more"
   const [marking, setMarking] = useState<Item | null>(null);
   const [removing, setRemoving] = useState<Item | null>(null);
   const [alsoAfter, setAlsoAfter] = useState(true);
@@ -144,6 +147,27 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
   const crewItems = crew.state === "ok" ? crew.items : [];
   const all = [...crewItems, ...samples];
   const confirmed = all.filter((it) => labels[it.key]).length;
+  const shows = (it: Item) => filter === "all" || (filter === "done") === !!labels[it.key];
+  // A link from the bell (#p-<id>) must find its card even if that photo is already confirmed.
+  const hashKey = typeof window === "undefined" ? "" : window.location.hash.slice(1);
+  const hashHidden = !!hashKey && all.some((it) => it.key === hashKey && !shows(it));
+  const hashFar =
+    !!hashKey && [crewItems, samples].some((l) => l.filter(shows).findIndex((it) => it.key === hashKey) >= limit);
+  useEffect(() => {
+    if (hashHidden) setFilter("all");
+    if (hashFar) setLimit(999);
+  }, [hashHidden, hashFar]);
+  const more = (list: Item[]) =>
+    list.filter(shows).length > limit && (
+      <button
+        type="button"
+        className="fr-btn fr-sec"
+        style={{ margin: "0 0 20px" }}
+        onClick={() => setLimit((n) => n + 4)}
+      >
+        Show more ({list.filter(shows).length - limit} left)
+      </button>
+    );
   const sampleConfirmed = samples.filter((it) => labels[it.key]).length;
 
   async function ask(it: Item) {
@@ -401,6 +425,9 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
   return (
     <main style={{ minHeight: "100vh", background: "var(--fr-bg)", padding: "20px 16px 48px" }}>
       <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+        <Link href="/?role=manager" className="fr-btn fr-ghost" style={{ marginBottom: 8 }}>
+          Back to Manager
+        </Link>
         <div className="fr-label">Prototype · sample data</div>
         <h1 style={{ margin: "4px 0 12px", fontSize: 32, fontFamily: "var(--font-fredoka)" }}>Photo review</h1>
 
@@ -421,26 +448,49 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
             </p>
           )}
           <strong>Prototype. Human review required. No accuracy claim.</strong>
-          <ul style={{ margin: "8px 0 0", paddingLeft: 20, listStyle: "disc", color: "var(--fr-soft)" }}>
-            <li>
-              The model only suggests a level. A suggestion is not a label: only the level you confirm counts. Crew
-              photo labels are saved in the DrainWise sample project; sample image labels stay in this browser.
-            </li>
-            <li>
-              Before any photo is used for training, a face and number-plate check is required. That check is not built,
-              so none of these photos enter training.
-            </li>
-            <li>
-              Each photo is sent to the vision service only when you press Ask for suggestion. Crew photos can show
-              people or number plates, so look at a photo before you ask.
-            </li>
-          </ul>
+          <details style={{ marginTop: 8 }}>
+            <summary style={{ cursor: "pointer", minHeight: 24 }}>How this works</summary>
+            <ul style={{ margin: "8px 0 0", paddingLeft: 20, listStyle: "disc", color: "var(--fr-soft)" }}>
+              <li>
+                The model only suggests a level. A suggestion is not a label: only the level you confirm counts. Crew
+                photo labels are saved in the DrainWise sample project; sample image labels stay in this browser.
+              </li>
+              <li>
+                Before any photo is used for training, a face and number-plate check is required. That check is not
+                built, so none of these photos enter training.
+              </li>
+              <li>
+                Each photo is sent to the vision service only when you press Ask for suggestion. Crew photos can show
+                people or number plates, so look at a photo before you ask.
+              </li>
+            </ul>
+          </details>
         </section>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
           <strong role="status" style={{ fontSize: 16 }}>
             {confirmed} of {all.length} confirmed
           </strong>
+          <div role="group" aria-label="Show photos" style={{ display: "flex", gap: 6 }}>
+            {(
+              [
+                ["todo", `To confirm (${all.length - confirmed})`],
+                ["done", `Confirmed (${confirmed})`],
+                ["all", `All (${all.length})`],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={`fr-btn ${filter === id ? "fr-pri" : "fr-sec"}`}
+                aria-pressed={filter === id}
+                style={{ minHeight: 40 }}
+                onClick={() => setFilter(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <button
             className="fr-btn fr-ghost"
             type="button"
@@ -465,10 +515,20 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
             No crew photos stored yet. Submit a job with photos in the crew app.
           </p>
         )}
-        {crewItems.length > 0 && <div style={{ ...grid, marginBottom: 28 }}>{crewItems.map(card)}</div>}
+        {crewItems.filter(shows).length > 0 && (
+          <div style={{ ...grid, marginBottom: 28 }}>{crewItems.filter(shows).slice(0, limit).map(card)}</div>
+        )}
+        {more(crewItems)}
+        {crewItems.length > 0 && crewItems.filter(shows).length === 0 && (
+          <p style={{ color: "var(--fr-mute)" }}>No crew photos in this list.</p>
+        )}
 
         <h2 style={{ fontSize: 22, margin: "16px 0 10px" }}>Sample images (council briefing)</h2>
-        <div style={grid}>{samples.map(card)}</div>
+        <div style={{ ...grid, marginBottom: 12 }}>{samples.filter(shows).slice(0, limit).map(card)}</div>
+        {more(samples)}
+        {samples.filter(shows).length === 0 && (
+          <p style={{ color: "var(--fr-mute)" }}>No sample images in this list.</p>
+        )}
       </div>
 
       {marking && (
