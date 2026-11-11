@@ -711,24 +711,6 @@ export default function Home() {
           tabIndex: id === "queue" ? -1 : undefined,
         } as const);
 
-  // Pages that are not records: kept out of the Records panel so it only holds records and the photo review.
-  const moreLinks = (
-    <nav aria-label="More pages" className="fr-section" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      <div className="fr-label" style={{ flex: "1 1 100%" }}>
-        More
-      </div>
-      <Link className="fr-btn fr-ghost" href="/model" style={{ textDecoration: "none" }}>
-        How the risk model works
-      </Link>
-      <Link className="fr-btn fr-ghost" href="/learning" style={{ textDecoration: "none" }}>
-        Learning from feedback
-      </Link>
-      <Link className="fr-btn fr-ghost" href="/report" style={{ textDecoration: "none" }}>
-        Email report
-      </Link>
-    </nav>
-  );
-
   const recordsPanel = (
     <section className="fr-section fr-wide" {...panelProps("records", "Records")}>
       <div className="fr-label">Compliance records</div>
@@ -1666,7 +1648,6 @@ export default function Home() {
             {tabbed && recordsPanel}
             {tabbed && crewsPanel}
             {tabbed && logPanel}
-            {tabbed && moreLinks}
 
             <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open={!narrow}>
               <summary>Simulation controls · What if and rain forecast</summary>
@@ -1851,7 +1832,6 @@ export default function Home() {
               </section>
             </details>
             {!tabbed && recordsPanel}
-            {!tabbed && moreLinks}
           </aside>
 
           {showPhone && (

@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+const link = { color: "var(--fr-blue)", padding: "10px 0" } as const;
+
 // One quiet line on every page. Says what the data is and where to read more. Short on the crew phone.
 export default function Footer() {
   return (
@@ -18,10 +20,16 @@ export default function Footer() {
     >
       <span>Prototype with sample data. Not council data.</span>
       <nav aria-label="Footer" style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", justifyContent: "center" }}>
-        <Link href="/about" style={{ color: "var(--fr-blue)", padding: "10px 0" }}>
+        <Link href="/about" style={link}>
           About the data and models
         </Link>
-        <Link href="/guide" style={{ color: "var(--fr-blue)", padding: "10px 0" }}>
+        <Link href="/model" style={link}>
+          How the risk model works
+        </Link>
+        <Link href="/learning" style={link}>
+          Learning from feedback
+        </Link>
+        <Link href="/guide" style={link}>
           How to use
         </Link>
       </nav>
