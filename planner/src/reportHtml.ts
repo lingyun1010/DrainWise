@@ -11,7 +11,7 @@ export type HtmlOptions = {
   reviewUrl?: string; // link for the "Review the run" button; no button when absent
 };
 
-const C = {
+export const C = {
   navy: "#0B2233",
   panel: "#12304A",
   line: "#2A4B66",
@@ -24,9 +24,9 @@ const C = {
   ink: "#0B2233",
   inkMute: "#4A6678",
 };
-const FONT = "Arial, Helvetica, sans-serif";
+export const FONT = "Arial, Helvetica, sans-serif";
 
-const esc = (s: string) =>
+export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 

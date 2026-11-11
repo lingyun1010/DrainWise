@@ -143,6 +143,19 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 - Run: `uvicorn risk_api.main:app` from the project root, then `cd web && npm run dev`. `RISK_API_URL` env var overrides the default `http://127.0.0.1:8000`.
 - Manager-to-crew handoff: localStorage on one device; with a shared room (`web/app/RoomChip.tsx`, `web/lib/runStore.ts`, `/api/room`) the session is also kept in Supabase table `rooms` and polled every 2 s, so a laptop and a phone share it. No sign-in; last write wins; rooms expire after 24 h. Photos go to Supabase Storage (ticket 16) when `NEXT_PUBLIC_PHOTO_UPLOAD=1`.
 
+### Risk report email (updated 2026-11-11)
+
+- One pure rule, `planner/src/reportRule.ts` (`decideReport`), used by the Preview, the send route, the daily job and tests. The check runs once a day over the 7-day BoM forecast.
+- Default: one weekly report, at most every 7 days. A storm on any of the next 7 days (assumption: 60%+ chance and 25 mm+, ask council) sends a storm alert now and again every 24 h until a run is planned. Kinds: `storm_alert`, `weekly_7day`.
+- Reports go to the admin only; sending to a crew is a manual step in the planner. Real Gmail send needs `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `REPORT_ADMIN_KEY`; the demo page only previews.
+- The crew plan email (`planner/src/planEmailHtml.ts`, shown by `EmailPlan.tsx`) has the same designed look as the admin report, is read-only and has no link back to the admin. It is simulated: nothing is sent.
+- The model and learning pages are linked from the footer (the old "More" nav is gone).
+
+### Simulated sign-in (2026-11-11)
+
+- `web/lib/demoAuth.ts`, `LoginDialog.tsx`: Manager needs name `admin` and its password; each crew (A, B, C) has its own password and sees only its own run (`CrewApp lockedCrewId`). Side-by-side needs no sign-in. Session is in sessionStorage. The credentials are in the client bundle: it is a demo of the idea, not security. Real deployment: council single sign-on. Do not write the passwords in the UI.
+- Planned GPTs in the truck run planner can be removed with a reason (`RemoveStopDialog.tsx`); the reasons carry into the review dialog and the plan record.
+
 ### UI (updated 2026-11-08)
 
 - UI matches `reference/demo-Main.dc.html`: role screen on `/` (Manager, Crew -> `/crew`, Side-by-side), map in 800x500 units, shared `web/app/CrewApp.tsx`. Run state and records in `web/lib/runStore.ts` (localStorage, events for same-tab sync). "Reset sample session" clears it.
@@ -153,6 +166,9 @@ out: [{asset_id, p_block, level: low|medium|high, reasons: [string]}]
 The owner does not want the look to drift between features. Before adding any UI, reuse what exists; only add a new pattern if nothing fits, and then add it to this list.
 
 - **Popups**: only `web/app/Dialog.tsx`. Use `Dialog` for details and pickers, `ConfirmDialog` for yes/no. Never `window.confirm`, `alert`, or a hand-written overlay. Same card (dark panel, 3px border, radius 24), eyebrow in small caps, h2 title, body, then actions: primary button first, quiet "Cancel" last. Esc closes. It is fixed to the viewport and centred.
+- **Dialog options**: `closeOnOutside` (backdrop click closes) and `focusDialog` (focus the card, not the first control) are off by default. Use them for read-only or chat dialogs; never for confirmations or destructive dialogs.
+- **List dialogs from header tiles**: HIGH RISK and CLEANED TODAY are `fr-tile fr-tilebtn` buttons that open a `Dialog` listing the GPTs (row = id + detail, click opens its details). Rows are `fr-btn fr-sec`.
+- **Dropdowns**: a native `<select>` (`className="fr-select"`) for plain short lists. A list that must look like the app (rows with detail, such as "Add a GPT to the run") uses `web/app/GptPicker.tsx`: same field look, list opens above in a dark panel (2px border, radius 16), keyboard Up/Down/Enter/Esc. The OS list of a native select cannot be styled.
 - **Hover cards**: use `web/app/Tip.tsx` (the `.fr-tip` card: bold title, muted sub-lines, then detail), never the browser's native `title` tooltip. It also opens on keyboard focus and closes on Esc.
 - **Destructive or hard-to-undo actions** (Remove, Withdraw, Reset, delete): always a `ConfirmDialog` with `tone="danger"`. The body must say what happens, what stays (for example records) and what the person is currently doing. Focus starts on Cancel.
 - **Choices inside a dialog**: a native checkbox with a label sentence that changes with the state (for example "Also delete the AFTER photo of the same job"), default on for the safe path, 20px box. Used in the review "Delete photo" dialog.
@@ -160,7 +176,7 @@ The owner does not want the look to drift between features. Before adding any UI
 - **Crew identity**: colour comes from `HATS` in `web/lib/runStore.ts` by crew position; letter from `crewLetter()`. Show a colour dot wherever a crew is named (map, lists, log, pickers). Crews are listed A to Z in pickers. Never rely on colour alone: keep the letter or the name next to it.
 - **Risk levels**: High, Medium, Low keep their colour AND face AND label. Cut-offs are 60% and 30% (`risk_api/main.py`); write them as "High (60%+)".
 - **Map (2D)**: real basemap with the SVG overlay in map units (`web/lib/geo.ts`); never draw invented roads. Wheel, drag and +/- zoom like the 3D view; "Reset view" and "Full screen" buttons sit on the map. Hover or focus on a GPT: scale up and glow (`.fr-mk-in`) plus the hover card (`.fr-tip`, rendered in `document.body`). Planned run stops are drawn above all other GPTs. Full screen is an in-page overlay (no navigation, Esc exits). Say "sample" for GPT and depot positions and credit OpenStreetMap and OpenFreeMap.
-- **Floating chat button** (`web/app/ChatButton.tsx`, mounted in `layout.tsx`, hidden on `/crew`): the cloud button bottom-right opens the assistant in the shared `Dialog`. When closed it says a random tip bubble now and then (7 s visible, 14 s apart); clicking a tip asks that question. Suggested questions stay under the conversation. The chat log scrolls with no scroll bar. Never put important controls under its corner.
+- **Floating chat button** (`web/app/ChatButton.tsx`, mounted in `layout.tsx`, hidden on `/crew`): the cloud button bottom-right opens the assistant in the shared `Dialog`. When closed it says a random tip bubble now and then (7 s visible, 14 s apart); clicking a tip asks that question. Suggested questions stay under the conversation as small `.fr-chip` pills (never full `fr-btn` buttons, so they stay below Send). Opening the chat does not focus the input (`focusDialog`), and clicking the backdrop closes it (`closeOnOutside`). The chat log scrolls with no scroll bar. Never put important controls under its corner.
 - **Count badge**: red circle with the number at the top right of an icon (`.fr-badge`, like a phone notification), hidden at 0. Used on the review bell. Red is the owner's choice for notifications only; it does not mean a risk level.
 - **Colours and type**: use the existing dark navy palette and CSS variables in `globals.css`; do not introduce new accent colours. Crew colours avoid orange, yellow and blue because those mean risk.
 - **Copy**: English, short, plain words, no emoji. Say "sample data" for anything simulated. Name the thing ("Crew A", "GPT-014"), not "it".

@@ -40,7 +40,17 @@ export const CameraIcon = ({ w = 44 }: { w?: number }) => (
   </svg>
 );
 
-export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: () => void; standalone?: boolean }) {
+export default function CrewApp({
+  onSwitchRole,
+  standalone,
+  lockedCrewId,
+  onSignOut,
+}: {
+  onSwitchRole: () => void;
+  standalone?: boolean;
+  lockedCrewId?: string; // signed in as this crew: no other crew is shown
+  onSignOut?: () => void;
+}) {
   const [state, setState] = useState<SavedState>(() => ({ crews: [], runs: {}, records: [], log: [] }));
   const [crewId, setCrewId] = useState<string | undefined>();
   // Photos belong to one stop of one crew's run (key = crew/run/stop), so switching crew never shows another crew's photo.
@@ -60,7 +70,9 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
   }, []);
 
   // Fall back to the first crew when the picked one was removed on the manager screen.
-  const crew = state.crews.find((c) => c.id === crewId) ?? state.crews[0];
+  const crew = lockedCrewId
+    ? state.crews.find((c) => c.id === lockedCrewId)
+    : (state.crews.find((c) => c.id === crewId) ?? state.crews[0]);
   const run: CrewRun | undefined = crew ? state.runs[crew.id] : undefined;
   const crewName = crew?.name ?? "Crew";
   const meta = { crewId: crew?.id };
@@ -244,32 +256,55 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
         </button>
         <RoomChip compact />
       </div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {state.crews.map((c) => {
-          const on = c.id === crew?.id;
-          return (
-            <button
-              key={c.id}
-              type="button"
-              className="fr-btn"
-              aria-pressed={on}
-              aria-label={c.name}
-              title={c.name}
-              onClick={() => setCrewId(c.id)}
-              style={{
-                flex: 1,
-                padding: 8,
-                minHeight: 44,
-                fontSize: 15,
-                background: on ? "#4FC3E8" : "#1E4A63",
-                color: on ? "#0B2233" : "#EAF6FB",
-              }}
-            >
-              {crewLetter(c.name)}
-            </button>
-          );
-        })}
-      </div>
+      {lockedCrewId ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 44,
+              display: "flex",
+              alignItems: "center",
+              padding: "0 12px",
+              borderRadius: 12,
+              background: "#1E4A63",
+              fontWeight: 700,
+              fontSize: 15,
+            }}
+          >
+            Signed in as {crew?.name ?? "a crew that no longer exists"}
+          </div>
+          <button type="button" className="fr-btn fr-ghost" onClick={onSignOut}>
+            Sign out
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {state.crews.map((c) => {
+            const on = c.id === crew?.id;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className="fr-btn"
+                aria-pressed={on}
+                aria-label={c.name}
+                title={c.name}
+                onClick={() => setCrewId(c.id)}
+                style={{
+                  flex: 1,
+                  padding: 8,
+                  minHeight: 44,
+                  fontSize: 15,
+                  background: on ? "#4FC3E8" : "#1E4A63",
+                  color: on ? "#0B2233" : "#EAF6FB",
+                }}
+              >
+                {crewLetter(c.name)}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {!stop ? (
         <div style={{ textAlign: "center", padding: "40px 8px", color: "#B9D6E3" }}>

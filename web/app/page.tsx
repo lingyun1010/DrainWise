@@ -43,6 +43,9 @@ import Dialog, { ConfirmDialog } from "./Dialog";
 import HowItWorks from "./HowItWorks";
 import EmailPlan from "./EmailPlan";
 import { PlanEditorBody, usePlanEditor } from "./PlanReview";
+import GptPicker from "./GptPicker";
+import { getSession } from "../lib/demoAuth";
+import RemoveStopDialog from "./RemoveStopDialog";
 import { MAX_LOCAL_PLANS, loadPlan, savePlan } from "@/lib/planClient";
 import { cleanRoomCode } from "../../planner/src/roomCode";
 import {
@@ -51,6 +54,7 @@ import {
   type PlanInput,
   type PlanRecord,
   type PlanStop,
+  type RemoveReasonId,
 } from "../../planner/src/planReview";
 import dynamic from "next/dynamic";
 
@@ -130,6 +134,8 @@ export default function Home() {
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
   const [added, setAdded] = useState<string[]>([]); // GPTs the manager added by hand to the suggested run
+  const [planRemoved, setPlanRemoved] = useState<Record<string, { reason: RemoveReasonId; note: string }>>({}); // planned GPTs the admin took out, with why
+  const [removing, setRemoving] = useState<string | null>(null); // planned GPT whose reason dialog is open
   const [pickAdd, setPickAdd] = useState(""); // GPT chosen in the "Add a GPT" picker
   const [toast, setToast] = useState<string | null>(null);
   const [clock, setClock] = useState("--:--"); // real Sydney time; set after mount so server and browser HTML match
@@ -365,10 +371,12 @@ export default function Home() {
       }),
     [added, plan, idle],
   );
-  const runStops: PlanStop[] = [
+  // The whole suggestion, including planned GPTs the admin has taken out (shown struck through with the reason).
+  const suggested: PlanStop[] = [
     ...plan.stops.map((s) => ({ id: s.id, load: s.load, photosNeeded: s.photosNeeded })),
     ...addedStops,
   ];
+  const runStops: PlanStop[] = suggested.filter((s) => !planRemoved[s.id]);
   const runLoad = runStops.reduce((n, s) => n + s.load, 0);
   const planN = new Map(runStops.map((s, i) => [s.id, i + 1]));
   const addedIds = new Set(addedStops.map((s) => s.id));
@@ -384,12 +392,27 @@ export default function Home() {
     ).stops[0];
     return runLoad + one.load <= capacity + 1e-9;
   };
+  function putBackPlanned(id: string) {
+    const load = suggested.find((s) => s.id === id)?.load ?? 0;
+    if (runLoad + load > capacity + 1e-9) {
+      setAddMsg(
+        `${id} does not fit in the ${capacity.toFixed(1)} m³ truck. Raise the truck capacity or take another GPT out.`,
+      );
+      return;
+    }
+    setPlanRemoved((cur) => Object.fromEntries(Object.entries(cur).filter(([k]) => k !== id)));
+    setAddMsg(`${id} is back in the run.`);
+  }
   const [addMsg, setAddMsg] = useState<string | null>(null); // result of the last "Add to run", shown next to the buttons
   const addToRun = (id: string) => {
-    if (!fitsTruck(id)) {
+    if (!fitsTruck(id) && !planRemoved[id]) {
       setAddMsg(
         `${id} does not fit in the ${capacity.toFixed(1)} m³ truck. Raise the truck capacity or pick a smaller GPT.`,
       );
+      return;
+    }
+    if (planRemoved[id]) {
+      putBackPlanned(id);
       return;
     }
     setAdded((a) => (a.includes(id) ? a : [...a, id]));
@@ -570,7 +593,8 @@ export default function Home() {
     if (url.searchParams.get("role") !== "manager") return;
     url.searchParams.delete("role");
     window.history.replaceState(null, "", url.pathname + url.search);
-    queueMicrotask(() => setRole("manager"));
+    // Only a signed-in admin skips the role screen; anyone else is asked to sign in there.
+    if (getSession()?.role === "admin") queueMicrotask(() => setRole("manager"));
   }, []);
 
   // Arrive from /plan after the admin confirmed a suggestion: open the crew chooser with the final stops.
@@ -1498,7 +1522,20 @@ export default function Home() {
                   <div style={{ marginTop: 12, fontWeight: 700, fontSize: 16 }}>
                     Best run now: {runLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {runStops.length} stops
                   </div>
-                  <EmailPlan stops={runStops} capacity={capacity} />
+                  <EmailPlan
+                    stops={runStops.map((s) => {
+                      const r = rows.find((x) => x.a.id === s.id);
+                      return {
+                        id: s.id,
+                        photosNeeded: s.photosNeeded,
+                        load: s.load,
+                        level: r?.p.level,
+                        pct: r ? Math.min(99, Math.round(r.p.p_block * 100)) : undefined,
+                        reasons: r?.p.reasons,
+                      };
+                    })}
+                    capacity={capacity}
+                  />
                   {leftOut.some((o) => o.pct >= 60) && (
                     <div style={{ marginTop: 2, fontSize: 12, color: "#B9D6E3", lineHeight: 1.4 }}>
                       A High GPT can be left out when two smaller ones carry more total risk in the same space.
@@ -1528,9 +1565,11 @@ export default function Home() {
                       overflowY: "auto",
                     }}
                   >
-                    {runStops.map((s, i) => {
+                    {suggested.map((s) => {
                       const r = rows.find((x) => x.a.id === s.id);
                       const plannedStop = plan.stops.find((x) => x.id === s.id);
+                      const gone = planRemoved[s.id];
+                      const n = runStops.findIndex((x) => x.id === s.id) + 1;
                       return (
                         <li
                           key={s.id}
@@ -1544,17 +1583,22 @@ export default function Home() {
                             fontSize: 14,
                           }}
                         >
-                          <span>
-                            <b>
-                              {i + 1}. {s.id}
+                          <span style={{ opacity: gone ? 0.65 : 1 }}>
+                            <b style={{ textDecoration: gone ? "line-through" : "none" }}>
+                              {gone ? "" : `${n}. `}
+                              {s.id}
                             </b>{" "}
                             · {r ? TIER[r.p.level] : ""}
                             <br />
-                            <span style={{ color: "#8FB8CC", fontSize: 12 }}>
-                              {s.photosNeeded ? "photos needed" : "camera, no photos"}
-                              {addedIds.has(s.id) ? " · added by you" : ""}
-                            </span>
-                            {plannedStop?.adjustedBy && (
+                            {gone ? (
+                              <span style={{ color: "#FFD27A", fontSize: 12 }}>Removed: {editReasonText(gone)}</span>
+                            ) : (
+                              <span style={{ color: "#8FB8CC", fontSize: 12 }}>
+                                {s.photosNeeded ? "photos needed" : "camera, no photos"}
+                                {addedIds.has(s.id) ? " · added by you" : ""}
+                              </span>
+                            )}
+                            {!gone && plannedStop?.adjustedBy && (
                               <>
                                 <br />
                                 <span style={{ color: "#8FD8F0", fontSize: 12 }}>
@@ -1567,7 +1611,17 @@ export default function Home() {
                             <span style={{ fontWeight: 700, color: "#FFD27A", whiteSpace: "nowrap" }}>
                               {s.load.toFixed(2)} m³
                             </span>
-                            {addedIds.has(s.id) && (
+                            {gone ? (
+                              <button
+                                type="button"
+                                className="fr-btn fr-ghost"
+                                style={{ minHeight: 40, padding: "6px 10px", fontSize: 13 }}
+                                aria-label={`Put ${s.id} back in the run`}
+                                onClick={() => putBackPlanned(s.id)}
+                              >
+                                Put back
+                              </button>
+                            ) : addedIds.has(s.id) ? (
                               <button
                                 type="button"
                                 className="fr-btn fr-ghost"
@@ -1576,6 +1630,16 @@ export default function Home() {
                                 onClick={() => setAdded((a) => a.filter((x) => x !== s.id))}
                               >
                                 Take out
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="fr-btn fr-ghost"
+                                style={{ minHeight: 40, padding: "6px 10px", fontSize: 13 }}
+                                aria-label={`Remove ${s.id} from the run`}
+                                onClick={() => setRemoving(s.id)}
+                              >
+                                Remove
                               </button>
                             )}
                           </span>
@@ -1587,7 +1651,7 @@ export default function Home() {
                     className="fr-btn fr-pri"
                     type="button"
                     style={{ width: "100%" }}
-                    onClick={() => setReview(runStops)}
+                    onClick={() => setReview(suggested)}
                     disabled={busy}
                   >
                     {busy ? "All crews are busy" : "Review and send a crew"}
@@ -1601,21 +1665,19 @@ export default function Home() {
               )}
               {idle.some((r) => !runStops.some((s) => s.id === r.a.id)) && (
                 <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
-                  <select
-                    aria-label="Add a GPT to the run"
-                    className="fr-select"
+                  <GptPicker
+                    ariaLabel="Add a GPT to the run"
+                    placeholder="Add a GPT to the run..."
                     value={pickAdd}
-                    onChange={(e) => setPickAdd(e.target.value)}
-                  >
-                    <option value="">Add a GPT to the run...</option>
-                    {idle
+                    onChange={setPickAdd}
+                    options={idle
                       .filter((r) => !runStops.some((s) => s.id === r.a.id))
-                      .map((r) => (
-                        <option key={r.a.id} value={r.a.id}>
-                          {r.a.id} · {TIER[r.p.level]} {Math.min(99, Math.round(r.p.p_block * 100))}%
-                        </option>
-                      ))}
-                  </select>
+                      .map((r) => ({
+                        id: r.a.id,
+                        label: r.a.id,
+                        detail: `${TIER[r.p.level]} ${Math.min(99, Math.round(r.p.p_block * 100))}%`,
+                      }))}
+                  />
                   <button
                     type="button"
                     className="fr-btn fr-sec"
@@ -2011,6 +2073,7 @@ export default function Home() {
       {review && showMap && (
         <ReviewRun
           proposed={review}
+          initialRemoved={planRemoved}
           capacity={capacity}
           day={DAYS[day]}
           tierOf={(id) => {
@@ -2028,7 +2091,20 @@ export default function Home() {
               plans: [rec, ...(st.plans ?? [])].slice(0, MAX_LOCAL_PLANS),
             });
             setReview(null);
+            setPlanRemoved({});
             sendOrWarn(final.map((s) => stopFor(s.id, s.load, s.photosNeeded)));
+          }}
+        />
+      )}
+
+      {removing && showMap && (
+        <RemoveStopDialog
+          stopId={removing}
+          onCancel={() => setRemoving(null)}
+          onConfirm={(reason, note) => {
+            setPlanRemoved({ ...planRemoved, [removing]: { reason, note } });
+            setAddMsg(`${removing} taken out of the run.`);
+            setRemoving(null);
           }}
         />
       )}
@@ -2185,6 +2261,7 @@ function CrewChooser({
 // Run suggestion review: remove stops with a reason, then confirm. The same editor is used by /plan.
 function ReviewRun({
   proposed,
+  initialRemoved,
   capacity,
   day,
   tierOf,
@@ -2192,13 +2269,14 @@ function ReviewRun({
   onConfirm,
 }: {
   proposed: PlanStop[];
+  initialRemoved: Record<string, { reason: RemoveReasonId; note: string }>;
   capacity: number;
   day: string;
   tierOf: (id: string) => string;
   onCancel: () => void;
   onConfirm: (final: PlanStop[], edits: PlanRecord["edits"], rec: PlanRecord) => void;
 }) {
-  const ed = usePlanEditor(proposed, capacity);
+  const ed = usePlanEditor(proposed, capacity, initialRemoved);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const team = typeof window === "undefined" ? null : getRoomCode();
