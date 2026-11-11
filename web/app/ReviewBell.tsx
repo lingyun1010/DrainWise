@@ -60,20 +60,42 @@ export default function ReviewBell() {
       <button
         type="button"
         className="fr-btn fr-sec"
-        style={{ minHeight: 40, padding: "6px 12px", gap: 8 }}
+        style={{ minHeight: 40, minWidth: 44, padding: "6px 12px", position: "relative" }}
         aria-expanded={open}
         aria-label={`Photos to review: ${items.length}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <span aria-hidden>Bell</span>
-        <strong>{items.length}</strong>
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path
+            d="M12 3a6 6 0 0 0-6 6v3.5L4.5 16h15L18 12.5V9a6 6 0 0 0-6-6Zm-2.2 15a2.2 2.2 0 0 0 4.4 0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        {items.length > 0 && (
+          <span className="fr-badge" aria-hidden="true">
+            {items.length > 99 ? "99+" : items.length}
+          </span>
+        )}
       </button>
       {open && (
         <div
           role="region"
           aria-label="Photos to review"
           className="fr-tip"
-          style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", width: 300, zIndex: 50, opacity: 1 }}
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "calc(100% + 6px)",
+            width: 300,
+            maxWidth: "calc(100vw - 32px)",
+            zIndex: 50,
+            opacity: 1,
+            pointerEvents: "auto", // .fr-tip is a hover card (not clickable); this one holds links
+          }}
         >
           <strong>Photos to review</strong>
           {items.length === 0 ? (

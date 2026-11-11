@@ -1253,3 +1253,27 @@ html:has(.fr-role) body {
     animation: none;
   }
 }
+
+/* The floating chat button must not hide the last controls on a page (for example "How it works"). */
+body {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+/* Red count badge on the review bell, like a phone notification. Red is the owner's choice; the number is also in aria-label. */
+.fr-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  border: 2px solid var(--fr-bg);
+  box-sizing: content-box;
+}
