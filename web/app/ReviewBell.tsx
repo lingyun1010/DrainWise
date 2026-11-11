@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 // Photos waiting for an admin (ticket 29). Polled like the shared team room; no email.
 export type Unread = { id: string; at: string; assetId: string; crewId: string; runId: string };
@@ -39,8 +39,46 @@ const crewName = (id: string) => {
 export const itemText = (u: Unread) =>
   `New before photo, ${u.assetId}, ${crewName(u.crewId)}, ${new Date(u.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 
+// Which notifications this admin has marked read. Kept in this browser only (demo, no sign-in); it does not mean the
+// photo was reviewed. Records and the photo review page still show every photo that has not been reviewed.
+const READ_KEY = "drainwise.readPhotoIds";
+const READ_EVT = "drainwise-read";
+const readSnapshot = () => {
+  try {
+    return localStorage.getItem(READ_KEY) ?? "[]";
+  } catch {
+    return "[]";
+  }
+};
+const readSubscribe = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  window.addEventListener(READ_EVT, cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener(READ_EVT, cb);
+  };
+};
+function writeRead(ids: string[]) {
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(ids.slice(-200)));
+  } catch {
+    /* storage blocked: the badge just will not remember */
+  }
+  window.dispatchEvent(new Event(READ_EVT));
+}
+
 export default function ReviewBell() {
   const items = useUnread();
+  const readRaw = useSyncExternalStore(readSubscribe, readSnapshot, () => "[]");
+  const read = useMemo(() => {
+    try {
+      return new Set<string>(JSON.parse(readRaw) as string[]);
+    } catch {
+      return new Set<string>();
+    }
+  }, [readRaw]);
+  const unread = items.filter((u) => !read.has(u.id));
+  const markRead = (ids: string[]) => writeRead([...read, ...ids.filter((id) => !read.has(id))]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -62,7 +100,7 @@ export default function ReviewBell() {
         className="fr-btn fr-sec"
         style={{ minHeight: 40, minWidth: 44, padding: "6px 12px", position: "relative" }}
         aria-expanded={open}
-        aria-label={`Photos to review: ${items.length}`}
+        aria-label={`Notifications: ${unread.length} unread`}
         onClick={() => setOpen((o) => !o)}
       >
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
@@ -75,16 +113,16 @@ export default function ReviewBell() {
             strokeLinejoin="round"
           />
         </svg>
-        {items.length > 0 && (
+        {unread.length > 0 && (
           <span className="fr-badge" aria-hidden="true">
-            {items.length > 99 ? "99+" : items.length}
+            {unread.length > 99 ? "99+" : unread.length}
           </span>
         )}
       </button>
       {open && (
         <div
           role="region"
-          aria-label="Photos to review"
+          aria-label="Notifications"
           className="fr-tip"
           style={{
             position: "absolute",
@@ -97,18 +135,51 @@ export default function ReviewBell() {
             pointerEvents: "auto", // .fr-tip is a hover card (not clickable); this one holds links
           }}
         >
-          <strong>Photos to review</strong>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <strong>Notifications{unread.length > 0 ? ` (${unread.length} unread)` : ""}</strong>
+            <button
+              type="button"
+              className="fr-btn fr-ghost"
+              style={{ minHeight: 40 }}
+              disabled={unread.length === 0}
+              onClick={() => markRead(unread.map((u) => u.id))}
+            >
+              Mark all read
+            </button>
+          </div>
           {items.length === 0 ? (
             <div style={{ color: "var(--fr-mute)", marginTop: 6 }}>Nothing waiting.</div>
           ) : (
             <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
-              {items.slice(0, 8).map((u) => (
-                <li key={u.id}>
-                  <Link href={`/review#p-${u.id}`} style={{ color: "inherit" }}>
-                    {itemText(u)}
-                  </Link>
-                </li>
-              ))}
+              {items.slice(0, 8).map((u) => {
+                const isRead = read.has(u.id);
+                return (
+                  <li
+                    key={u.id}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
+                  >
+                    <Link
+                      href={`/review#p-${u.id}`}
+                      onClick={() => markRead([u.id])}
+                      style={{ color: "inherit", opacity: isRead ? 0.6 : 1, fontWeight: isRead ? 400 : 700 }}
+                    >
+                      {itemText(u)}
+                      {isRead ? " (read)" : ""}
+                    </Link>
+                    {!isRead && (
+                      <button
+                        type="button"
+                        className="fr-btn fr-ghost"
+                        style={{ minHeight: 40, whiteSpace: "nowrap" }}
+                        aria-label={`Mark ${u.assetId} read`}
+                        onClick={() => markRead([u.id])}
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
           <Link href="/review" className="fr-btn fr-ghost" style={{ minHeight: 40, marginTop: 8 }}>

@@ -1034,8 +1034,8 @@ export default function Home() {
               </button>
               {narrow && (
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <ReviewBell />
                   <RoomChip />
+                  <ReviewBell />
                 </span>
               )}
             </div>
@@ -1099,21 +1099,8 @@ export default function Home() {
               </div>
             </div>
             <div className="fr-hdracts">
-              {!narrow && <ReviewBell />}
               {!narrow && <RoomChip />}
-              {!narrow && (
-                <button
-                  className="fr-btn fr-sec"
-                  type="button"
-                  onClick={() => {
-                    setRole(null);
-                    setCur(null);
-                  }}
-                  style={{ padding: "8px 16px", minHeight: 44 }}
-                >
-                  Switch role
-                </button>
-              )}
+              {!narrow && <ReviewBell />}
             </div>
           </div>
         </div>
