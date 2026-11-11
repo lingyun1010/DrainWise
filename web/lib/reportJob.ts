@@ -4,6 +4,7 @@ import { DAYS, DAY_RAIN_MM } from "../../planner/src/horizon";
 import { dayRainMm, sydneyDate, type BomDay } from "../../planner/src/bomPrecis";
 import { decideReport, stormWords, type Decision, type LastSent } from "../../planner/src/reportRule";
 import { buildReport, scoreHorizon, type Report } from "../../planner/src/reportBuilder";
+import { renderReportHtml } from "../../planner/src/reportHtml";
 import type { ModelJson } from "../../planner/src/riskModel";
 import riskModel from "@/lib/riskModel.json";
 import { makeSeedAssets } from "@/lib/seed";
@@ -16,6 +17,7 @@ const LEAF = 60; // sample leaf-fall index, same default as the manager page
 export type Preview = {
   decision: Decision;
   report: Report | null; // null when the rule says none
+  html: string | null; // the designed email for the browser preview (logo from /public); the real mail uses a cid logo
   forecastSource: string;
   tomorrow: string;
   forced: Force;
@@ -58,6 +60,7 @@ export async function previewReport(
   const value: Preview = {
     decision,
     report: null,
+    html: null,
     forecastSource: source,
     tomorrow: stormWords(tomorrow),
     forced: force,
@@ -72,5 +75,12 @@ export async function previewReport(
   const rows = scoreHorizon(makeSeedAssets(), riskModel as unknown as ModelJson, dayRain, LEAF, first, last);
   const dateLabel = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", dateStyle: "full" }).format(today);
   value.report = buildReport(decision.kind, rows, dateLabel, decision.reason);
+  value.html = renderReportHtml(value.report, { logoSrc: "/brand-wordmark.png", reviewUrl: reviewUrl() });
   return { ok: true, value };
+}
+
+// Link for the "Review the run" button. Set REPORT_APP_URL (for example the public site) to show the button.
+export function reviewUrl(): string | undefined {
+  const base = process.env.REPORT_APP_URL;
+  return base && /^https?:\/\//.test(base) ? `${base.replace(/\/$/, "")}/?role=manager` : undefined;
 }

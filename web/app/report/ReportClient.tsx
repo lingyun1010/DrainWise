@@ -11,6 +11,7 @@ type Force = "bom" | "storm" | "calm";
 type Preview = {
   decision: { kind: "none" | "storm_1day" | "weekly_7day"; reason: string };
   report: { subject: string; body: string; empty: boolean; send: boolean } | null;
+  html: string | null;
   forecastSource: string;
   tomorrow: string;
 };
@@ -48,6 +49,7 @@ export default function ReportClient() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [open, setOpen] = useState(false); // Preview dialog
+  const [view, setView] = useState<"designed" | "text">("designed"); // which version of the mail the dialog shows
 
   async function preview() {
     setAsk({ state: "loading" });
@@ -61,6 +63,7 @@ export default function ReportClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "request failed");
       setAsk({ state: "done", p: data });
+      setView("designed");
       setOpen(true);
     } catch (e) {
       setAsk({ state: "error", msg: e instanceof Error ? e.message : "request failed" });
@@ -214,7 +217,7 @@ export default function ReportClient() {
           label="Report preview"
           eyebrow="Preview"
           title={RULE_NAME[p.decision.kind]}
-          maxWidth={640}
+          maxWidth={720}
           onClose={() => setOpen(false)}
           actions={
             <button className="fr-btn fr-ghost" type="button" autoFocus onClick={() => setOpen(false)}>
@@ -239,24 +242,63 @@ export default function ReportClient() {
                   Nothing would be sent: a storm report with no GPT to list is skipped.
                 </p>
               )}
-              <pre
-                tabIndex={0}
-                role="region"
-                aria-label="Email body"
-                style={{
-                  whiteSpace: "pre-wrap",
-                  margin: 0,
-                  padding: 12,
-                  maxHeight: 320,
-                  overflow: "auto",
-                  borderRadius: 12,
-                  background: "var(--fr-bg)",
-                  border: "2px solid var(--fr-line)",
-                  font: "13px/1.5 ui-monospace, Menlo, monospace",
-                }}
-              >
-                {p.report.body}
-              </pre>
+              {p.html && (
+                <div role="group" aria-label="Email version" style={{ display: "flex", gap: 8, margin: "0 0 8px" }}>
+                  <button
+                    className={`fr-btn ${view === "designed" ? "fr-sec" : "fr-ghost"}`}
+                    type="button"
+                    aria-pressed={view === "designed"}
+                    onClick={() => setView("designed")}
+                  >
+                    Designed email
+                  </button>
+                  <button
+                    className={`fr-btn ${view === "text" ? "fr-sec" : "fr-ghost"}`}
+                    type="button"
+                    aria-pressed={view === "text"}
+                    onClick={() => setView("text")}
+                  >
+                    Plain text
+                  </button>
+                </div>
+              )}
+              {p.html && view === "designed" ? (
+                <iframe
+                  title="Email as the recipient sees it"
+                  sandbox="allow-same-origin" // no allow-scripts: nothing in the mail can run code; same-origin only lets the logo load
+                  // srcDoc has no base URL, so the logo path is made absolute for the preview only.
+                  srcDoc={p.html.replace(
+                    'src="/brand-wordmark.png"',
+                    `src="${window.location.origin}/brand-wordmark.png"`,
+                  )}
+                  style={{
+                    width: "100%",
+                    height: 520,
+                    border: "2px solid var(--fr-line)",
+                    borderRadius: 12,
+                    background: "#F3F7FA",
+                  }}
+                />
+              ) : (
+                <pre
+                  tabIndex={0}
+                  role="region"
+                  aria-label="Email body"
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    margin: 0,
+                    padding: 12,
+                    maxHeight: 320,
+                    overflow: "auto",
+                    borderRadius: 12,
+                    background: "var(--fr-bg)",
+                    border: "2px solid var(--fr-line)",
+                    font: "13px/1.5 ui-monospace, Menlo, monospace",
+                  }}
+                >
+                  {p.report.body}
+                </pre>
+              )}
             </>
           ) : (
             <p style={{ margin: 0 }}>No email would be sent today.</p>

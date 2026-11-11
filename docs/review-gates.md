@@ -14,7 +14,7 @@ A finding is a **blocker** (do not merge) only if it is one of:
    - A photo-site stop can be submitted without both BEFORE and AFTER photos.
    - Severity relies on colour alone (needs face and label too).
    - `prefers-reduced-motion` is ignored by an animation.
-   - Photos are persisted anywhere other than memory.
+   - Photos are persisted anywhere other than memory, EXCEPT crew photos in the sample Supabase project (ticket 16, `NEXT_PUBLIC_PHOTO_UPLOAD=1`). Owner decision 2026-11-11: allowed during testing because no photo is used to train any model; this still blocks if a stored photo enters training, or is stored anywhere else.
 
 Everything else is a **note**: record it, do not block the merge. Notes still go in the PR body under "Known issues".
 

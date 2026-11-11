@@ -2,8 +2,10 @@
 // never from the client. The report is rebuilt here, so the browser cannot choose the text. The address is used for
 // this one send and is not stored; only a masked form is logged and returned.
 import nodemailer from "nodemailer";
-import { FORCES, previewReport, type Force } from "@/lib/reportJob";
+import path from "node:path";
+import { FORCES, previewReport, reviewUrl, type Force } from "@/lib/reportJob";
 import { lastSent, markSent } from "@/lib/reportHistory";
+import { renderReportHtml } from "../../../../planner/src/reportHtml";
 import {
   makeLimiter,
   maskAddress,
@@ -65,7 +67,17 @@ export async function POST(request: Request) {
           service: "gmail",
           auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
         });
-    await sendReportMail(transport, process.env.GMAIL_USER ?? "mock", body.to, report.subject, report.body);
+    // Designed HTML mail with the logo inlined (cid), plus the plain text for clients that do not show HTML.
+    const html = renderReportHtml(report, { logoSrc: "cid:drainwise-logo", reviewUrl: reviewUrl() });
+    const logo = {
+      filename: "drainwise-logo.png",
+      path: path.join(process.cwd(), "public", "brand-wordmark.png"),
+      cid: "drainwise-logo",
+    };
+    await sendReportMail(transport, process.env.GMAIL_USER ?? "mock", body.to, report.subject, report.body, {
+      html,
+      attachments: [logo],
+    });
   } catch {
     console.error(`[send-report] failed rule=${decision.kind} to=${masked}`);
     return Response.json({ error: "Gmail refused the message. Check the app password." }, { status: 502 });

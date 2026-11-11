@@ -55,4 +55,13 @@ describe("sendReportMail (mock SMTP transport)", () => {
     await sendReportMail({ sendMail: async (m) => void sent.push(m) }, "me@gmail.com", "you@example.com", "S", "B");
     expect(sent).toEqual([{ from: "me@gmail.com", to: "you@example.com", subject: "S", text: "B" }]);
   });
+  it("adds the HTML part and the inline logo when given, keeping the plain text", async () => {
+    const sent: Mail[] = [];
+    const logo = { filename: "logo.png", path: "/x/logo.png", cid: "drainwise-logo" };
+    await sendReportMail({ sendMail: async (m) => void sent.push(m) }, "me@gmail.com", "you@example.com", "S", "B", {
+      html: "<p>H</p>",
+      attachments: [logo],
+    });
+    expect(sent[0]).toMatchObject({ text: "B", html: "<p>H</p>", attachments: [logo] });
+  });
 });
