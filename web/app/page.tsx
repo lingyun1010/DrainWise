@@ -718,7 +718,7 @@ export default function Home() {
         More
       </div>
       <Link className="fr-btn fr-ghost" href="/model" style={{ textDecoration: "none" }}>
-        How the model works
+        How the risk model works
       </Link>
       <Link className="fr-btn fr-ghost" href="/learning" style={{ textDecoration: "none" }}>
         Learning from feedback
