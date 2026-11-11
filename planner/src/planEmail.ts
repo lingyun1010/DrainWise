@@ -1,7 +1,14 @@
 // The email a manager sends BY HAND to a crew with the planned run. Pure: same inputs, same text.
 // The server rebuilds it from GPT ids it knows, so the browser cannot put its own text in the mail.
 // Never sent automatically: only the admin (with the admin key) triggers it from the planner.
-export type PlanEmailStop = { id: string; hasCamera: boolean };
+export type PlanEmailStop = {
+  id: string;
+  hasCamera: boolean;
+  load?: number; // m³, sample estimate
+  level?: "low" | "medium" | "high";
+  pct?: number; // chance of blocking, 0 to 100
+  reasons?: string[];
+};
 
 export const MAX_PLAN_STOPS = 30;
 

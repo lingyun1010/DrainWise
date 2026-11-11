@@ -1,6 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import HomeBackdrop from "./HomeBackdrop";
 import RoomChip from "./RoomChip";
+import LoginDialog from "./LoginDialog";
+import { getSession } from "../lib/demoAuth";
 
 const FACE = (
   <>
@@ -20,6 +25,13 @@ export default function RoleScreen({
   onCrew: () => void;
   onSplit: () => void;
 }) {
+  const [login, setLogin] = useState<"admin" | "crew" | null>(null);
+  // Already signed in this tab: skip the dialog.
+  const [signedIn, setSignedIn] = useState<"admin" | "crew" | null>(null);
+  useEffect(() => {
+    const s = getSession();
+    queueMicrotask(() => setSignedIn(s ? s.role : null));
+  }, []);
   return (
     <div
       className="fr-role"
@@ -64,12 +76,15 @@ export default function RoleScreen({
         <p className="fr-intro" style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
           Checking gross pollutant traps (GPTs) by hand is slow, and only some GPTs have a camera. DrainWise uses a
           model trained on sample data to predict which nets will fill next and suggests a truck run for the contractor,
-          so the right ones are cleaned first and pollution stays out of the river. Every job is closed with proof. Pick
-          a role to start. No sign-in needed.
+          so the right ones are cleaned first and pollution stays out of the river. Every job is closed with proof.
         </p>
       </div>
       <div className="fr-cards">
-        <button type="button" className="fr-card fr-cardm" onClick={onManager}>
+        <button
+          type="button"
+          className="fr-card fr-cardm"
+          onClick={() => (signedIn === "admin" ? onManager() : setLogin("admin"))}
+        >
           <svg className="fr-face fr-face-a" width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
             {FACE}
             <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
@@ -97,7 +112,11 @@ export default function RoleScreen({
           <span className="fr-ct">Side-by-side demo</span>
           <span className="fr-cd">Manager map and crew phone together. For demonstration.</span>
         </button>
-        <button type="button" className="fr-card fr-cardc" onClick={onCrew}>
+        <button
+          type="button"
+          className="fr-card fr-cardc"
+          onClick={() => (signedIn === "crew" ? onCrew() : setLogin("crew"))}
+        >
           <svg className="fr-face fr-face-b" width="64" height="64" viewBox="-24 -24 48 48" aria-hidden="true">
             {FACE}
             <circle cx="-11" cy="8" r="3" fill="#FFB38A" />
@@ -116,6 +135,18 @@ export default function RoleScreen({
         </button>
       </div>
       <RoomChip />
+      {login && (
+        <LoginDialog
+          kind={login}
+          onCancel={() => setLogin(null)}
+          onSuccess={() => {
+            const k = login;
+            setLogin(null);
+            if (k === "admin") onManager();
+            else onCrew();
+          }}
+        />
+      )}
       <p style={{ margin: 0, fontSize: 14, color: "#B9D6E3", maxWidth: "60ch", textAlign: "center" }}>
         Sample data only. Real deployment would use council single sign-on and audit logs.
       </p>

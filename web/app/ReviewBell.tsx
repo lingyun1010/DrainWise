@@ -71,7 +71,7 @@ function writeRead(ids: string[]) {
 }
 
 // One notification. Colour AND a text tag show the kind (never colour alone):
-// red = urgent (a camera sees a net that is full, broken or fallen), yellow = a report email went out, green = photo received.
+// red = urgent (a camera sees a net that is full, broken or fallen), white = the bot sent an email, green = photo received.
 type Kind = "urgent" | "email" | "photo";
 type Note = { id: string; kind: Kind; text: string; assetId?: string; photoId?: string };
 const KIND: Record<Kind, { tag: string; color: string; summary: (n: number) => string }> = {
@@ -80,7 +80,7 @@ const KIND: Record<Kind, { tag: string; color: string; summary: (n: number) => s
     color: "#FF8185",
     summary: (n) => `${n} ${n === 1 ? "camera needs" : "cameras need"} a look`,
   },
-  email: { tag: "Email sent", color: "#FFD27A", summary: (n) => `${n} report ${n === 1 ? "email" : "emails"} sent` },
+  email: { tag: "Bot email", color: "#FFFFFF", summary: (n) => `${n} ${n === 1 ? "email" : "emails"} sent by the bot` },
   photo: { tag: "Photo", color: "#7ED9A3", summary: (n) => `${n} new before ${n === 1 ? "photo" : "photos"}` },
 };
 const GROUPS: Kind[] = ["urgent", "email", "photo"];
@@ -114,7 +114,7 @@ function useMailNotes(): Note[] {
       const log = loadState().log;
       setNotes(
         log
-          .filter((l) => l.x.startsWith("Email report sent"))
+          .filter((l) => l.bot || l.x.startsWith("Email report sent"))
           .slice(0, 5)
           .map((l) => ({ id: `mail:${l.t}:${l.x}`, kind: "email" as const, text: `${l.x} at ${l.t}` })),
       );

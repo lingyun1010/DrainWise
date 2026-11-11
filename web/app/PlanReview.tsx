@@ -17,8 +17,14 @@ import {
 
 // Editing state for one run suggestion. Used by the Manager dialog and the /plan page, so both behave the same.
 // The admin removes stops (each needs a reason), sees what will be remembered, and confirms. Nothing is applied silently.
-export function usePlanEditor(proposed: PlanStop[], capacity: number) {
-  const [removed, setRemoved] = useState<Record<string, { reason: RemoveReasonId; note: string }>>({});
+export function usePlanEditor(
+  proposed: PlanStop[],
+  capacity: number,
+  initialRemoved: Record<string, { reason: RemoveReasonId; note: string }> = {},
+) {
+  const [removed, setRemoved] = useState<Record<string, { reason: RemoveReasonId; note: string }>>(() =>
+    Object.fromEntries(Object.entries(initialRemoved).filter(([id]) => proposed.some((p) => p.id === id))),
+  );
   const [open, setOpen] = useState<string | null>(null); // stop whose reason picker is showing
   const [draft, setDraft] = useState<{ reason: RemoveReasonId | null; note: string }>({ reason: null, note: "" });
   const [error, setError] = useState<string | null>(null);
