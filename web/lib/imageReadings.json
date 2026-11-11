@@ -1,0 +1,179 @@
+{
+  "data_source": "SYNTHETIC edits of 7 council sample photos, read by planner/src/readImage.ts. Not real camera readings.",
+  "note": "Prototype, no accuracy claim. Pipeline check only: counts below are on the synthetic set the generator made.",
+  "image_size": {
+    "width": 960,
+    "height": 720
+  },
+  "generated_at": "2026-11-09T04:54:39.004Z",
+  "pipeline_check": {
+    "images": 420,
+    "damage_matched": 384,
+    "band_within_one": 332,
+    "band_images": 350,
+    "needs_cleaning_side_matched": 330
+  },
+  "cameras": {
+    "cam-01": {
+      "file": "synthetic_cam-01_b7_036.png",
+      "truth": {
+        "band": 7,
+        "damage": "none"
+      },
+      "reading": {
+        "changedFraction": 0.723,
+        "band": 7,
+        "bandLabel": "70-79%",
+        "needsCleaning": true,
+        "damage": "net_full",
+        "region": [
+          464,
+          488,
+          544,
+          548
+        ],
+        "confidence": 0.56,
+        "unclear": false,
+        "rationale": "About 72% of the net area differs from the clean reference, so the net looks 70-79% full, at or past the 70% cleaning line. This is a proxy from the changed area, not a measurement."
+      }
+    },
+    "cam-02": {
+      "file": "synthetic_cam-02_b3_016.png",
+      "truth": {
+        "band": 3,
+        "damage": "none"
+      },
+      "reading": {
+        "changedFraction": 0.349,
+        "band": 3,
+        "bandLabel": "30-39%",
+        "needsCleaning": false,
+        "damage": "none",
+        "region": [
+          464,
+          464,
+          528,
+          500
+        ],
+        "confidence": 0.75,
+        "unclear": false,
+        "rationale": "About 35% of the net area differs from the clean reference, so the net looks 30-39% full. This is a proxy from the changed area, not a measurement."
+      }
+    },
+    "cam-03": {
+      "file": "synthetic_cam-03_b9_046.png",
+      "truth": {
+        "band": 9,
+        "damage": "none"
+      },
+      "reading": {
+        "changedFraction": 0.939,
+        "band": 9,
+        "bandLabel": "90-100%",
+        "needsCleaning": true,
+        "damage": "net_full",
+        "region": [
+          473,
+          392,
+          616,
+          540
+        ],
+        "confidence": 0.67,
+        "unclear": false,
+        "rationale": "About 94% of the net area differs from the clean reference, so the net looks 90-100% full, at or past the 70% cleaning line. This is a proxy from the changed area, not a measurement."
+      }
+    },
+    "cam-04": {
+      "file": "synthetic_cam-04_net_broken_051.png",
+      "truth": {
+        "band": 2,
+        "damage": "net_broken"
+      },
+      "reading": {
+        "changedFraction": 0.196,
+        "band": null,
+        "bandLabel": null,
+        "needsCleaning": false,
+        "damage": "net_broken",
+        "region": [
+          632,
+          444,
+          736,
+          478
+        ],
+        "confidence": 0.69,
+        "unclear": false,
+        "rationale": "A dark patch inside the net area does not match the clean reference, so there may be a hole in the net."
+      }
+    },
+    "cam-05": {
+      "file": "synthetic_cam-05_b7_036.png",
+      "truth": {
+        "band": 7,
+        "damage": "none"
+      },
+      "reading": {
+        "changedFraction": 0.747,
+        "band": 7,
+        "bandLabel": "70-79%",
+        "needsCleaning": true,
+        "damage": "net_full",
+        "region": [
+          392,
+          216,
+          478,
+          278
+        ],
+        "confidence": 0.73,
+        "unclear": false,
+        "rationale": "About 75% of the net area differs from the clean reference, so the net looks 70-79% full, at or past the 70% cleaning line. This is a proxy from the changed area, not a measurement."
+      }
+    },
+    "cam-06": {
+      "file": "synthetic_cam-06_net_fallen_056.png",
+      "truth": {
+        "band": null,
+        "damage": "net_fallen"
+      },
+      "reading": {
+        "changedFraction": 0.144,
+        "band": null,
+        "bandLabel": null,
+        "needsCleaning": false,
+        "damage": "net_fallen",
+        "region": [
+          368,
+          576,
+          528,
+          680
+        ],
+        "confidence": 0.62,
+        "unclear": false,
+        "rationale": "The net area changed and a net-like shape now appears elsewhere in the image, so the net may have fallen off."
+      }
+    },
+    "cam-07": {
+      "file": "synthetic_cam-07_b8_041.png",
+      "truth": {
+        "band": 8,
+        "damage": "none"
+      },
+      "reading": {
+        "changedFraction": 0.831,
+        "band": 8,
+        "bandLabel": "80-89%",
+        "needsCleaning": true,
+        "damage": "net_full",
+        "region": [
+          392,
+          432,
+          700,
+          568
+        ],
+        "confidence": 0.62,
+        "unclear": false,
+        "rationale": "About 83% of the net area differs from the clean reference, so the net looks 80-89% full, at or past the 70% cleaning line. This is a proxy from the changed area, not a measurement."
+      }
+    }
+  }
+}
