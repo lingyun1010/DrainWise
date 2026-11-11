@@ -1920,7 +1920,7 @@ export default function Home() {
           label={tileList === "high" ? "High risk GPTs" : "GPTs cleaned today"}
           eyebrow="Sample data"
           title={tileList === "high" ? `High risk (60%+): ${high}` : `Cleaned today: ${cleanedIds.length}`}
-          maxWidth={460}
+          maxWidth={520}
           closeOnOutside
           onClose={() => setTileList(null)}
           actions={
@@ -1934,30 +1934,46 @@ export default function Home() {
               {tileList === "high" ? "No GPT is High risk right now." : "No GPT has been cleaned yet."}
             </p>
           ) : (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-              {(tileList === "high"
-                ? highRows.map((r) => ({ id: r.a.id, sub: `${Math.round(r.p.p_block * 100)}% chance of blocking` }))
-                : cleanedIds.map((id) => {
-                    const rec = records.find((r) => r.stopId === id);
-                    return { id, sub: rec ? `Cleaned at ${rec.clock}` : "Cleaned" };
-                  })
-              ).map((it) => (
-                <li key={it.id}>
-                  <button
-                    type="button"
-                    className="fr-btn fr-sec"
-                    style={{ width: "100%", justifyContent: "space-between", display: "flex", gap: 12 }}
-                    onClick={() => {
-                      setTileList(null);
-                      openAsset(it.id);
-                    }}
-                  >
-                    <strong>{it.id}</strong>
-                    <span>{it.sub}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p style={{ margin: "0 0 10px", fontSize: 14, color: "var(--fr-mute)" }}>
+                {tileList === "high"
+                  ? "Chance of blocking, highest first. Select a GPT for its details."
+                  : "Time each GPT was marked cleaned. Select a GPT for its details."}
+              </p>
+              <ul
+                style={{
+                  listStyle: "none",
+                  margin: 0,
+                  padding: 0,
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+                  gap: 8,
+                }}
+              >
+                {(tileList === "high"
+                  ? highRows.map((r) => ({ id: r.a.id, sub: `${Math.min(99, Math.round(r.p.p_block * 100))}%` }))
+                  : cleanedIds.map((id) => {
+                      const rec = records.find((r) => r.stopId === id);
+                      return { id, sub: rec ? rec.clock : "Cleaned" };
+                    })
+                ).map((it) => (
+                  <li key={it.id}>
+                    <button
+                      type="button"
+                      className="fr-btn fr-sec"
+                      style={{ width: "100%", justifyContent: "space-between", display: "flex", gap: 12 }}
+                      onClick={() => {
+                        setTileList(null);
+                        openAsset(it.id);
+                      }}
+                    >
+                      <strong>{it.id}</strong>
+                      <span>{it.sub}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </Dialog>
       )}
