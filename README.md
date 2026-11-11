@@ -70,7 +70,8 @@ Open http://localhost:3000 and pick **Manager**, **Crew**, or **Side-by-side** (
 **Optional environment variables** go in `web/.env.local` (gitignored; see `web/.env.sample`). Never commit them.
 
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_PHOTO_UPLOAD=1`: save crew photos and shared rooms. Without them photos stay in memory.
-- `OPENAI_API_KEY`: turns on real vision suggestions at `/review`. Local only; never set it on Vercel. Without it `/review` still works and the suggestion is a labelled mock.
+- `ANTHROPIC_API_KEY`: turns on the floating chatbot (Claude, read-only tools: BoM rain outlook, sample risk ranking, crew progress). Optional `CHAT_MODEL` (default `claude-haiku-5-5`) and `CHAT_DISABLED=1` kill switch. Limits: 20 questions per client per hour, 300 per day, 500 characters each. Set a spend limit in the Anthropic console.
+- `/review` suggestions are a labelled mock; no vision model is called.
 
 After retraining, regenerate the files the public build reads:
 

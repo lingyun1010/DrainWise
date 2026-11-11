@@ -1,7 +1,7 @@
 # 29: Admin review of uploaded photos: manual annotation, correction, notification
 
 Type: task
-Status: in progress (branch feat/29-admin-review, code done and browser-checked 2026-11-11, not committed; needs smoke, PR, prefill from 22)
+Status: done (merged, PR #46). Open: prefill from ticket 22 reading, remove vision call from /review (owner undecided)
 Blocked by: soft link to 22 (reading output shape); builds on 13 and 16 (`/review`, `job_photos`)
 Spec: `.scratch/drainwise/map.md` ("AI OS scope update 2026-11-11"); `design/AI_OS_DESIGN.md` sections 2, 3, 7
 

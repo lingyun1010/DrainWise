@@ -417,8 +417,7 @@ export default function ReviewClient({ count, mock }: { count: number; mock: boo
           )}
           {mock && (
             <p style={{ margin: "0 0 8px", fontWeight: 700 }}>
-              Mock AI: no vision key is set, so suggestions are fake (picked from the file bytes). Add OPENAI_API_KEY to
-              web/.env.local for real ones.
+              Mock AI: suggestions are fake (picked from the file bytes). No vision model is called.
             </p>
           )}
           <strong>Prototype. Human review required. No accuracy claim.</strong>

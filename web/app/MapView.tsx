@@ -214,20 +214,6 @@ export default function MapView({
                 />
               </g>
             </g>
-
-            <g transform="translate(110,52)" aria-hidden="true">
-              <g className="fr-bob">
-                <circle cx="-26" cy="4" r="18" fill="#EAF6FB" />
-                <circle cx="0" cy="-6" r="24" fill="#EAF6FB" />
-                <circle cx="28" cy="4" r="18" fill="#EAF6FB" />
-                <rect x="-44" y="4" width="90" height="18" rx="9" fill="#EAF6FB" />
-                <circle cx="-8" cy="4" r="3.2" fill="#0B2233" />
-                <circle cx="10" cy="4" r="3.2" fill="#0B2233" />
-                <path d="M-6 12 q5 5 10 0" fill="none" stroke="#0B2233" strokeWidth="2.5" strokeLinecap="round" />
-                <circle cx="-16" cy="11" r="4" fill="#FFB38A" opacity=".7" />
-                <circle cx="18" cy="11" r="4" fill="#FFB38A" opacity=".7" />
-              </g>
-            </g>
           </g>
           <g transform={T}>
             <g transform={`translate(${DEPOT.x},${DEPOT.y}) scale(${cs})`}>
