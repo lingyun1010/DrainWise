@@ -76,8 +76,7 @@ export default function RoleScreen({
         <p className="fr-intro" style={{ margin: 0, fontSize: 16, lineHeight: 1.5, color: "#B9D6E3" }}>
           Checking gross pollutant traps (GPTs) by hand is slow, and only some GPTs have a camera. DrainWise uses a
           model trained on sample data to predict which nets will fill next and suggests a truck run for the contractor,
-          so the right ones are cleaned first and pollution stays out of the river. Every job is closed with proof. Pick
-          a role to start. Manager and Crew use a simulated sign-in; Side-by-side opens straight away.
+          so the right ones are cleaned first and pollution stays out of the river. Every job is closed with proof.
         </p>
       </div>
       <div className="fr-cards">
