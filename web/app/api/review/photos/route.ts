@@ -22,6 +22,13 @@ export async function GET() {
       suggested: p.suggested_level,
       confirmed: p.confirmed_level,
       confirmedAt: p.confirmed_at,
+      reviewedAt: p.reviewed_at,
+      band: p.admin_band,
+      damage: p.admin_damage,
+      note: p.admin_note ?? "",
+      bandSource: p.band_source,
+      damageSource: p.damage_source,
+      shapes: Array.isArray(p.annotations) ? p.annotations : [],
     })),
   });
 }
