@@ -1,7 +1,7 @@
 # 23: Risk trigger email / report for the contractor
 
 Type: task
-Status: done (built 2026-11-09; PR stacked on #37). Open: Gmail daily limit, owner creates the app password, council storm level
+Status: done (merged, PR #45). Open: Gmail daily limit, owner creates the app password, council storm level
 Blocked by: None (uses the existing Forecast day scoring in `planner/src/horizon.ts`: 1-day = Tomorrow, 7-day = any day from Today to In 6 days over the threshold); owner creates the Gmail app password herself
 Spec: `.scratch/drainwise/map.md` ("Trigger email" decision)
 
@@ -18,6 +18,8 @@ The check runs once a day, using the BoM rain forecast for the next day.
 - If nothing is predicted to reach 70%, say so in a short report (weekly) or send nothing (storm check), see Open.
 
 ## Decisions
+
+- **Updated 2026-11-11 (owner):** the first email is a suggestion with a link (team code) to the app, where the admin reviews and edits it (ticket 30); after confirm, a second email goes to the crew. New photo uploads are NOT in the email (they use the header bell, ticket 29). Manual Preview and Send stays.
 
 - One shared pure function `decideReport(today, forecast, lastSent)` returns `none`, `storm_1day` or `weekly_7day`, with the reason in words. The cron job, the Preview and the tests all use it.
 - Storm threshold is an **assumption** (a constant, labelled in the UI and mail), based on the BoM precis rain range and chance (`planner/src/bomPrecis.ts`). Council has not told us their trigger level (ask on 13 Nov).

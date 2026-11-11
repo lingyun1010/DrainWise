@@ -1,7 +1,7 @@
 # 21: Synthetic GPT net image generator
 
 Type: task
-Status: done (PR pending)
+Status: done
 Blocked by: None (first check the 7 sample photos as a base)
 Spec: `.scratch/drainwise/map.md`; relates to tickets 13, 17, 18
 

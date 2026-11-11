@@ -1,11 +1,13 @@
 # 15: Demo rehearsal and recorded fallback
 
 Type: task
-Status: ready-for-human
+Status: ready-for-human (do last)
 Blocked by: 10, 12
 Spec: `.scratch/drainwise/spec.md` (ticket 05)
 
 Needs the owner: a real phone and a screen recording cannot be done by an agent.
+
+> Update 2026-11-11 (owner): kept for the end; script must include the new features (image review, chatbot, suggestion review).
 
 ## What to build
 

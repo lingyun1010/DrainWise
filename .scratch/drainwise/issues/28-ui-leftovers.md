@@ -1,9 +1,11 @@
 # 28: UI leftovers from the 8-9 Nov smoke notes
 
 Type: task
-Status: ready-for-agent
+Status: ready-for-agent (last, verify first)
 Blocked by: 23, 24 (all three touch `web/app/page.tsx`; start after they merge)
 Spec: `.scratch/drainwise/map.md` ("Still open UI notes", "Known gaps")
+
+> Update 2026-11-11 (owner): several items are already fixed (Reset confirm, phone tabs, simulated clock); check each item before work.
 
 ## What to build
 

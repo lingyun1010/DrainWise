@@ -60,17 +60,35 @@ Owner decisions after the session:
 - Image recognition: for camera sites, compare today's image with a clean reference image of the same camera (changed area as a fullness proxy, changed region drives the circle and arrow); net broken / net fallen shown as a mismatch against the reference. Hosted vision model is a helper for unclear cases and for sites without a reference; human confirms. Show circles and an arrow on the image with a short caption. No accuracy claim. Real photos may not arrive in time, so use synthetic images (clearly labelled), plus the 7 sample photos.
 - Trigger email: weekly automatic, storm automatic, plus a manual Generate / Send option in an admin area (also for the demo). Sent over Gmail SMTP from the owner's account; the recipient address is typed (editable) at send time and is not stored. Every send is written to the activity log, with a masked address only. Rate limits, fixed template, a kill switch env var, and "Demo with sample data" in the mail. Automatic sending needs a scheduler; the earlier decision is "no cron in the demo", so the demo may only show the rule and the manual button. Say that honestly in the pitch.
 
+## AI OS scope update 2026-11-11 (owner, in session)
+
+Source design: `design/AI_OS_DESIGN.md`. Decisions:
+
+- Image reading (camera upload and crew upload): fullness band, net full / broken / fallen. Public build keeps photo reading as a **MOCK**; real vision calls only locally (ticket 13/16 decision stands).
+- Admin review: accept or edit the AI reading and annotate the image; corrections feed the example library and risk-model retrain (OpenAI weights never change). Notification on new uploads (place open).
+- Admin can remove GPTs from a suggested run and must give a reason (stored as plan edits). Email carries the suggestion and a link to the app; after confirm, a second email goes to the crew. Manual trigger stays.
+- Admin access: team code in the link, no login (production would use real auth; say so in the pitch).
+- Floating chatbot (rain outlook, fullest GPTs, crew progress): **real LLM on the public build** (OpenAI or Claude, provider open). Needs server-only key, per-hour rate limit, total cap, kill switch env var, mock fallback when off. Reverses the "no vision key on public" rule for chat only. Answers must come from tool results.
+- Priority: image reading (21, 22) > admin review and annotation > chatbot > email (Preview + manual Send; automatic sending is production only).
+- Later answers (same day): NO real AI call for photos on local or public, mock or reference diff only; admin marks the net by hand and can delete and redraw marks. Chatbot = Claude API. Cloud becomes the floating chatbot (blink, bob, hint). Upload notification = header bell plus Records badge, not email.
+- Tickets written: [29](issues/29-admin-review-annotation-notify.md), [30](issues/30-plan-suggestion-review.md), [31](issues/31-chatbot-claude.md); 22 and 23 amended.
+- AI OS (2026-11-11): minimal closed loop, ticket [32](issues/32-ai-os-memory-reflection.md): plan edits -> Claude reflection -> admin approves rules -> soft weights in planner and context for chatbot; simulated scheduler persona for demo (labelled simulation); no backtest.
+- Open: the cloud element was not found in `web/app` (checked 2D and 3D, only a Full screen button at top-left); needs a screenshot.
+
 ## Open tickets
 
-Sliced 2026-11-09 into ticket files, in build order:
+Order after the 2026-11-11 AI OS planning (owner-confirmed). Updated 2026-11-11 after the merges.
 
-1. [20](issues/20-risk-target-70-band.md): risk target relabel: dropped by the owner (Forecast day slider already covers 1 to 7 days).
-2. [21](issues/21-synthetic-image-generator.md): synthetic image generator (ready-for-agent).
-3. [22](issues/22-image-reading-fullness-damage.md): image reading with fullness band, damage, location, annotated image; blocked by 21 (ready-for-agent). Relates to 13, 17, 18.
-4. [23](issues/23-trigger-email-report.md): risk trigger email: storm in forecast gives a 1-day report the day before, otherwise one 7-day report per week; Gmail SMTP; not blocked (open: Gmail limit, owner's app password, storm threshold).
-5. [24](issues/24-copy-and-scope-pass.md): copy and scope pass, includes the camera-count check (ready-for-agent).
-6. More tickets (2026-11-09, found while reviewing the map): [25](issues/25-privacy-gate-faces-plates.md) face and plate gate; [26](issues/26-map3d-parity.md) 3D view parity; [27](issues/27-photo-delete-cascade.md) photo delete pairs; [28](issues/28-ui-leftovers.md) UI leftovers (after 23 and 24 merge).
-7. Ticket 15 (demo rehearsal) and the ticket 12 leftovers stay last.
+1. [29](issues/29-admin-review-annotation-notify.md) admin review, manual annotation, header bell and Records badge (builds on the pair delete from 27, PR #44, and the reading from 22, PR #43).
+2. [31](issues/31-chatbot-claude.md) floating chatbot, Claude API (replaces the map cloud).
+3. [30](issues/30-plan-suggestion-review.md) run suggestion review with reasons.
+4. [32](issues/32-ai-os-memory-reflection.md) AI OS memory, reflection, approved rules.
+5. [23](issues/23-trigger-email-report.md) follow-up only: the 11 Nov amendment (suggestion email with Preview and manual Send, crew email after confirm). The base report email is merged (PR #45).
+6. [28](issues/28-ui-leftovers.md) UI leftovers (verify each first), then [15](issues/15-demo-rehearsal-and-recorded-fallback.md) rehearsal.
+
+Done and merged: 12, 17, 19, 21 (#37), 22 (#43), 23 base (#45), 24 (#38), 26 (#40), 27 (#44). Deferred: 18, 25 (until training). 20 dropped.
+PR note: #39, #41 and #42 were closed and replaced by #45, #44 and #43 (rebased onto main; force push is blocked in this setup).
+Open for the owner: Gmail daily limit and the app password (needed before a real send); `ANTHROPIC_API_KEY` with a spend limit (needed for 31 and 32).
 
 Still waiting on the 13 Nov answers (see 01-expert-questions.md).
 

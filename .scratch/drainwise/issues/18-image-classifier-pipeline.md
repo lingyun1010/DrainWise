@@ -1,11 +1,13 @@
 # 18: Image classifier pipeline (prototype, trained on sample labels)
 
 Type: task
-Status: needs-info
+Status: deferred (roadmap)
 Blocked by: owner decisions below; real labelled photos from the council (9 and 13 Nov) for anything beyond a prototype
 Spec: `.scratch/drainwise/spec.md` (tickets 04, 08, 13 and 16); `CLAUDE.md` section 8
 
 Lower priority than 17. Cut first if time is short.
+
+> Update 2026-11-11 (owner): no AI model is called for photos; only 7 unlabelled photos. Mention as roadmap in the pitch.
 
 ## Why
 

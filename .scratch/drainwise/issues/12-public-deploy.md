@@ -1,9 +1,11 @@
 # 12: Public deploy
 
 Type: task
-Status: ready-for-human (code merged in PR #18; leftovers: private-window run with screenshots, /crew and full crew flow on the live URL)
+Status: done
 Blocked by: 10
 Spec: `.scratch/drainwise/spec.md` (ticket 07)
+
+> Update 2026-11-11 (owner): owner has already run the whole flow, leftovers closed.
 
 ## What to build
 
