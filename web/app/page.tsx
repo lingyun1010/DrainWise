@@ -1008,6 +1008,20 @@ export default function Home() {
   const logPanel = (
     <section className="fr-section" hidden={tabbed && tab !== "crews"} aria-label="Activity log">
       <div className="fr-label">Activity log</div>
+      <div style={{ marginTop: 4, fontSize: 13, color: "#8FB8CC", display: "flex", alignItems: "center", gap: 8 }}>
+        <span
+          aria-hidden="true"
+          style={{
+            width: 14,
+            height: 14,
+            borderRadius: 999,
+            background: "#FFFFFF",
+            border: "2px solid #0B2233",
+            boxShadow: "0 0 0 1px #EAF6FB",
+          }}
+        />
+        White circle: done by the DrainWise bot
+      </div>
       <div style={{ marginTop: 6, fontSize: 14, color: "#B9D6E3" }}>
         <CrewToggles
           crews={st.crews.map((c, i) => ({ id: c.id, name: c.name, hat: HATS[i % HATS.length] }))}
@@ -1050,6 +1064,7 @@ export default function Home() {
           >
             {(() => {
               const ci = st.crews.findIndex((c) => c.id === l.crewId);
+              const bot = !!(l as { bot?: boolean }).bot;
               return (
                 <span
                   aria-hidden="true"
@@ -1058,9 +1073,9 @@ export default function Home() {
                     height: 14,
                     borderRadius: 999,
                     flex: "none",
-                    background: ci >= 0 ? HATS[ci % HATS.length] : "transparent",
-                    border: ci >= 0 ? "2px solid #0B2233" : "2px dashed #2D6182",
-                    boxShadow: ci >= 0 ? "0 0 0 1px #EAF6FB" : undefined,
+                    background: bot ? "#FFFFFF" : ci >= 0 ? HATS[ci % HATS.length] : "transparent",
+                    border: bot || ci >= 0 ? "2px solid #0B2233" : "2px dashed #2D6182",
+                    boxShadow: bot || ci >= 0 ? "0 0 0 1px #EAF6FB" : undefined,
                   }}
                 />
               );

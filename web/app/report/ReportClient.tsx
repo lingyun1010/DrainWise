@@ -90,6 +90,7 @@ export default function ReportClient() {
             st.log,
             sydneyClock(),
             `Email report sent to ${data.masked} (${RULE_NAME[data.rule as keyof typeof RULE_NAME]})`,
+            { bot: true },
           ),
         });
         setResult({

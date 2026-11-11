@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Dialog from "./Dialog";
-import { getRoomCode } from "@/lib/runStore";
+import { addLog, getRoomCode, loadState, saveState, sydneyClock } from "@/lib/runStore";
 import { getCurrentPlan } from "@/lib/currentPlan";
 import { maskAddress, validAddress } from "../../planner/src/sendReport";
 import { buildPlanEmail } from "../../planner/src/planEmail";
@@ -172,6 +172,15 @@ export default function ChatButton() {
       setBusy(true);
       const r = await buildMail(kind, q);
       setBusy(false);
+      if (r.ok) {
+        // Activity log and bell: the bot did this (white circle). Masked address only, never the full address.
+        const st = loadState();
+        const what =
+          kind === "report"
+            ? `Bot emailed the report to the admin at ${r.mail.masked}`
+            : `Bot emailed the plan (${getCurrentPlan()?.stops.length ?? 0} stops) to a crew at ${r.mail.masked}`;
+        saveState({ ...st, log: addLog(st.log, sydneyClock(), `${what} (simulated, asked in chat)`, { bot: true }) });
+      }
       return setMsgs([
         ...next,
         r.ok

@@ -27,7 +27,7 @@ export type JobRecord = {
   after: boolean;
 };
 // crewId colours the entry; runId (set on dispatch entries) lets the manager withdraw that run.
-export type LogEntry = { t: string; x: string; crewId?: string; runId?: string };
+export type LogEntry = { t: string; x: string; crewId?: string; runId?: string; bot?: boolean }; // bot: done by the DrainWise bot (white circle)
 // One run per crew, plus records and log shared by everyone ("cleaned today").
 export type CrewRun = {
   runId: string;
@@ -273,7 +273,7 @@ export function addLog(
   log: LogEntry[] | undefined,
   t: string,
   x: string,
-  meta: { crewId?: string; runId?: string } = {},
+  meta: { crewId?: string; runId?: string; bot?: boolean } = {},
 ): LogEntry[] {
   return [{ t, x, ...meta }, ...(log ?? [])].slice(0, 300);
 }
