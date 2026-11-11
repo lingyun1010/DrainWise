@@ -491,6 +491,13 @@ export default function MapView({
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <svg width="22" height="22" viewBox="-12 -12 24 24" aria-hidden="true">
+            <circle r="10" fill="#FFFFFF" stroke="#0B2233" strokeWidth="2.5" />
+            <path d="M-5 0 l3.5 3.5 l7 -8" fill="none" stroke="#0B2233" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+          cleaned (crew submitted)
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <svg width="22" height="22" viewBox="-12 -12 24 24" aria-hidden="true">
             <circle r="10" fill="#FFD27A" stroke="#0B2233" strokeWidth="2.5" />
             <circle cx="-5" cy="0" r="1.8" fill="#0B2233" />
             <circle cx="0" cy="0" r="1.8" fill="#0B2233" />
