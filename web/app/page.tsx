@@ -1332,7 +1332,7 @@ export default function Home() {
             </section>
 
             <section className="fr-section" {...panelProps("plan", "Run plan")}>
-              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <div className="fr-label">Truck run planner</div>
                 <HowItWorks className="fr-btn fr-ghost" />
               </div>
