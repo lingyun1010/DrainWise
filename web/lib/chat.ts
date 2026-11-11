@@ -3,9 +3,10 @@
 import "server-only";
 import { predict, type AssetInput, type ModelJson } from "../../planner/src/riskModel";
 import { MAX_TOKENS, MAX_TOOL_ROUNDS, type ChatMessage } from "../../planner/src/chatGuards";
-import { TOOL_DEFS, crewProgress, rainOutlook, rankedTop } from "../../planner/src/chatTools";
+import { TOOL_DEFS, crewProgress, rainOutlook, rankedTop, rulesSummary } from "../../planner/src/chatTools";
 import { getBom } from "./bomForecast";
 import { getRoom } from "./roomStore";
+import { listLessons, listPrefs } from "./learnStore";
 import { storageConfigured } from "./photoStore";
 import riskModel from "./riskModel.json";
 import { makeSeedAssets } from "./seed";
@@ -20,6 +21,7 @@ Rules:
 - Write risk levels as High (60%+), Medium (30%+), Low.
 - Reply in the language of the user's question. Keep it short: a few sentences or a short list with "- " bullets. Plain text only: no markdown bold, headings or tables. No emoji.
 - Do not write a "Data used" line: the app shows it under your answer. If you looked at no data, say so in your answer.
+- When you use or mention a learned rule, name it (its text and version). Learned rules come from a SIMULATED scheduler: say "simulation". The model's weights do not change; only approved rules do.
 - You cannot change anything in the app. You only read data.`;
 
 type Block = { type: string; id?: string; name?: string; input?: Record<string, unknown>; text?: string };
@@ -59,6 +61,11 @@ async function runTool(name: string, input: Record<string, unknown>, team: strin
     if (room === "error") return { error: "team storage is not reachable" };
     if (!room) return { error: "team not found or expired" };
     return { data: "SAMPLE session", crews: crewProgress(room.state) };
+  }
+  if (name === "get_learned_rules") {
+    const [lessons, prefs] = await Promise.all([listLessons(), listPrefs()]);
+    if (!lessons || !prefs) return { error: "learning storage is not reachable" };
+    return rulesSummary(lessons, prefs);
   }
   return { error: "unknown tool" };
 }

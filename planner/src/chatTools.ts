@@ -34,7 +34,38 @@ export const TOOL_DEFS = [
       "Progress of each crew in the shared team: accepted, stops done and left, skipped, ended early. Needs a team code. SAMPLE session.",
     input_schema: { type: "object", properties: {}, additionalProperties: false },
   },
+  {
+    name: "get_learned_rules",
+    description:
+      "Preference rules learned from the scheduler's edits and approved by a person: text, on or off, version and how many edits support each. SIMULATION data (a made-up scheduler). Use when asked what the system learned, or why a plan changed.",
+    input_schema: { type: "object", properties: {}, additionalProperties: false },
+  },
 ] as const;
+
+export type RulesSummary = {
+  data: string;
+  rules: { text: string; on: boolean; version: number; supporting_edits: number }[];
+  proposed_waiting_for_approval: number;
+};
+
+export function rulesSummary(
+  lessons: { id: string; status: string; count: number }[],
+  prefs: { lesson_id: string; text: string; enabled: boolean; version: number }[],
+): RulesSummary {
+  const approved = new Map(lessons.filter((l) => l.status === "approved").map((l) => [l.id, l]));
+  return {
+    data: "SIMULATION: a made-up scheduler, not a real council officer. Only approved rules are listed.",
+    rules: prefs
+      .filter((p) => approved.has(p.lesson_id))
+      .map((p) => ({
+        text: p.text,
+        on: p.enabled,
+        version: p.version,
+        supporting_edits: approved.get(p.lesson_id)!.count,
+      })),
+    proposed_waiting_for_approval: lessons.filter((l) => l.status === "proposed").length,
+  };
+}
 
 export type RainOutlook = {
   source: string;

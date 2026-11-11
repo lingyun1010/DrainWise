@@ -34,6 +34,8 @@ import {
 import MapView, { type Level, type MapAsset, type MapCrew, type MapRoute } from "./MapView";
 import RoleScreen from "./RoleScreen";
 import Link from "next/link";
+import { useLiveRules } from "@/lib/useLiveRules";
+import { markCreekSide } from "../../planner/src/simulate";
 import RoomChip from "./RoomChip";
 import ReviewBell from "./ReviewBell";
 import CameraView from "./CameraView";
@@ -87,6 +89,13 @@ const TIER_STYLE: Record<Level, React.CSSProperties> = {
 };
 const MAX_CREWS = HATS.length;
 
+// Sample flag shared with the simulation: which sample GPTs count as creek-side (used by the creek_first rule).
+const CREEK_IDS = new Set(
+  markCreekSide(makeSeedAssets().map((a) => ({ id: a.id, type: a.type, risk: 0, x: 0, y: 0, hasCamera: false })))
+    .filter((a) => a.nearCreek)
+    .map((a) => a.id),
+);
+
 export default function Home() {
   const router = useRouter();
   const seed = useMemo(() => makeSeedAssets(), []);
@@ -103,6 +112,7 @@ export default function Home() {
   const [leaf, setLeaf] = useState(DEFAULT_LEAF);
   const [day, setDay] = useState(0); // 0 = Today; later days score tomorrow's conditions so crews can be planned ahead
   const [extra, setExtra] = useState(0);
+  const liveRules = useLiveRules(); // approved preference rules (sample simulation), ticket 32
   const [capacity, setCapacity] = useState(3); // assumption: the real truck size is not known
   const [preds, setPreds] = useState<Prediction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -331,9 +341,10 @@ export default function Home() {
       x: a.x,
       y: a.y,
       hasCamera: a.hasCamera,
+      nearCreek: CREEK_IDS.has(a.id),
     }));
-    return planRun(assets, capacity, DEPOT, MIN_RUN_RISK);
-  }, [idle, capacity]);
+    return planRun(assets, capacity, DEPOT, MIN_RUN_RISK, { rules: liveRules, ctx: { heavyRain: extra >= 30 } });
+  }, [idle, capacity, liveRules, extra]);
   const planN = new Map(plan.stops.map((s, i) => [s.id, i + 1]));
   // The manager picks a crew in a dialog after pressing a send button; busy crews are listed but disabled.
   const busy = st.crews.every((c) => isBusy(st.runs[c.id]));
@@ -661,6 +672,9 @@ export default function Home() {
         </Link>
         <Link className="fr-btn fr-sec" href="/model" style={{ textDecoration: "none" }}>
           How the model works
+        </Link>
+        <Link className="fr-btn fr-sec" href="/learning" style={{ textDecoration: "none" }}>
+          Learning from feedback
         </Link>
         <Link className="fr-btn fr-sec" href="/report" style={{ textDecoration: "none" }}>
           Email report
@@ -1451,6 +1465,14 @@ export default function Home() {
                             <span style={{ color: "#8FB8CC", fontSize: 12 }}>
                               {s.photosNeeded ? "photos needed" : "camera, no photos"}
                             </span>
+                            {s.adjustedBy && (
+                              <>
+                                <br />
+                                <span style={{ color: "#8FD8F0", fontSize: 12 }}>
+                                  Adjusted by rule: {s.adjustedBy.join(", ")}
+                                </span>
+                              </>
+                            )}
                           </span>
                           <span style={{ fontWeight: 700, color: "#FFD27A", whiteSpace: "nowrap" }}>
                             {s.load.toFixed(2)} m³

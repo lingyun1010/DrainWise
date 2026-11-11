@@ -1,7 +1,7 @@
 # 30: Run suggestion review: admin removes GPTs with a reason, then confirms to the crew
 
 Type: task
-Status: ready-for-agent
+Status: done (merged, PR #48, 07eea50). Not built: adding a GPT to a suggestion (data model supports it), email link (link comes from "Copy review link" in the review dialog)
 Blocked by: 23 (email) for the link step; the in-app part can start now
 Spec: `.scratch/drainwise/map.md` ("AI OS scope update 2026-11-11"); `design/AI_OS_DESIGN.md` section 6
 
