@@ -20,6 +20,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ assetId: strin
         pipeline_check: imageReadings.pipeline_check,
       },
       image: `/camera/sample-${r.photo}.jpg`,
+      // Synthetic edit of that photo (committed JPEG, 960x720), the one the reading and the circle refer to.
+      synthetic_image: `/camera/synthetic/cam-${r.photo}.jpg`,
       level_source: readings.level_source,
       data_source: readings.data_source,
       generated_at: readings.generated_at,

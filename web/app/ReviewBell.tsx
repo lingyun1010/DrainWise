@@ -74,11 +74,16 @@ function writeRead(ids: string[]) {
 // red = urgent (a camera sees a net that is full, broken or fallen), yellow = a report email went out, green = photo received.
 type Kind = "urgent" | "email" | "photo";
 type Note = { id: string; kind: Kind; text: string; assetId?: string; photoId?: string };
-const KIND: Record<Kind, { tag: string; color: string }> = {
-  urgent: { tag: "Urgent", color: "#FF8185" },
-  email: { tag: "Email sent", color: "#FFD27A" },
-  photo: { tag: "Photo", color: "#7ED9A3" },
+const KIND: Record<Kind, { tag: string; color: string; summary: (n: number) => string }> = {
+  urgent: {
+    tag: "Urgent",
+    color: "#FF8185",
+    summary: (n) => `${n} ${n === 1 ? "camera needs" : "cameras need"} a look`,
+  },
+  email: { tag: "Email sent", color: "#FFD27A", summary: (n) => `${n} report ${n === 1 ? "email" : "emails"} sent` },
+  photo: { tag: "Photo", color: "#7ED9A3", summary: (n) => `${n} new before ${n === 1 ? "photo" : "photos"}` },
 };
+const GROUPS: Kind[] = ["urgent", "email", "photo"];
 const RANK: Record<Kind, number> = { urgent: 0, email: 1, photo: 2 };
 const DAMAGE_WORD: Record<string, string> = {
   net_full: "net is full (70%+)",
@@ -141,9 +146,6 @@ export default function ReviewBell({ onOpenAsset }: { onOpenAsset?: (id: string)
     [mail, photos],
   );
   const unread = items.filter((n) => !read.has(n.id));
-  const urgent = items.filter((n) => n.kind === "urgent");
-  const others = items.filter((n) => n.kind !== "urgent");
-  const urgentUnread = urgent.filter((n) => !read.has(n.id)).length;
   const markRead = (ids: string[]) => writeRead([...read, ...ids.filter((id) => !read.has(id))]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -159,15 +161,19 @@ export default function ReviewBell({ onOpenAsset }: { onOpenAsset?: (id: string)
     };
   }, [open]);
 
-  const row = (n: Note) => {
+  const row = (n: Note, grouped = false) => {
     const isRead = read.has(n.id);
     const k = KIND[n.kind];
     const body = (
       <>
-        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: k.color }}>
-          {k.tag.toUpperCase()}
-        </span>
-        <br />
+        {!grouped && (
+          <>
+            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: k.color }}>
+              {k.tag.toUpperCase()}
+            </span>
+            <br />
+          </>
+        )}
         {n.text}
         {isRead ? " (read)" : ""}
       </>
@@ -191,8 +197,7 @@ export default function ReviewBell({ onOpenAsset }: { onOpenAsset?: (id: string)
           justifyContent: "space-between",
           alignItems: "center",
           gap: 8,
-          borderLeft: `4px solid ${k.color}`,
-          paddingLeft: 8,
+          ...(grouped ? {} : { borderLeft: `4px solid ${k.color}`, paddingLeft: 8 }),
         }}
       >
         {n.photoId ? (
@@ -285,24 +290,29 @@ export default function ReviewBell({ onOpenAsset }: { onOpenAsset?: (id: string)
                 overflowY: "auto",
               }}
             >
-              {urgent.length > 0 && (
-                <li style={{ borderLeft: `4px solid ${KIND.urgent.color}`, paddingLeft: 8 }}>
-                  <details open={urgent.length === 1}>
-                    <summary style={{ cursor: "pointer", minHeight: 24, fontWeight: urgentUnread ? 700 : 400 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: KIND.urgent.color }}>
-                        URGENT
-                      </span>
-                      <br />
-                      {urgent.length} {urgent.length === 1 ? "camera needs" : "cameras need"} a look
-                      {urgentUnread ? ` (${urgentUnread} unread)` : " (all read)"}
-                    </summary>
-                    <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
-                      {urgent.map(row)}
-                    </ul>
-                  </details>
-                </li>
-              )}
-              {others.map(row)}
+              {GROUPS.map((kind) => {
+                const list = items.filter((n) => n.kind === kind);
+                if (list.length === 0) return null;
+                const k = KIND[kind];
+                const unreadN = list.filter((n) => !read.has(n.id)).length;
+                return (
+                  <li key={kind} style={{ borderLeft: `4px solid ${k.color}`, paddingLeft: 8 }}>
+                    <details open={list.length === 1}>
+                      <summary style={{ cursor: "pointer", minHeight: 24, fontWeight: unreadN ? 700 : 400 }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: k.color }}>
+                          {k.tag.toUpperCase()}
+                        </span>
+                        <br />
+                        {k.summary(list.length)}
+                        {unreadN ? ` (${unreadN} unread)` : " (all read)"}
+                      </summary>
+                      <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                        {list.map((n) => row(n, true))}
+                      </ul>
+                    </details>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
