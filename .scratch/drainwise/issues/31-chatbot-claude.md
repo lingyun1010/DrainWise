@@ -1,7 +1,7 @@
 # 31: Floating chatbot (Claude API) replacing the map cloud
 
 Type: task
-Status: in-review (code done on feat/31-chatbot, 2026-11-11)
+Status: done (merged, PR #47, 532ab22). Follow-ups: ticket 30 next; daily cap only unit-tested
 Blocked by: owner creates `ANTHROPIC_API_KEY` and sets a spend limit in the Anthropic console; soft link to 29 and 30 (crew and review data)
 Spec: `.scratch/drainwise/map.md` ("AI OS scope update 2026-11-11"); `design/AI_OS_DESIGN.md` section 4
 
