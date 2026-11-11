@@ -110,8 +110,8 @@ export default function ReportClient() {
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 48px", display: "grid", gap: 16 }}>
       <div>
-        <Link className="fr-btn fr-ghost" href="/" style={{ textDecoration: "none" }}>
-          Back to manager
+        <Link className="fr-btn fr-ghost" href="/?role=manager" style={{ textDecoration: "none" }}>
+          Back to Manager
         </Link>
       </div>
       <h1 style={{ margin: 0, fontSize: 28 }}>Email report (sample data)</h1>

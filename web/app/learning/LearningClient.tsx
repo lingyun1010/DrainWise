@@ -173,7 +173,7 @@ export default function LearningClient() {
 
   return (
     <main style={{ maxWidth: 760, margin: "0 auto", padding: "24px 16px 80px" }}>
-      <Link href="/" className="fr-btn fr-ghost">
+      <Link href="/?role=manager" className="fr-btn fr-ghost">
         Back to Manager
       </Link>
       <h1 style={{ fontSize: 28, margin: "12px 0 6px" }}>Learning from feedback</h1>

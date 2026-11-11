@@ -128,6 +128,8 @@ export default function Home() {
   const [whatIfBlock, setWhatIfBlock] = useState(false); // a send was stopped because the what-if sliders are moved
   const [hiddenCrews, setHiddenCrews] = useState<string[]>([]); // crews unticked in the map legend
   const [cur, setCur] = useState<string | null>(null);
+  const [added, setAdded] = useState<string[]>([]); // GPTs the manager added by hand to the suggested run
+  const [pickAdd, setPickAdd] = useState(""); // GPT chosen in the "Add a GPT" picker
   const [toast, setToast] = useState<string | null>(null);
   const [clock, setClock] = useState("--:--"); // real Sydney time; set after mount so server and browser HTML match
   const [view, setView] = useState<"2d" | "3d">("2d");
@@ -345,7 +347,53 @@ export default function Home() {
     }));
     return planRun(assets, capacity, DEPOT, MIN_RUN_RISK, { rules: liveRules, ctx: { heavyRain: extra >= 30 } });
   }, [idle, capacity, liveRules, extra]);
-  const planN = new Map(plan.stops.map((s, i) => [s.id, i + 1]));
+  // Stops the manager added by hand, appended after the suggested ones. Each is sized like a one-stop run.
+  const addedStops = useMemo(
+    () =>
+      added.flatMap((id) => {
+        if (plan.stops.some((s) => s.id === id)) return [];
+        const r = idle.find((x) => x.a.id === id);
+        if (!r) return [];
+        const one = planRun(
+          [{ id, type: r.a.type, risk: r.p.p_block, x: r.a.x, y: r.a.y, hasCamera: r.a.hasCamera }],
+          4,
+          DEPOT,
+          0,
+        ).stops[0];
+        return [{ id, load: one.load, photosNeeded: one.photosNeeded }];
+      }),
+    [added, plan, idle],
+  );
+  const runStops: PlanStop[] = [
+    ...plan.stops.map((s) => ({ id: s.id, load: s.load, photosNeeded: s.photosNeeded })),
+    ...addedStops,
+  ];
+  const runLoad = runStops.reduce((n, s) => n + s.load, 0);
+  const planN = new Map(runStops.map((s, i) => [s.id, i + 1]));
+  const addedIds = new Set(addedStops.map((s) => s.id));
+  // Can this GPT join the run without going over the truck?
+  const fitsTruck = (id: string) => {
+    const r = idle.find((x) => x.a.id === id);
+    if (!r) return false;
+    const one = planRun(
+      [{ id, type: r.a.type, risk: r.p.p_block, x: r.a.x, y: r.a.y, hasCamera: r.a.hasCamera }],
+      4,
+      DEPOT,
+      0,
+    ).stops[0];
+    return runLoad + one.load <= capacity + 1e-9;
+  };
+  const [addMsg, setAddMsg] = useState<string | null>(null); // result of the last "Add to run", shown next to the buttons
+  const addToRun = (id: string) => {
+    if (!fitsTruck(id)) {
+      setAddMsg(
+        `${id} does not fit in the ${capacity.toFixed(1)} m³ truck. Raise the truck capacity or pick a smaller GPT.`,
+      );
+      return;
+    }
+    setAdded((a) => (a.includes(id) ? a : [...a, id]));
+    setAddMsg(`${id} added to the run.`);
+  };
   // The manager picks a crew in a dialog after pressing a send button; busy crews are listed but disabled.
   const busy = st.crews.every((c) => isBusy(st.runs[c.id]));
   // Highest-risk assets the plan skipped, so the manager sees why a top item is missing.
@@ -515,6 +563,15 @@ export default function Home() {
     else setChoose(stops);
   }
 
+  // "Back to Manager" links from other pages arrive with ?role=manager and skip the role screen.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("role") !== "manager") return;
+    url.searchParams.delete("role");
+    window.history.replaceState(null, "", url.pathname + url.search);
+    queueMicrotask(() => setRole("manager"));
+  }, []);
+
   // Arrive from /plan after the admin confirmed a suggestion: open the crew chooser with the final stops.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
@@ -550,8 +607,9 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival; stopFor only reads fixed seed assets
   }, []);
 
+  // Any GPT opens its details, also one already on a run or cleaned (the camera view stays readable).
   const openAsset = (id: string) => {
-    if (rows.find((r) => r.a.id === id)?.state === "idle") setCur(id);
+    if (rows.some((r) => r.a.id === id)) setCur(id);
   };
 
   const showMap = role === "manager" || role === "split";
@@ -560,7 +618,7 @@ export default function Home() {
   const tabbed = showPhone || narrow;
   const high = idle.filter((r) => r.p.level === "high").length;
   const curRow = cur ? rows.find((r) => r.a.id === cur) : undefined;
-  const planPct = Math.min(100, Math.round((plan.totalLoad / capacity) * 100));
+  const planPct = Math.min(100, Math.round((runLoad / capacity) * 100));
   const photoRecs = records.filter((r) => r.method === "photos");
   // One row per decline, skip or early end (a run that ends sends several stops back at once).
   const returnEvents = (() => {
@@ -653,6 +711,24 @@ export default function Home() {
           tabIndex: id === "queue" ? -1 : undefined,
         } as const);
 
+  // Pages that are not records: kept out of the Records panel so it only holds records and the photo review.
+  const moreLinks = (
+    <nav aria-label="More pages" className="fr-section" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      <div className="fr-label" style={{ flex: "1 1 100%" }}>
+        More
+      </div>
+      <Link className="fr-btn fr-ghost" href="/model" style={{ textDecoration: "none" }}>
+        How the model works
+      </Link>
+      <Link className="fr-btn fr-ghost" href="/learning" style={{ textDecoration: "none" }}>
+        Learning from feedback
+      </Link>
+      <Link className="fr-btn fr-ghost" href="/report" style={{ textDecoration: "none" }}>
+        Email report
+      </Link>
+    </nav>
+  );
+
   const recordsPanel = (
     <section className="fr-section fr-wide" {...panelProps("records", "Records")}>
       <div className="fr-label">Compliance records</div>
@@ -669,15 +745,6 @@ export default function Home() {
       <div className="fr-recact">
         <Link className="fr-btn fr-sec" href="/review" style={{ textDecoration: "none" }}>
           Review before photos
-        </Link>
-        <Link className="fr-btn fr-sec" href="/model" style={{ textDecoration: "none" }}>
-          How the model works
-        </Link>
-        <Link className="fr-btn fr-sec" href="/learning" style={{ textDecoration: "none" }}>
-          Learning from feedback
-        </Link>
-        <Link className="fr-btn fr-sec" href="/report" style={{ textDecoration: "none" }}>
-          Email report
         </Link>
         <span className="fr-recnote">Photo review uses mock AI unless a key is set.</span>
       </div>
@@ -1049,7 +1116,7 @@ export default function Home() {
               {narrow && (
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <RoomChip />
-                  <ReviewBell />
+                  <ReviewBell onOpenAsset={openAsset} />
                 </span>
               )}
             </div>
@@ -1114,14 +1181,15 @@ export default function Home() {
             </div>
             <div className="fr-hdracts">
               {!narrow && <RoomChip />}
-              {!narrow && <ReviewBell />}
+              {!narrow && <ReviewBell onOpenAsset={openAsset} />}
             </div>
           </div>
         </div>
       ) : null}
 
       {showMap && (
-        <div className={`fr-shell${showPhone ? " fr-split" : " fr-dash"}`}>
+        <div className={`fr-shell${showPhone ? " fr-split" : " fr-dash"}`} role="main">
+          <h1 className="fr-sr">DrainWise manager</h1>
           <section className="fr-mapcol">
             <a
               className="fr-skip"
@@ -1366,6 +1434,18 @@ export default function Home() {
                     </button>
                     <button
                       type="button"
+                      className="fr-btn fr-sec"
+                      style={{ padding: "6px 12px", minHeight: 40, fontSize: 14 }}
+                      disabled={runStops.some((s) => s.id === a.id)}
+                      onClick={() => addToRun(a.id)}
+                      aria-label={
+                        runStops.some((s) => s.id === a.id) ? `${a.id} is in the run` : `Add ${a.id} to the run`
+                      }
+                    >
+                      {runStops.some((s) => s.id === a.id) ? "In run" : "Add to run"}
+                    </button>
+                    <button
+                      type="button"
                       className="fr-btn fr-pri"
                       style={{ padding: "6px 14px", minHeight: 40, fontSize: 14 }}
                       onClick={() => dispatchOne(a.id)}
@@ -1415,8 +1495,13 @@ export default function Home() {
               ) : (
                 <>
                   <div style={{ marginTop: 12, fontWeight: 700, fontSize: 16 }}>
-                    Best run now: {plan.totalLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {plan.stops.length} stops
+                    Best run now: {runLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {runStops.length} stops
                   </div>
+                  {leftOut.some((o) => o.pct >= 60) && (
+                    <div style={{ marginTop: 2, fontSize: 12, color: "#B9D6E3", lineHeight: 1.4 }}>
+                      A High GPT can be left out when two smaller ones carry more total risk in the same space.
+                    </div>
+                  )}
                   <div style={{ height: 10, background: "#1E4A63", borderRadius: 999, margin: "8px 0 12px" }}>
                     <div
                       style={{
@@ -1441,8 +1526,9 @@ export default function Home() {
                       overflowY: "auto",
                     }}
                   >
-                    {plan.stops.map((s, i) => {
+                    {runStops.map((s, i) => {
                       const r = rows.find((x) => x.a.id === s.id);
+                      const plannedStop = plan.stops.find((x) => x.id === s.id);
                       return (
                         <li
                           key={s.id}
@@ -1464,18 +1550,32 @@ export default function Home() {
                             <br />
                             <span style={{ color: "#8FB8CC", fontSize: 12 }}>
                               {s.photosNeeded ? "photos needed" : "camera, no photos"}
+                              {addedIds.has(s.id) ? " · added by you" : ""}
                             </span>
-                            {s.adjustedBy && (
+                            {plannedStop?.adjustedBy && (
                               <>
                                 <br />
                                 <span style={{ color: "#8FD8F0", fontSize: 12 }}>
-                                  Adjusted by rule: {s.adjustedBy.join(", ")}
+                                  Adjusted by rule: {plannedStop.adjustedBy.join(", ")}
                                 </span>
                               </>
                             )}
                           </span>
-                          <span style={{ fontWeight: 700, color: "#FFD27A", whiteSpace: "nowrap" }}>
-                            {s.load.toFixed(2)} m³
+                          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontWeight: 700, color: "#FFD27A", whiteSpace: "nowrap" }}>
+                              {s.load.toFixed(2)} m³
+                            </span>
+                            {addedIds.has(s.id) && (
+                              <button
+                                type="button"
+                                className="fr-btn fr-ghost"
+                                style={{ minHeight: 40, padding: "6px 10px", fontSize: 13 }}
+                                aria-label={`Take ${s.id} out of the run`}
+                                onClick={() => setAdded((a) => a.filter((x) => x !== s.id))}
+                              >
+                                Take out
+                              </button>
+                            )}
                           </span>
                         </li>
                       );
@@ -1485,9 +1585,7 @@ export default function Home() {
                     className="fr-btn fr-pri"
                     type="button"
                     style={{ width: "100%" }}
-                    onClick={() =>
-                      setReview(plan.stops.map((s) => ({ id: s.id, load: s.load, photosNeeded: s.photosNeeded })))
-                    }
+                    onClick={() => setReview(runStops)}
                     disabled={busy}
                   >
                     {busy ? "All crews are busy" : "Review and send a crew"}
@@ -1498,6 +1596,50 @@ export default function Home() {
                     </div>
                   )}
                 </>
+              )}
+              {idle.some((r) => !runStops.some((s) => s.id === r.a.id)) && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
+                  <select
+                    aria-label="Add a GPT to the run"
+                    value={pickAdd}
+                    onChange={(e) => setPickAdd(e.target.value)}
+                    style={{
+                      flex: 1,
+                      minHeight: 40,
+                      borderRadius: 10,
+                      border: "2px solid #1E4A63",
+                      background: "#071A28",
+                      color: "#E8F4FA",
+                      padding: "0 8px",
+                      fontSize: 14,
+                    }}
+                  >
+                    <option value="">Add a GPT to the run...</option>
+                    {idle
+                      .filter((r) => !runStops.some((s) => s.id === r.a.id))
+                      .map((r) => (
+                        <option key={r.a.id} value={r.a.id}>
+                          {r.a.id} · {TIER[r.p.level]} {Math.min(99, Math.round(r.p.p_block * 100))}%
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="fr-btn fr-sec"
+                    disabled={!pickAdd}
+                    onClick={() => {
+                      addToRun(pickAdd);
+                      setPickAdd("");
+                    }}
+                  >
+                    Add to run
+                  </button>
+                </div>
+              )}
+              {addMsg && (
+                <div role="status" style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: "#FFD27A" }}>
+                  {addMsg}
+                </div>
               )}
               {leftOut.length > 0 && (
                 <div style={{ marginTop: 10, fontSize: 13, color: "#B9D6E3", lineHeight: 1.4 }}>
@@ -1524,6 +1666,7 @@ export default function Home() {
             {tabbed && recordsPanel}
             {tabbed && crewsPanel}
             {tabbed && logPanel}
+            {tabbed && moreLinks}
 
             <details className="fr-sim" key={tabbed ? "tabbed" : "dash"} open={!narrow}>
               <summary>Simulation controls · What if and rain forecast</summary>
@@ -1708,6 +1851,7 @@ export default function Home() {
               </section>
             </details>
             {!tabbed && recordsPanel}
+            {!tabbed && moreLinks}
           </aside>
 
           {showPhone && (
@@ -1727,9 +1871,26 @@ export default function Home() {
           onClose={() => setCur(null)}
           actions={
             <>
-              <button className="fr-btn fr-pri" type="button" onClick={() => dispatchOne(curRow.a.id)} disabled={busy}>
-                {busy ? "All crews are busy" : "Send a crew to clean it"}
-              </button>
+              {curRow.state === "idle" ? (
+                <>
+                  <button
+                    className="fr-btn fr-pri"
+                    type="button"
+                    onClick={() => dispatchOne(curRow.a.id)}
+                    disabled={busy}
+                  >
+                    {busy ? "All crews are busy" : "Send a crew to clean it"}
+                  </button>
+                  <button
+                    className="fr-btn fr-sec"
+                    type="button"
+                    disabled={runStops.some((s) => s.id === curRow.a.id)}
+                    onClick={() => addToRun(curRow.a.id)}
+                  >
+                    {runStops.some((s) => s.id === curRow.a.id) ? "Already in the run" : "Add to run"}
+                  </button>
+                </>
+              ) : null}
               <button className="fr-btn fr-ghost" type="button" onClick={() => setCur(null)}>
                 Not now
               </button>
@@ -1739,6 +1900,13 @@ export default function Home() {
           <p style={{ margin: "0 0 12px" }}>
             Estimated blockage risk about {Math.min(99, Math.round(curRow.p.p_block * 100))}%.{" "}
             {curRow.a.hasCamera ? "This site has a camera." : "No camera here, so this is a model estimate."}
+            {curRow.state === "busy" ? " A crew already has this stop." : ""}
+            {addMsg && curRow.state === "idle" && (
+              <span role="status" style={{ display: "block", marginTop: 6, fontWeight: 600, color: "#FFD27A" }}>
+                {addMsg}
+              </span>
+            )}
+            {curRow.state === "done" ? " Cleaned in this session." : ""}
           </p>
           {curRow.a.hasCamera && <CameraView key={curRow.a.id} assetId={curRow.a.id} />}
           <ul style={{ margin: "0 0 12px", paddingLeft: 20 }}>

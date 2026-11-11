@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import cameraReadings from "@/lib/cameraReadings.json";
+import imageReadings from "@/lib/imageReadings.json";
+import { loadState, subscribeRun } from "@/lib/runStore";
 
 // Photos waiting for an admin (ticket 29). Polled like the shared team room; no email.
 export type Unread = { id: string; at: string; assetId: string; crewId: string; runId: string };
@@ -67,8 +70,59 @@ function writeRead(ids: string[]) {
   window.dispatchEvent(new Event(READ_EVT));
 }
 
-export default function ReviewBell() {
-  const items = useUnread();
+// One notification. Colour AND a text tag show the kind (never colour alone):
+// red = urgent (a camera sees a net that is full, broken or fallen), yellow = a report email went out, green = photo received.
+type Kind = "urgent" | "email" | "photo";
+type Note = { id: string; kind: Kind; text: string; assetId?: string; photoId?: string };
+const KIND: Record<Kind, { tag: string; color: string }> = {
+  urgent: { tag: "Urgent", color: "#FF8185" },
+  email: { tag: "Email sent", color: "#FFD27A" },
+  photo: { tag: "Photo", color: "#7ED9A3" },
+};
+const RANK: Record<Kind, number> = { urgent: 0, email: 1, photo: 2 };
+const DAMAGE_WORD: Record<string, string> = {
+  net_full: "net is full (70%+)",
+  net_broken: "net may be broken",
+  net_fallen: "net may have fallen off",
+};
+
+// SAMPLE DATA: stored camera readings, not live. A real build would read the latest frame result.
+const CAMERA_ALERTS: Note[] = cameraReadings.readings.flatMap((r) => {
+  const cam = (imageReadings.cameras as Record<string, { reading: { damage: string } }>)[`cam-0${r.photo}`];
+  const word = cam ? DAMAGE_WORD[cam.reading.damage] : undefined;
+  return word
+    ? [
+        {
+          id: `cam:${r.asset_id}`,
+          kind: "urgent" as const,
+          assetId: r.asset_id,
+          text: `${r.asset_id}: ${word} (camera, sample data)`,
+        },
+      ]
+    : [];
+});
+
+function useMailNotes(): Note[] {
+  const [notes, setNotes] = useState<Note[]>([]);
+  useEffect(() => {
+    const refresh = () => {
+      const log = loadState().log;
+      setNotes(
+        log
+          .filter((l) => l.x.startsWith("Email report sent"))
+          .slice(0, 5)
+          .map((l) => ({ id: `mail:${l.t}:${l.x}`, kind: "email" as const, text: `${l.x} at ${l.t}` })),
+      );
+    };
+    refresh();
+    return subscribeRun(refresh);
+  }, []);
+  return notes;
+}
+
+export default function ReviewBell({ onOpenAsset }: { onOpenAsset?: (id: string) => void }) {
+  const photos = useUnread();
+  const mail = useMailNotes();
   const readRaw = useSyncExternalStore(readSubscribe, readSnapshot, () => "[]");
   const read = useMemo(() => {
     try {
@@ -77,7 +131,19 @@ export default function ReviewBell() {
       return new Set<string>();
     }
   }, [readRaw]);
-  const unread = items.filter((u) => !read.has(u.id));
+  const items: Note[] = useMemo(
+    () =>
+      [
+        ...CAMERA_ALERTS,
+        ...mail,
+        ...photos.map((u) => ({ id: u.id, kind: "photo" as const, text: itemText(u), photoId: u.id })),
+      ].sort((a, b) => RANK[a.kind] - RANK[b.kind]),
+    [mail, photos],
+  );
+  const unread = items.filter((n) => !read.has(n.id));
+  const urgent = items.filter((n) => n.kind === "urgent");
+  const others = items.filter((n) => n.kind !== "urgent");
+  const urgentUnread = urgent.filter((n) => !read.has(n.id)).length;
   const markRead = (ids: string[]) => writeRead([...read, ...ids.filter((id) => !read.has(id))]);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -92,6 +158,76 @@ export default function ReviewBell() {
       document.removeEventListener("mousedown", onDown);
     };
   }, [open]);
+
+  const row = (n: Note) => {
+    const isRead = read.has(n.id);
+    const k = KIND[n.kind];
+    const body = (
+      <>
+        <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: k.color }}>
+          {k.tag.toUpperCase()}
+        </span>
+        <br />
+        {n.text}
+        {isRead ? " (read)" : ""}
+      </>
+    );
+    const style = {
+      color: "inherit",
+      textAlign: "left" as const,
+      background: "none",
+      border: 0,
+      padding: 0,
+      font: "inherit",
+      cursor: "pointer",
+      opacity: isRead ? 0.6 : 1,
+      fontWeight: isRead ? 400 : 700,
+    };
+    return (
+      <li
+        key={n.id}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          borderLeft: `4px solid ${k.color}`,
+          paddingLeft: 8,
+        }}
+      >
+        {n.photoId ? (
+          <Link href={`/review#p-${n.photoId}`} onClick={() => markRead([n.id])} style={style}>
+            {body}
+          </Link>
+        ) : n.assetId && onOpenAsset ? (
+          <button
+            type="button"
+            style={style}
+            onClick={() => {
+              markRead([n.id]);
+              setOpen(false);
+              onOpenAsset(n.assetId!);
+            }}
+          >
+            {body}
+          </button>
+        ) : (
+          <span style={style}>{body}</span>
+        )}
+        {!isRead && (
+          <button
+            type="button"
+            className="fr-btn fr-ghost"
+            style={{ minHeight: 40, whiteSpace: "nowrap" }}
+            aria-label={`Mark ${n.text} read`}
+            onClick={() => markRead([n.id])}
+          >
+            Mark read
+          </button>
+        )}
+      </li>
+    );
+  };
 
   return (
     <div ref={box} style={{ position: "relative" }}>
@@ -128,63 +264,61 @@ export default function ReviewBell() {
             position: "absolute",
             right: 0,
             top: "calc(100% + 6px)",
-            width: 300,
+            width: 360,
             maxWidth: "calc(100vw - 32px)",
             zIndex: 50,
             opacity: 1,
             pointerEvents: "auto", // .fr-tip is a hover card (not clickable); this one holds links
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <strong>Notifications{unread.length > 0 ? ` (${unread.length} unread)` : ""}</strong>
+          {items.length === 0 ? (
+            <div style={{ color: "var(--fr-mute)" }}>Nothing waiting.</div>
+          ) : (
+            <ul
+              style={{
+                margin: 0,
+                padding: 0,
+                listStyle: "none",
+                display: "grid",
+                gap: 6,
+                maxHeight: 300,
+                overflowY: "auto",
+              }}
+            >
+              {urgent.length > 0 && (
+                <li style={{ borderLeft: `4px solid ${KIND.urgent.color}`, paddingLeft: 8 }}>
+                  <details open={urgent.length === 1}>
+                    <summary style={{ cursor: "pointer", minHeight: 24, fontWeight: urgentUnread ? 700 : 400 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", color: KIND.urgent.color }}>
+                        URGENT
+                      </span>
+                      <br />
+                      {urgent.length} {urgent.length === 1 ? "camera needs" : "cameras need"} a look
+                      {urgentUnread ? ` (${urgentUnread} unread)` : " (all read)"}
+                    </summary>
+                    <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                      {urgent.map(row)}
+                    </ul>
+                  </details>
+                </li>
+              )}
+              {others.map(row)}
+            </ul>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+            <Link href="/review" className="fr-btn fr-ghost" style={{ minHeight: 40, whiteSpace: "nowrap" }}>
+              Open photo review
+            </Link>
             <button
               type="button"
-              className="fr-btn fr-ghost"
-              style={{ minHeight: 40 }}
+              className="fr-btn fr-sec"
+              style={{ minHeight: 40, whiteSpace: "nowrap" }}
               disabled={unread.length === 0}
-              onClick={() => markRead(unread.map((u) => u.id))}
+              onClick={() => markRead(unread.map((n) => n.id))}
             >
               Mark all read
             </button>
           </div>
-          {items.length === 0 ? (
-            <div style={{ color: "var(--fr-mute)", marginTop: 6 }}>Nothing waiting.</div>
-          ) : (
-            <ul style={{ margin: "8px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
-              {items.slice(0, 8).map((u) => {
-                const isRead = read.has(u.id);
-                return (
-                  <li
-                    key={u.id}
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}
-                  >
-                    <Link
-                      href={`/review#p-${u.id}`}
-                      onClick={() => markRead([u.id])}
-                      style={{ color: "inherit", opacity: isRead ? 0.6 : 1, fontWeight: isRead ? 400 : 700 }}
-                    >
-                      {itemText(u)}
-                      {isRead ? " (read)" : ""}
-                    </Link>
-                    {!isRead && (
-                      <button
-                        type="button"
-                        className="fr-btn fr-ghost"
-                        style={{ minHeight: 40, whiteSpace: "nowrap" }}
-                        aria-label={`Mark ${u.assetId} read`}
-                        onClick={() => markRead([u.id])}
-                      >
-                        Mark read
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <Link href="/review" className="fr-btn fr-ghost" style={{ minHeight: 40, marginTop: 8 }}>
-            Open photo review
-          </Link>
         </div>
       )}
     </div>

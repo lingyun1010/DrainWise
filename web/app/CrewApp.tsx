@@ -212,6 +212,7 @@ export default function CrewApp({ onSwitchRole, standalone }: { onSwitchRole: ()
         boxSizing: "border-box",
       }}
     >
+      {standalone && <h1 className="fr-sr">DrainWise crew app</h1>}
       <div
         style={{
           display: "flex",

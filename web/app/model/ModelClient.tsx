@@ -329,8 +329,8 @@ export default function ModelClient() {
 
   return (
     <main style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 16px 48px", width: "100%" }}>
-      <Link href="/" style={{ color: "var(--fr-blue)", fontWeight: 700 }}>
-        ← Back to DrainWise
+      <Link href="/?role=manager" className="fr-btn fr-ghost" style={{ textDecoration: "none" }}>
+        Back to Manager
       </Link>
       <h1 style={{ margin: "8px 0 4px", fontSize: 34, fontFamily: "var(--font-fredoka)" }}>How the risk model works</h1>
       <p style={{ ...soft, maxWidth: 760 }}>
@@ -386,7 +386,8 @@ export default function ModelClient() {
         </ol>
         <p style={{ ...soft, marginTop: 12, marginBottom: 0 }}>
           Honest status: only 7 unlabelled sample photos exist, so no accuracy is claimed. Without an API key the
-          suggestion is a labelled MOCK. Photos are checked for faces and number plates before any training use.{" "}
+          suggestion is a labelled MOCK. Photos must be checked for faces and number plates before any training use.
+          That check is not built yet.{" "}
           <Link href="/review" style={{ color: "var(--fr-blue)", fontWeight: 700 }}>
             Try the review page
           </Link>
@@ -509,7 +510,9 @@ export default function ModelClient() {
           <span style={{ fontSize: 13, color: res.source === "model" ? "var(--fr-green)" : "var(--fr-yellow)" }}>
             {res.source === "model"
               ? "Live model (trained on sample data)"
-              : `Approximation: the sample-data rule, not the trained model. ${res.note ?? ""}`}
+              : `Approximation: the sample-data rule, not the trained model. ${res.note ?? ""}`}{" "}
+            Counts here use the default scenario. The Manager page moves with the forecast day and sliders, so its
+            numbers can differ.
           </span>
         </div>
 
