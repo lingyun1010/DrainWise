@@ -44,6 +44,7 @@ import HowItWorks from "./HowItWorks";
 import EmailPlan from "./EmailPlan";
 import { PlanEditorBody, usePlanEditor } from "./PlanReview";
 import GptPicker from "./GptPicker";
+import { publishPlan } from "../lib/currentPlan";
 import { getSession } from "../lib/demoAuth";
 import RemoveStopDialog from "./RemoveStopDialog";
 import { MAX_LOCAL_PLANS, loadPlan, savePlan } from "@/lib/planClient";
@@ -377,6 +378,27 @@ export default function Home() {
     ...addedStops,
   ];
   const runStops: PlanStop[] = suggested.filter((s) => !planRemoved[s.id]);
+  // Stops with their risk and reasons, for the plan email (button and chat).
+  const planEmailStops = runStops.map((s) => {
+    const r = rows.find((x) => x.a.id === s.id);
+    return {
+      id: s.id,
+      photosNeeded: s.photosNeeded,
+      load: s.load,
+      level: r?.p.level,
+      pct: r ? Math.min(99, Math.round(r.p.p_block * 100)) : undefined,
+      reasons: r?.p.reasons,
+    };
+  });
+  // Let the chat email the plan that is on screen.
+  useEffect(() => {
+    publishPlan(
+      planEmailStops.length > 0
+        ? { stops: planEmailStops.map(({ photosNeeded, ...x }) => ({ ...x, hasCamera: !photosNeeded })), capacity }
+        : null,
+    );
+  });
+  useEffect(() => () => publishPlan(null), []);
   const runLoad = runStops.reduce((n, s) => n + s.load, 0);
   const planN = new Map(runStops.map((s, i) => [s.id, i + 1]));
   const addedIds = new Set(addedStops.map((s) => s.id));
@@ -1522,20 +1544,7 @@ export default function Home() {
                   <div style={{ marginTop: 12, fontWeight: 700, fontSize: 16 }}>
                     Best run now: {runLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {runStops.length} stops
                   </div>
-                  <EmailPlan
-                    stops={runStops.map((s) => {
-                      const r = rows.find((x) => x.a.id === s.id);
-                      return {
-                        id: s.id,
-                        photosNeeded: s.photosNeeded,
-                        load: s.load,
-                        level: r?.p.level,
-                        pct: r ? Math.min(99, Math.round(r.p.p_block * 100)) : undefined,
-                        reasons: r?.p.reasons,
-                      };
-                    })}
-                    capacity={capacity}
-                  />
+                  <EmailPlan stops={planEmailStops} capacity={capacity} />
                   {leftOut.some((o) => o.pct >= 60) && (
                     <div style={{ marginTop: 2, fontSize: 12, color: "#B9D6E3", lineHeight: 1.4 }}>
                       A High GPT can be left out when two smaller ones carry more total risk in the same space.
