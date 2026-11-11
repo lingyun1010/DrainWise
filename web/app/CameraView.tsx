@@ -11,6 +11,7 @@ type Reading = {
   confidence: string;
   reason: string;
   image: string;
+  synthetic_image: string;
   image_reading: { file: string; reading: ImageReading } | null;
   image_reading_meta: { image_size: { width: number; height: number } };
 };
@@ -29,6 +30,9 @@ export default function CameraView({ assetId }: { assetId: string }) {
   const [r, setR] = useState<Reading | null>(null);
   const [failed, setFailed] = useState(false);
   const [imgOk, setImgOk] = useState(true);
+  // The synthetic image is committed in public/camera/synthetic. If it ever fails to load, fall back to the plain
+  // council sample photo. No circle then: the circle marks the synthetic edit.
+  const [plain, setPlain] = useState(false);
   useEffect(() => {
     let live = true;
     fetch(`/api/camera/${encodeURIComponent(assetId)}`)
@@ -65,7 +69,7 @@ export default function CameraView({ assetId }: { assetId: string }) {
     );
   }
   const size = r.image_reading_meta.image_size;
-  const a = annotate(ir, size);
+  const a = plain ? null : annotate(ir, size);
   return (
     <section aria-label="Camera view" style={{ margin: "0 0 12px" }}>
       <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".06em", color: "#8FD8F0", marginBottom: 6 }}>
@@ -83,9 +87,13 @@ export default function CameraView({ assetId }: { assetId: string }) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`/api/camera/${encodeURIComponent(assetId)}/synthetic`}
-            alt={`Synthetic camera image for ${assetId}${a ? ", with the changed area circled" : ""}`}
-            onError={() => setImgOk(false)}
+            src={plain ? r.image : r.synthetic_image}
+            alt={
+              plain
+                ? `Council sample photo used as the camera image for ${assetId}`
+                : `Synthetic camera image for ${assetId}${a ? ", with the changed area circled" : ""}`
+            }
+            onError={() => (plain ? setImgOk(false) : setPlain(true))}
             style={{ display: "block", width: "100%", height: "auto" }}
           />
           {a && (
@@ -134,11 +142,13 @@ export default function CameraView({ assetId }: { assetId: string }) {
         </div>
       )}
       <div style={{ fontSize: 13, color: "#8FB8CC", margin: "4px 0 8px" }}>
-        Synthetic image (sample data: an edit of a council sample photo), not a live camera.
+        {plain
+          ? "Council sample photo (sample data), not a live camera. The reading below is a mock."
+          : "Synthetic image (sample data: an edit of a council sample photo), not a live camera."}
         {!imgOk && " The image is not available on this build; the reading is shown as text."}
       </div>
       <p style={{ margin: "0 0 8px" }}>
-        {imgOk && <strong aria-hidden="true">1. </strong>}
+        {imgOk && a && <strong aria-hidden="true">1. </strong>}
         {a ? a.caption.text : "No change against the clean reference."}
       </p>
       <div style={{ fontWeight: 700, fontSize: 16 }}>
