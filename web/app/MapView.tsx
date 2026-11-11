@@ -512,6 +512,11 @@ export default function MapView({
           label="Show on map:"
           suffix="on the map"
         />
+        <span style={{ flex: "1 1 100%" }}>
+          Risk is recalculated once a day, planned for 7:30am Sydney time, from the BoM forecast and the days since each
+          GPT was cleaned (30% today can be 45% tomorrow). In this demo the numbers are sample data and are recalculated
+          when the page loads. Check marks stay until you use Reset sample session.
+        </span>
         <span>
           Real map, sample GPT and depot positions (not council assets). Map data{" "}
           <a

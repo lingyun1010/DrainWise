@@ -13,7 +13,7 @@ const rows: ReportRow[] = [
   { id: "GPT-007", p: 0.64, day: 0, reasons: ["Heavy rain forecast"], hasCamera: true },
 ];
 const weekly = buildReport("weekly_7day", rows, "Monday, 9 November 2026", "Monday, so the weekly report is due.");
-const storm = buildReport("storm_1day", rows, "Sunday, 8 November 2026", "Storm forecast for tomorrow.");
+const storm = buildReport("storm_alert", rows, "Sunday, 8 November 2026", "Storm forecast for 2026-11-09.");
 
 describe("renderReportHtml", () => {
   it("uses tables and inline styles only, with the logo as the given src", () => {
@@ -31,9 +31,9 @@ describe("renderReportHtml", () => {
     expect(html).toContain("Camera site");
     expect(html).toContain("2 GPTs to check");
   });
-  it("shows the first day at risk for the weekly view only", () => {
+  it("shows the first day at risk in both views", () => {
     expect(renderReportHtml(weekly, { logoSrc: "x" })).toContain("First at risk");
-    expect(renderReportHtml(storm, { logoSrc: "x" })).not.toContain("First at risk");
+    expect(renderReportHtml(storm, { logoSrc: "x" })).toContain("First at risk");
   });
   it("always carries the sample-data notice and the suggestion wording", () => {
     const html = renderReportHtml(weekly, { logoSrc: "x" });

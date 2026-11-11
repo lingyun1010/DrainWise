@@ -1,21 +1,24 @@
-// When should a risk report go out? One pure rule, used by the Preview, the send route and the tests.
-// Owner rule (2026-11-09): the check runs once a day on the BoM forecast for TOMORROW.
-//   Storm in the forecast  -> a 1-day report the day before (GPTs High at "Tomorrow").
-//   No storm               -> ONE report per week with the 7-day view (any day Today to In 6 days at High).
-// Automatic sending is for production (a scheduler would call decideReport once a day). The demo has no scheduler.
+// When should a risk report go out? One pure rule, used by the Preview, the send route, the daily job and the tests.
+// Owner rule (2026-11-11): the check runs once a day over the whole 7-day BoM forecast.
+//   Default            -> ONE weekly report, at most every 7 days (the 7-day view).
+//   Storm on any of the next 7 days -> a storm alert NOW, even if the weekly report went out yesterday, and again every
+//                         day (24 h apart) until a run has been planned. Then the reminders stop.
+// Reports go to the admin only. Nothing here sends anything to a crew; that is a manual step in the planner.
+// Automatic sending needs a scheduler to call decideReport once a day (see /api/auto-report). The demo page can only preview.
 import { sydneyDate, type BomDay } from "./bomPrecis";
 
 // ASSUMPTION, not a council level: tomorrow counts as a storm when BoM gives a rain chance of at least
 // STORM_MIN_CHANCE_PCT and the "25% chance of at least" amount reaches STORM_MIN_MM. Ask council on 13 Nov.
 export const STORM_MIN_CHANCE_PCT = 60;
 export const STORM_MIN_MM = 25;
-export const STORM_COOLDOWN_HOURS = 24; // at most one storm report per 24 hours
-export const WEEKLY_WEEKDAY = 1; // Monday (0 = Sunday)
-export const WEEKLY_MIN_GAP_DAYS = 6; // never two weekly reports in one week
+export const STORM_COOLDOWN_HOURS = 24; // reminders go out once a day
+export const WEEKLY_MIN_GAP_DAYS = 7; // one weekly report per 7 days
+export const PLAN_COVERS_DAYS = 7; // a planned run silences storm reminders for this long
+export const FORECAST_DAYS = 7; // today and the next 6 days
 
-export type ReportKind = "storm_1day" | "weekly_7day";
+export type ReportKind = "storm_alert" | "weekly_7day";
 export type LastSent = { storm: string | null; weekly: string | null }; // ISO timestamps of the last sends
-export type Decision = { kind: ReportKind | "none"; reason: string };
+export type Decision = { kind: ReportKind | "none"; reason: string; stormDate?: string };
 
 export function isStorm(day: BomDay | undefined): boolean {
   return !!day && (day.popPct ?? 0) >= STORM_MIN_CHANCE_PCT && (day.highMm ?? 0) >= STORM_MIN_MM;
@@ -28,46 +31,50 @@ export function stormWords(day: BomDay | undefined): string {
   return `${chance} of rain, ${mm}`;
 }
 
-// Sydney weekday of a date string, 0 = Sunday.
-export function weekdayOf(date: string): number {
-  return new Date(`${date}T00:00:00Z`).getUTCDay();
-}
-
 const hoursSince = (iso: string, now: Date) => (now.getTime() - new Date(iso).getTime()) / 3_600_000;
 
-export function decideReport(today: Date, forecast: readonly BomDay[], lastSent: LastSent): Decision {
-  const date = sydneyDate(0, today);
-  const tomorrow = forecast.find((d) => d.date === sydneyDate(1, today));
-  const stormSentToday = !!lastSent.storm && sydneyDate(0, new Date(lastSent.storm)) === date;
+// lastPlanAt: when a run was last planned (ISO), or null. A plan made after the last alert stops the daily reminders.
+export function decideReport(
+  today: Date,
+  forecast: readonly BomDay[],
+  lastSent: LastSent,
+  lastPlanAt: string | null = null,
+): Decision {
+  const window = Array.from({ length: FORECAST_DAYS }, (_, k) => sydneyDate(k, today));
+  const storm = forecast.find((d) => window.includes(d.date) && isStorm(d));
 
-  if (isStorm(tomorrow)) {
+  if (storm) {
+    const planned =
+      !!lastPlanAt &&
+      hoursSince(lastPlanAt, today) < PLAN_COVERS_DAYS * 24 &&
+      (!lastSent.storm || new Date(lastPlanAt) > new Date(lastSent.storm));
+    if (planned) {
+      return {
+        kind: "none",
+        reason: `Storm forecast for ${storm.date} (${stormWords(storm)}), but a run has been planned since the last alert, so no more reminders.`,
+      };
+    }
     if (lastSent.storm && hoursSince(lastSent.storm, today) < STORM_COOLDOWN_HOURS) {
       return {
         kind: "none",
-        reason: `Storm forecast for tomorrow (${stormWords(tomorrow)}), but a storm report went out less than ${STORM_COOLDOWN_HOURS} hours ago.`,
+        reason: `Storm forecast for ${storm.date} (${stormWords(storm)}). A reminder went out less than ${STORM_COOLDOWN_HOURS} hours ago; the next one is due tomorrow unless a run is planned.`,
       };
     }
     return {
-      kind: "storm_1day",
-      reason: `Storm forecast for tomorrow: ${stormWords(tomorrow)}. Send the 1-day report.`,
+      kind: "storm_alert",
+      stormDate: storm.date,
+      reason: `Storm forecast for ${storm.date}: ${stormWords(storm)}. No run is planned yet, so the alert goes out.`,
     };
   }
 
-  const calm = tomorrow
-    ? `No storm forecast for tomorrow (${stormWords(tomorrow)}).`
-    : "No forecast for tomorrow, so no storm.";
-  if (weekdayOf(date) !== WEEKLY_WEEKDAY)
-    return { kind: "none", reason: `${calm} The weekly report goes out on Mondays.` };
-  if (stormSentToday)
-    return {
-      kind: "none",
-      reason: `${calm} Monday, but a storm report already went out today, so the weekly one is skipped.`,
-    };
   if (lastSent.weekly && hoursSince(lastSent.weekly, today) < WEEKLY_MIN_GAP_DAYS * 24) {
     return {
       kind: "none",
-      reason: `${calm} The weekly report was already sent in the last ${WEEKLY_MIN_GAP_DAYS} days.`,
+      reason: `No storm in the next ${FORECAST_DAYS} days. The weekly report was sent in the last ${WEEKLY_MIN_GAP_DAYS} days.`,
     };
   }
-  return { kind: "weekly_7day", reason: `${calm} Monday, so the weekly 7-day report is due.` };
+  return {
+    kind: "weekly_7day",
+    reason: `No storm in the next ${FORECAST_DAYS} days. The weekly 7-day report is due.`,
+  };
 }

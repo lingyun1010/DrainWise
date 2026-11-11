@@ -30,8 +30,8 @@ const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
-function gptCard(r: Report["rows"][number], i: number, weekly: boolean): string {
-  const when = weekly ? ` <span style="color:${C.inkMute}">&middot; First at risk: ${esc(DAYS[r.day])}</span>` : "";
+function gptCard(r: Report["rows"][number], i: number): string {
+  const when = ` <span style="color:${C.inkMute}">&middot; First at risk: ${esc(DAYS[r.day])}</span>`;
   const camera = r.hasCamera ? ` <span style="color:${C.inkMute}">&middot; Camera site</span>` : "";
   const reasons = r.reasons
     .filter((w) => !/^Asset type/.test(w)) // always "GPT" in this product, so it adds nothing
@@ -50,15 +50,15 @@ function gptCard(r: Report["rows"][number], i: number, weekly: boolean): string 
 export function renderReportHtml(report: Report, opts: HtmlOptions): string {
   const weekly = report.kind === "weekly_7day";
   const n = report.rows.length;
-  const headline = weekly ? "Weekly GPT report" : "Storm tomorrow";
-  const horizon = weekly ? "the next 7 days (Today to In 6 days)" : "tomorrow (1-day view)";
+  const headline = weekly ? "Weekly GPT report" : "Storm in the 7-day forecast";
+  const horizon = "the next 7 days (Today to In 6 days)";
   const summary = n === 0 ? "No GPT to check" : `${n} GPT${n === 1 ? "" : "s"} to check`;
   const high = `High (${Math.round(HIGH_AT * 100)}%+)`;
 
   const list =
     n === 0
       ? `<tr><td style="padding:0 0 12px 0;font-family:${FONT};font-size:16px;line-height:1.5;color:${C.ink}">No GPT is predicted to be ${high} in this period.</td></tr>`
-      : report.rows.map((r, i) => gptCard(r, i, weekly)).join("");
+      : report.rows.map((r, i) => gptCard(r, i)).join("");
 
   const button = opts.reviewUrl
     ? `<tr><td style="padding:8px 0 20px 0"><a href="${esc(opts.reviewUrl)}" style="display:inline-block;padding:12px 22px;border-radius:12px;background:${C.blue};color:${C.ink};font-family:${FONT};font-size:16px;font-weight:bold;text-decoration:none">Review the run</a></td></tr>`
@@ -92,7 +92,7 @@ ${button}
 </table>
 </td></tr>
 <tr><td style="border-top:1px solid #C9D9E4;padding:16px 24px;font-family:${FONT};font-size:12px;line-height:1.5;color:${C.inkMute}">
-Storm assumption: tomorrow counts as a storm at ${STORM_MIN_CHANCE_PCT}%+ chance of rain and ${STORM_MIN_MM} mm or more (BoM range). This is an assumption, not a council level.<br>
+Storm assumption: a day counts as a storm at ${STORM_MIN_CHANCE_PCT}%+ chance of rain and ${STORM_MIN_MM} mm or more (BoM range). This is an assumption, not a council level.<br>
 Predictions are estimates from a model trained on simulated data. They are not observed blockages.
 </td></tr>
 </table>

@@ -41,6 +41,7 @@ import ReviewBell from "./ReviewBell";
 import CameraView from "./CameraView";
 import Dialog, { ConfirmDialog } from "./Dialog";
 import HowItWorks from "./HowItWorks";
+import EmailPlan from "./EmailPlan";
 import { PlanEditorBody, usePlanEditor } from "./PlanReview";
 import { MAX_LOCAL_PLANS, loadPlan, savePlan } from "@/lib/planClient";
 import { cleanRoomCode } from "../../planner/src/roomCode";
@@ -1479,6 +1480,7 @@ export default function Home() {
                   <div style={{ marginTop: 12, fontWeight: 700, fontSize: 16 }}>
                     Best run now: {runLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {runStops.length} stops
                   </div>
+                  <EmailPlan stops={runStops} capacity={capacity} />
                   {leftOut.some((o) => o.pct >= 60) && (
                     <div style={{ marginTop: 2, fontSize: 12, color: "#B9D6E3", lineHeight: 1.4 }}>
                       A High GPT can be left out when two smaller ones carry more total risk in the same space.

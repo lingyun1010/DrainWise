@@ -9,7 +9,7 @@ import { STORM_MIN_CHANCE_PCT, STORM_MIN_MM } from "../../../planner/src/reportR
 
 type Force = "bom" | "storm" | "calm";
 type Preview = {
-  decision: { kind: "none" | "storm_1day" | "weekly_7day"; reason: string };
+  decision: { kind: "none" | "storm_alert" | "weekly_7day"; reason: string };
   report: { subject: string; body: string; empty: boolean; send: boolean } | null;
   html: string | null;
   forecastSource: string;
@@ -19,11 +19,11 @@ type Ask = { state: "idle" } | { state: "loading" } | { state: "done"; p: Previe
 
 const FORCES: { id: Force; label: string; hint: string }[] = [
   { id: "bom", label: "Real BoM forecast", hint: "Uses today's forecast and the send history of this server." },
-  { id: "storm", label: "Force storm tomorrow", hint: "Demo only: shows the 1-day report." },
-  { id: "calm", label: "Force no storm, Monday", hint: "Demo only: shows the weekly 7-day report." },
+  { id: "storm", label: "Force storm tomorrow", hint: "Demo only: shows the storm alert." },
+  { id: "calm", label: "Force no storm", hint: "Demo only: shows the weekly 7-day report." },
 ];
 const RULE_NAME = {
-  storm_1day: "Storm: 1-day report",
+  storm_alert: "Storm alert",
   weekly_7day: "Weekly: 7-day report",
   none: "No report",
 } as const;
@@ -119,9 +119,10 @@ export default function ReportClient() {
       </div>
       <h1 style={{ margin: 0, fontSize: 28 }}>Email report (sample data)</h1>
       <p style={{ margin: 0, color: "var(--fr-mute)", lineHeight: 1.5 }}>
-        Council asked for an email with the GPTs to empty, not an app left open. Once a day the rule checks the BoM
-        forecast for tomorrow. A storm gives a 1-day report the day before. No storm gives one 7-day report a week, on
-        Mondays. GPTs are listed when their predicted chance of blocking is High (60%+).
+        Council asked for an email with the GPTs to empty, not an app left open. Once a day the rule checks the whole
+        7-day BoM forecast. No storm gives one 7-day report every 7 days. A storm on any of the 7 days gives an alert at
+        once, even if the weekly report went out yesterday, and again every day until a run has been planned. Reports go
+        to the admin only. GPTs are listed when their predicted chance of blocking is High (60%+).
       </p>
       <section className="fr-section" aria-label="Automatic sending">
         <div className="fr-label">Automatic sending</div>

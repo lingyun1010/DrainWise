@@ -67,11 +67,11 @@ const HEAD =
   "Demo with sample data. DrainWise is a hackathon prototype: the GPTs and the model below are simulated, not council records.";
 
 export function buildReport(kind: ReportKind, rows: readonly ReportRow[], dateLabel: string, whyLine: string): Report {
-  const storm = kind === "storm_1day";
-  const horizon = storm ? "tomorrow (1-day view)" : "the next 7 days (Today to In 6 days)";
+  const storm = kind === "storm_alert";
+  const horizon = "the next 7 days (Today to In 6 days)";
   const listed = `predicted chance of blocking is High (${Math.round(HIGH_AT * 100)}%+)`;
   const subject = storm
-    ? `[Sample data] Storm tomorrow: ${rows.length} GPT${rows.length === 1 ? "" : "s"} to check`
+    ? `[Sample data] Storm in the 7-day forecast: ${rows.length} GPT${rows.length === 1 ? "" : "s"} to check`
     : `[Sample data] Weekly GPT report: ${rows.length} to check in the next 7 days`;
   const lines: string[] = [
     HEAD,
@@ -87,7 +87,7 @@ export function buildReport(kind: ReportKind, rows: readonly ReportRow[], dateLa
   } else {
     lines.push("GPTs listed, highest predicted risk first:", "");
     rows.forEach((r, i) => {
-      const when = storm ? "" : ` - first at risk: ${DAYS[r.day]}`;
+      const when = ` - first at risk: ${DAYS[r.day]}`;
       lines.push(`${i + 1}. ${r.id}  ${pct(r.p)}${when}${r.hasCamera ? "  (camera site)" : ""}`);
       for (const why of r.reasons) lines.push(`     - ${why}`);
     });
@@ -98,7 +98,7 @@ export function buildReport(kind: ReportKind, rows: readonly ReportRow[], dateLa
   }
   lines.push(
     "",
-    `Storm assumption: tomorrow counts as a storm at ${STORM_MIN_CHANCE_PCT}%+ chance of rain and ${STORM_MIN_MM} mm or more (BoM range). This is an assumption, not a council level.`,
+    `Storm assumption: a day counts as a storm at ${STORM_MIN_CHANCE_PCT}%+ chance of rain and ${STORM_MIN_MM} mm or more (BoM range). This is an assumption, not a council level.`,
     "Predictions are estimates from a model trained on simulated data. They are not observed blockages.",
   );
   // A storm report with nothing to list sends nothing; an empty weekly report still goes out as a short note.

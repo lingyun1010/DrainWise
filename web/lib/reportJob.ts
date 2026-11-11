@@ -30,6 +30,7 @@ export async function previewReport(
   force: Force,
   lastSent: LastSent,
   now: Date = new Date(),
+  lastPlanAt: string | null = null,
 ): Promise<{ ok: true; value: Preview } | { ok: false; status: number; error: string }> {
   let today = now;
   let days: BomDay[] = [];
@@ -52,10 +53,10 @@ export async function previewReport(
         highMm: force === "storm" ? 80 : 1,
       },
     ];
-    source = `Demo override: ${force === "storm" ? "storm" : "no storm (Monday)"} forced for tomorrow, not a BoM reading`;
+    source = `Demo override: ${force === "storm" ? "storm" : "no storm"} forced in the forecast, not a BoM reading`;
     lastSent = { storm: null, weekly: null };
   }
-  const decision = decideReport(today, days, lastSent);
+  const decision = decideReport(today, days, lastSent, lastPlanAt);
   const tomorrow = days.find((d) => d.date === sydneyDate(1, today));
   const value: Preview = {
     decision,
@@ -71,7 +72,7 @@ export async function previewReport(
     const d = days.find((x) => x.date === sydneyDate(k, today));
     return d ? (dayRainMm(d) ?? 0) : DAY_RAIN_MM[k];
   });
-  const [first, last] = decision.kind === "storm_1day" ? [1, 1] : [0, 6];
+  const [first, last] = [0, 6]; // both reports show the whole 7-day view; a storm alert says which day the storm is
   const rows = scoreHorizon(makeSeedAssets(), riskModel as unknown as ModelJson, dayRain, LEAF, first, last);
   const dateLabel = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", dateStyle: "full" }).format(today);
   value.report = buildReport(decision.kind, rows, dateLabel, decision.reason);
