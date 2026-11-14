@@ -134,7 +134,9 @@ export default function RoleScreen({
           <span className="fr-cd">Get a run, photograph before and after, mark each stop cleaned.</span>
         </button>
       </div>
-      <RoomChip />
+      <div className="fr-teamfloat" style={{ position: "absolute" }}>
+        <RoomChip />
+      </div>
       {login && (
         <LoginDialog
           kind={login}

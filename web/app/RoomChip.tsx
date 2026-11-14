@@ -74,11 +74,11 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
         }}
         style={{ padding: "6px 12px", minHeight: 40, fontSize: compact ? 14 : 15 }}
       >
-        {code ? `Team ${code}` : "Shared team"}
+        {code ? `Team ${code}` : "Team"}
       </button>
       {open && (
         <Dialog
-          label="Shared team"
+          label="Team"
           eyebrow="TWO DEVICES"
           title={code ? `Team ${code}` : "Use two devices"}
           onClose={() => setOpen(false)}
@@ -133,7 +133,7 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
               </p>
               <p style={{ margin: 0, lineHeight: 1.5, color: "#B9D6E3", wordBreak: "break-all" }}>
                 {onLocalhost ? (
-                  <>On the other device, choose Shared team, then join with {code}.</>
+                  <>On the other device, choose Team, then join with {code}.</>
                 ) : (
                   <>
                     On the phone, open <strong>{link}</strong> or choose Crew and join team {code}.

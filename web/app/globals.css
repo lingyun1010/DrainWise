@@ -1387,3 +1387,10 @@ body {
   background: var(--fr-bg);
   color: var(--fr-text);
 }
+/* Team button: top right of every page. */
+.fr-teamfloat {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 15;
+}

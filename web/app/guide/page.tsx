@@ -45,9 +45,9 @@ export default function GuidePage() {
         <div style={eyebrow}>Good to know</div>
         <h2 style={h2}>Trying it with two devices</h2>
         <p style={{ margin: 0, color: "var(--fr-soft)" }}>
-          Join the same room on a laptop and a phone with the room chip. The run and the records are shared for 24
-          hours. There is no sign-in. Use Reset sample session to start again. To ask a question, open the cloud chat
-          button at the bottom right.
+          Join the same team on a laptop and a phone with the Team button at the top right. The run and the records are
+          shared for 24 hours. There is no sign-in. Use Reset sample session to start again. To ask a question, open the
+          cloud chat button at the bottom right.
         </p>
         <p style={{ margin: "10px 0 0", color: "var(--fr-mute)" }}>
           Not sure what is real? See{" "}
