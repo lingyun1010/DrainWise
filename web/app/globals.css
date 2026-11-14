@@ -845,6 +845,7 @@ footer a:focus-visible {
 }
 html:has(.fr-role),
 html:has(.fr-role) body {
+  overflow: hidden; /* the role screen is a fixed full-screen page: no page scroll bar behind it */
   background: linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%) fixed;
 }
 
