@@ -1430,7 +1430,7 @@ export default function Home() {
                 ))}
               </div>
             )}
-            <section className="fr-section fr-wide" {...panelProps("queue", "Check next")}>
+            <section className="fr-section" {...panelProps("queue", "Check next")}>
               <div className="fr-label">Check next · highest blockage risk</div>
               <ol
                 style={{
@@ -1521,7 +1521,7 @@ export default function Home() {
               </ol>
             </section>
 
-            <section className="fr-section fr-wide" {...panelProps("plan", "Run plan")}>
+            <section className="fr-section" {...panelProps("plan", "Run plan")}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                 <div className="fr-label">Truck run planner</div>
                 <HowItWorks className="fr-btn fr-ghost" />
