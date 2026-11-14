@@ -15,3 +15,10 @@ next-env.d.ts
 .local/
 !.env.sample
 !web/.env.sample
+
+# pitch video work: frames, renders, captures (tens of thousands of files, GBs); never commit
+design/demo-video/
+design/pitch-video-cut/
+design/pitch-video-demo/
+design/pitch-video-html/
+reference/drainwise-home-prototype.html
