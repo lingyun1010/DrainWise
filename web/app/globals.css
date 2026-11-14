@@ -29,6 +29,31 @@ html {
   text-size-adjust: 100%;
 }
 
+/* Every scroll bar (page, panels, dialogs) in the theme light blue. Panels that hide theirs keep doing so. */
+* {
+  scrollbar-color: var(--fr-blue) transparent;
+}
+html {
+  scrollbar-color: var(--fr-blue) #0b2233;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--fr-blue);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+html::-webkit-scrollbar-track {
+  background: #0b2233;
+}
+
 body {
   margin: 0;
   background: var(--fr-bg);

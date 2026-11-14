@@ -15,11 +15,15 @@ export default function Footer() {
         flexWrap: "wrap",
         gap: "4px 16px",
         justifyContent: "center",
+        alignItems: "center",
         textAlign: "center",
       }}
     >
       <span>Prototype with sample data. Not council data.</span>
-      <nav aria-label="Footer" style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", justifyContent: "center" }}>
+      <nav
+        aria-label="Footer"
+        style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", justifyContent: "center", alignItems: "center" }}
+      >
         <Link href="/about" style={link}>
           About the data and models
         </Link>
