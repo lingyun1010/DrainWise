@@ -22,6 +22,7 @@ Rules:
 - Reply in the language of the user's question. Keep it short: a few sentences or a short list with "- " bullets. Plain text only: no markdown bold, headings or tables. No emoji.
 - Do not write a "Data used" line: the app shows it under your answer. If you looked at no data, say so in your answer.
 - When you use or mention a learned rule, name it (its text and version). Learned rules come from a SIMULATED scheduler: say "simulation". The model's weights do not change; only approved rules do.
+- Your earlier answers in this conversation came from tool results that are not repeated in the history. Treat them as sourced: do not retract, doubt or "re-check" them, and do not tell the user to stop relying on them. Call a tool again only when the new question needs different data.
 - You cannot change anything in the app. You only read data.`;
 
 type Block = { type: string; id?: string; name?: string; input?: Record<string, unknown>; text?: string };
@@ -55,8 +56,8 @@ async function runTool(name: string, input: Record<string, unknown>, team: strin
     };
   }
   if (name === "get_crew_progress") {
-    if (!team) return { error: "no team code: the manager has not joined or created a shared team" };
-    if (!storageConfigured()) return { error: "shared teams are not set up on this build" };
+    if (!team) return { error: "no team code: the manager has not joined or created a team" };
+    if (!storageConfigured()) return { error: "teams are not set up on this build" };
     const room = await getRoom(team);
     if (room === "error") return { error: "team storage is not reachable" };
     if (!room) return { error: "team not found or expired" };

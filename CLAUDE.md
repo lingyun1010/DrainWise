@@ -181,8 +181,9 @@ The owner does not want the look to drift between features. Before adding any UI
 - **Bot actions (white)**: anything the DrainWise bot does (an email it sends by default, or when asked in the chat) is written to the Activity log with `bot: true` (a white circle, and the text starts with "Bot") and appears in the bell as a white "Bot email" group. Masked addresses only. Crew colours stay for crew actions; never use white for a crew.
 - **Colours and type**: use the existing dark navy palette and CSS variables in `globals.css`; do not introduce new accent colours. Crew colours avoid orange, yellow and blue because those mean risk.
 - **Copy**: English, short, plain words, no emoji. Say "sample data" for anything simulated. Name the thing ("Crew A", "GPT-014"), not "it".
+- **Team button**: the label is always "Team" (never "Shared team" or "room"), at the top right of every page except the home role screen. Manager header and `/crew` place `RoomChip` themselves; every other page gets it from `web/app/TeamChipFloat.tsx` (mounted in `layout.tsx`), and the role screen (home) has none.
 - **Side-by-side stages**: the crew phone sits in the same `.fr-device` frame as `/crew`, on its own lighter backdrop (`.fr-split .fr-phonecol`), with an eyebrow label (`.fr-stagelabel`: "Manager (computer)" and "Crew (phone)"). Do not render `CrewApp` bare in the split view.
-- **Manager page** shows all panels at once (no tabs). Side-by-side keeps the tabbed layout next to the phone. The crew phone stays mobile-first.
+- **Manager page** shows all panels at once (no tabs). Check next and Truck run planner sit side by side in two equal columns and fill the right column; Records is `fr-wide` (full width). Side-by-side keeps the tabbed layout next to the phone. The crew phone stays mobile-first.
 - **Checks before saying done**: tsc, eslint, prettier, then look at it in the browser at desktop width and at 375px; open every dialog you touched. The `design-reviewer` gate applies to layout changes.
 
 ## Agent skills

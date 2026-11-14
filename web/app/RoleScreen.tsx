@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import HomeBackdrop from "./HomeBackdrop";
-import RoomChip from "./RoomChip";
 import LoginDialog from "./LoginDialog";
 import { getSession } from "../lib/demoAuth";
 
@@ -134,7 +133,6 @@ export default function RoleScreen({
           <span className="fr-cd">Get a run, photograph before and after, mark each stop cleaned.</span>
         </button>
       </div>
-      <RoomChip />
       {login && (
         <LoginDialog
           kind={login}

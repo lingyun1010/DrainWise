@@ -2389,7 +2389,7 @@ function ReviewRun({
             type="button"
             disabled={!team || busy}
             onClick={copyLink}
-            title={team ? undefined : "Create a shared team first"}
+            title={team ? undefined : "Create a team first"}
           >
             Copy review link
           </button>
@@ -2407,7 +2407,7 @@ function ReviewRun({
       )}
       {!team && (
         <div style={{ marginTop: 8, fontSize: 12, color: "#8FB8CC" }}>
-          No shared team: the review stays on this device. Join a team to share a review link.
+          No team: the review stays on this device. Join a team to share a review link.
         </div>
       )}
     </Dialog>
