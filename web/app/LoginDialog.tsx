@@ -56,6 +56,7 @@ export default function LoginDialog({
       title={label}
       onClose={onCancel}
       focusDialog
+      closeOnOutside
       actions={
         <>
           <button className="fr-btn fr-pri" type="submit" form="fr-login">

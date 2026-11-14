@@ -6,6 +6,7 @@ const link = { color: "var(--fr-blue)", padding: "10px 0" } as const;
 export default function Footer() {
   return (
     <footer
+      className="fr-footer"
       style={{
         borderTop: "1px solid var(--fr-line)",
         padding: "12px 16px calc(12px + env(safe-area-inset-bottom))",
