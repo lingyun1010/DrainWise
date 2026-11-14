@@ -29,19 +29,19 @@ html {
   text-size-adjust: 100%;
 }
 
-/* Every scroll bar (page, panels, dialogs) in the theme light blue. Panels that hide theirs keep doing so. */
+/* Every scroll bar (page, panels, dialogs) in a muted theme blue (--fr-line2), not bright. Panels that hide theirs keep doing so. */
 * {
-  scrollbar-color: var(--fr-blue) transparent;
+  scrollbar-color: var(--fr-line2) transparent;
 }
 html {
-  scrollbar-color: var(--fr-blue) #0b2233;
+  scrollbar-color: var(--fr-line2) #0b2233;
 }
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--fr-blue);
+  background: var(--fr-line2);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -388,16 +388,16 @@ footer a:focus-visible {
   border-radius: 32px;
   padding: 14px 14px 18px;
 }
-/* Manager side scroll bar in the theme light blue. */
+/* Manager side scroll bar in a muted theme blue (--fr-line2), not bright. */
 .fr-split .fr-side {
   scrollbar-width: thin;
-  scrollbar-color: var(--fr-blue) transparent;
+  scrollbar-color: var(--fr-line2) transparent;
 }
 .fr-split .fr-side::-webkit-scrollbar {
   width: 8px;
 }
 .fr-split .fr-side::-webkit-scrollbar-thumb {
-  background: var(--fr-blue);
+  background: var(--fr-line2);
   border-radius: 999px;
 }
 .fr-split .fr-side::-webkit-scrollbar-track {
