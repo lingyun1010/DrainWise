@@ -1253,6 +1253,7 @@ export default function Home() {
         <div className={`fr-shell${showPhone ? " fr-split" : " fr-dash"}`} role="main">
           <h1 className="fr-sr">DrainWise manager</h1>
           <section className="fr-mapcol">
+            {showPhone && <p className="fr-stagelabel">Manager (computer)</p>}
             <a
               className="fr-skip"
               href="#fr-panel-queue"
@@ -1933,7 +1934,10 @@ export default function Home() {
 
           {showPhone && (
             <div className="fr-phonecol">
-              <CrewApp onSwitchRole={() => setRole(null)} />
+              <p className="fr-stagelabel">Crew (phone)</p>
+              <div className="fr-device">
+                <CrewApp onSwitchRole={() => setRole(null)} />
+              </div>
             </div>
           )}
         </div>

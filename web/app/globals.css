@@ -342,11 +342,34 @@ footer a:focus-visible {
   padding: 2px 4px 2px 2px;
 }
 .fr-split {
-  grid-template-columns: minmax(440px, 1.3fr) minmax(300px, 1fr) 340px;
+  grid-template-columns: minmax(440px, 1.3fr) minmax(300px, 1fr) 438px;
+}
+/* Side-by-side: two clearly separate stages. The phone sits in the same device frame as the /crew page, on its own darker backdrop. */
+.fr-stagelabel {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fr-mute);
+}
+.fr-split .fr-phonecol {
+  background: linear-gradient(180deg, #184563 0%, var(--fr-panel) 100%);
+  border: 2px solid var(--fr-line2);
+  border-radius: 32px;
+  padding: 14px 14px 18px;
+}
+.fr-split .fr-phonecol .fr-stagelabel {
+  text-align: center;
+}
+@media (min-width: 600px) {
+  .fr-split .fr-device {
+    height: min(844px, calc(100vh - 120px));
+  }
 }
 @media (max-width: 1199px) {
   .fr-split {
-    grid-template-columns: minmax(0, 1fr) 340px;
+    grid-template-columns: minmax(0, 1fr) 438px;
   }
   .fr-split .fr-side {
     grid-column: 1 / -1;
