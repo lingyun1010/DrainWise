@@ -28,6 +28,14 @@ export default function LoginDialog({
     onSuccess(s);
   }
 
+  // Skip: the demo needs no typing. Manager skips as admin; Crew skips as the first crew (its own run only).
+  function skip() {
+    const first = loadState().crews[0];
+    const s: Session = kind === "crew" && first ? { role: "crew", crewId: first.id } : { role: "admin" };
+    setSession(s);
+    onSuccess(s);
+  }
+
   const field: React.CSSProperties = {
     width: "100%",
     minHeight: 44,
@@ -47,10 +55,15 @@ export default function LoginDialog({
       eyebrow="Sign in (simulated)"
       title={label}
       onClose={onCancel}
+      focusDialog
+      closeOnOutside
       actions={
         <>
           <button className="fr-btn fr-pri" type="submit" form="fr-login">
             Sign in
+          </button>
+          <button className="fr-btn fr-sec" type="button" onClick={skip}>
+            Skip sign-in
           </button>
           <button className="fr-btn fr-ghost" type="button" onClick={onCancel}>
             Cancel
@@ -93,12 +106,13 @@ export default function LoginDialog({
         <p style={{ margin: 0, fontSize: 14, color: "#CFE6F0", lineHeight: 1.5 }}>
           {kind === "admin" ? (
             <>
-              <b>Try it:</b> name <b>admin</b>, password <b>admin</b>.
+              <b>Try it:</b> name <b>admin</b>, password <b>admin</b>, or just press <b>Skip sign-in</b>.
             </>
           ) : (
             <>
               <b>Try it:</b> the name and the password are the same, the crew&apos;s name: <b>Crew A</b> and{" "}
-              <b>Crew A</b>. Also Crew B and Crew C. A renamed or new crew signs in with its new name.
+              <b>Crew A</b>. Also Crew B and Crew C. A renamed or new crew signs in with its new name.{" "}
+              <b>Skip sign-in</b> opens the first crew.
             </>
           )}
         </p>

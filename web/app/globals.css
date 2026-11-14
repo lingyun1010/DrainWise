@@ -29,6 +29,31 @@ html {
   text-size-adjust: 100%;
 }
 
+/* Every scroll bar (page, panels, dialogs) in a muted theme blue (--fr-line2), not bright. Panels that hide theirs keep doing so. */
+* {
+  scrollbar-color: var(--fr-line2) transparent;
+}
+html {
+  scrollbar-color: var(--fr-line2) #0b2233;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--fr-line2);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+html::-webkit-scrollbar-track {
+  background: #0b2233;
+}
+
 body {
   margin: 0;
   background: var(--fr-bg);
@@ -358,10 +383,25 @@ footer a:focus-visible {
   color: var(--fr-mute);
 }
 .fr-split .fr-phonecol {
-  background: linear-gradient(180deg, #184563 0%, var(--fr-panel) 100%);
-  border: 2px solid var(--fr-line2);
+  background: #1c5170; /* lighter blue than the manager side, so the two stages read apart; no outline */
+  border: 0;
   border-radius: 32px;
   padding: 14px 14px 18px;
+}
+/* Manager side scroll bar in a muted theme blue (--fr-line2), not bright. */
+.fr-split .fr-side {
+  scrollbar-width: thin;
+  scrollbar-color: var(--fr-line2) transparent;
+}
+.fr-split .fr-side::-webkit-scrollbar {
+  width: 8px;
+}
+.fr-split .fr-side::-webkit-scrollbar-thumb {
+  background: var(--fr-line2);
+  border-radius: 999px;
+}
+.fr-split .fr-side::-webkit-scrollbar-track {
+  background: transparent;
 }
 .fr-split .fr-phonecol .fr-stagelabel {
   text-align: center;
@@ -805,6 +845,7 @@ footer a:focus-visible {
 }
 html:has(.fr-role),
 html:has(.fr-role) body {
+  overflow: hidden; /* the role screen is a fixed full-screen page: no page scroll bar behind it */
   background: linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%) fixed;
 }
 
@@ -1430,5 +1471,33 @@ body {
   textarea,
   .fr-select {
     font-size: 16px;
+  }
+}
+
+/* Crew phone: the "All clear" empty state sits in the middle of the free space, footnote stays at the bottom. */
+.fr-device > aside {
+  display: flex;
+  flex-direction: column;
+}
+.fr-crewempty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Phone: a compact footer so there is little empty space under the last line. */
+@media (max-width: 599px) {
+  .fr-footer {
+    padding: 8px 16px calc(6px + env(safe-area-inset-bottom)) !important;
+    gap: 0 14px !important;
+    font-size: 12px !important;
+  }
+  .fr-footer nav {
+    gap: 0 14px !important;
+  }
+  .fr-footer a {
+    padding: 6px 0 !important;
   }
 }
