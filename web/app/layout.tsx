@@ -13,7 +13,16 @@ export const metadata: Metadata = {
   description: "Clean the right gross pollutant traps before they fill. Sample data.",
 };
 
-export const viewport: Viewport = { themeColor: "#0B2233", viewportFit: "cover", colorScheme: "dark" };
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#0B2233",
+  viewportFit: "cover",
+  colorScheme: "dark",
+};
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
