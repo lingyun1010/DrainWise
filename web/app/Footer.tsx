@@ -25,6 +25,9 @@ export default function Footer() {
         aria-label="Footer"
         style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", justifyContent: "center", alignItems: "center" }}
       >
+        <Link href="/welcome" style={link}>
+          Team and plan
+        </Link>
         <Link href="/about" style={link}>
           About the data and models
         </Link>

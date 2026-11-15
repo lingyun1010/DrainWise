@@ -62,6 +62,24 @@ const WINDOWS: [number, number][] = [
   [982, 184],
 ];
 
+// Just the falling leaves (also used on the /welcome landing page). Wrap in .fr-bg so it ignores pointer events.
+export function FallingLeaves() {
+  return (
+    <div className="fr-leaves">
+      {LEAVES.map((l, i) => (
+        <span className="fr-leaf" style={l.style} key={i}>
+          <span className="fr-leafsway">
+            <svg viewBox="0 0 24 24" className="fr-leafspin" focusable="false">
+              <path d="M12 1 C19 6 21 14 12 23 C3 14 5 6 12 1Z" fill={l.colour} />
+              <path d="M12 5 V22" stroke="rgba(0,0,0,.25)" strokeWidth="1" />
+            </svg>
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function HomeBackdrop() {
   return (
     <div className="fr-bg" aria-hidden="true">
@@ -153,18 +171,7 @@ export default function HomeBackdrop() {
         <i />
         <i />
       </div>
-      <div className="fr-leaves">
-        {LEAVES.map((l, i) => (
-          <span className="fr-leaf" style={l.style} key={i}>
-            <span className="fr-leafsway">
-              <svg viewBox="0 0 24 24" className="fr-leafspin" focusable="false">
-                <path d="M12 1 C19 6 21 14 12 23 C3 14 5 6 12 1Z" fill={l.colour} />
-                <path d="M12 5 V22" stroke="rgba(0,0,0,.25)" strokeWidth="1" />
-              </svg>
-            </span>
-          </span>
-        ))}
-      </div>
+      <FallingLeaves />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import HomeBackdrop from "./HomeBackdrop";
 import LoginDialog from "./LoginDialog";
 import { getSession } from "../lib/demoAuth";
@@ -27,6 +28,11 @@ export default function RoleScreen({
   const [login, setLogin] = useState<"admin" | "crew" | null>(null);
   // Already signed in this tab: skip the dialog.
   const [signedIn, setSignedIn] = useState<"admin" | "crew" | null>(null);
+  // Lock page scroll only while this screen is on screen (see .fr-rolelock in globals.css).
+  useEffect(() => {
+    document.documentElement.classList.add("fr-rolelock");
+    return () => document.documentElement.classList.remove("fr-rolelock");
+  }, []);
   useEffect(() => {
     const s = getSession();
     queueMicrotask(() => setSignedIn(s ? s.role : null));
@@ -146,7 +152,10 @@ export default function RoleScreen({
         />
       )}
       <p style={{ margin: 0, fontSize: 14, color: "#B9D6E3", maxWidth: "60ch", textAlign: "center" }}>
-        Sample data only. Real deployment would use council single sign-on and audit logs.
+        Sample data only. Real deployment would use council single sign-on and audit logs.{" "}
+        <Link href="/welcome" style={{ color: "#4FC3E8" }}>
+          Meet the team and read the plan
+        </Link>
       </p>
     </div>
   );
