@@ -11,6 +11,13 @@ const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: [
 export const metadata: Metadata = {
   title: "DrainWise",
   description: "Clean the right gross pollutant traps before they fill. Sample data.",
+  openGraph: {
+    title: "DrainWise",
+    description: "Clean the right gross pollutant traps before they fill. Sample data.",
+    siteName: "DrainWise",
+    type: "website",
+  },
+  twitter: { card: "summary_large_image", title: "DrainWise" },
 };
 
 export const viewport: Viewport = {
