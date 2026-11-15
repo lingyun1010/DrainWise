@@ -395,7 +395,7 @@ export default function ModelClient() {
       <Section eb="2 · Validation" title="Photos and people check the model">
         <Figure
           src="/infographics/model-2-checks.png"
-          alt="Five steps: crew BEFORE photo, AI suggests level 0 to 3, a person confirms, compare with the model's risk, photos become training data and proof of work."
+          alt="Five steps: crew BEFORE photo, AI suggests level 0 to 3, a person confirms, compare with the model risk, training data. The AFTER photo is proof of work."
           caption="A person always confirms the photo level. Only confirmed labels are used to train."
         />
         <More label="See the steps and the honest status">
