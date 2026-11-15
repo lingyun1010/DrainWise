@@ -843,9 +843,11 @@ footer a:focus-visible {
     transition: none;
   }
 }
-html:has(.fr-role),
-html:has(.fr-role) body {
-  overflow: hidden; /* the role screen is a fixed full-screen page: no page scroll bar behind it */
+html.fr-rolelock,
+html.fr-rolelock body {
+  /* The role screen is a fixed full-screen page: no page scroll bar behind it. RoleScreen sets the class only while
+     it is on screen: Next keeps a hidden copy of "/" after you navigate away, so :has(.fr-role) locked other pages. */
+  overflow: hidden;
   background: linear-gradient(180deg, #0b1f30 0%, #10405c 38%, #0f3a55 70%, #0b1f30 100%) fixed;
 }
 
