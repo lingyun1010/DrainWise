@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { WATERWAYS } from "@/lib/geo";
@@ -85,6 +86,37 @@ function Section({ eb, title, children }: { eb: string; title: string; children:
       <h2 style={h2}>{title}</h2>
       {children}
     </section>
+  );
+}
+
+function Figure({ src, alt, caption }: { src: string; alt: string; caption: string }) {
+  return (
+    <figure style={{ margin: "0 0 12px" }}>
+      <Image
+        src={src}
+        alt={alt}
+        width={1600}
+        height={893}
+        sizes="(max-width: 1100px) 100vw, 1060px"
+        style={{
+          width: "100%",
+          height: "auto",
+          borderRadius: 16,
+          border: "2px solid var(--fr-line)",
+          display: "block",
+        }}
+      />
+      <figcaption style={{ ...soft, margin: "8px 0 0" }}>{caption}</figcaption>
+    </figure>
+  );
+}
+
+function More({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <details style={{ marginTop: 12 }}>
+      <summary style={{ cursor: "pointer", color: "var(--fr-blue)", fontWeight: 700, fontSize: 14 }}>{label}</summary>
+      <div style={{ marginTop: 12 }}>{children}</div>
+    </details>
   );
 }
 
@@ -334,93 +366,111 @@ export default function ModelClient() {
       </Link>
       <h1 style={{ margin: "8px 0 4px", fontSize: 34, fontFamily: "var(--font-fredoka)" }}>How the risk model works</h1>
       <p style={{ ...soft, maxWidth: 760 }}>
-        What goes in, how photos and people check it, how the model is trained, and what happens to the 36 sample GPTs
-        when you change the weather. <strong>All data on this page is sample data</strong>: no real council records have
-        been used yet.
+        Three pictures, then a play area. <strong>All data on this page is sample data</strong>: no real council records
+        have been used yet.
       </p>
 
       <Section eb="1 · Inputs" title="What the model sees">
-        <p style={soft}>Three things stay fixed for every GPT. Three things change with the weather and the crew.</p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
-          {INPUTS.map((i) => (
-            <div key={i.name} style={{ border: "2px solid var(--fr-line)", borderRadius: 16, padding: 14 }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
-                <strong>{i.name}</strong>
-                <Chip tone={i.tone}>{i.tone === "fixed" ? "Fixed" : "Variable"}</Chip>
+        <Figure
+          src="/infographics/model-1-inputs.png"
+          alt="Four inputs (tree canopy, rain, leaf fall, days since clean) go into the model, which gives each GPT a High, Medium or Low risk."
+          caption="Trees, rain, leaves and days since the last clean decide the risk of each GPT."
+        />
+        <More label="See every input">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
+            {INPUTS.map((i) => (
+              <div key={i.name} style={{ border: "2px solid var(--fr-line)", borderRadius: 16, padding: 14 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+                  <strong>{i.name}</strong>
+                  <Chip tone={i.tone}>{i.tone === "fixed" ? "Fixed" : "Variable"}</Chip>
+                </div>
+                <p style={{ margin: "8px 0 6px", fontSize: 14, color: "var(--fr-soft)", lineHeight: 1.45 }}>{i.note}</p>
+                <div style={{ fontSize: 13, color: "var(--fr-mute)" }}>{i.used}</div>
               </div>
-              <p style={{ margin: "8px 0 6px", fontSize: 14, color: "var(--fr-soft)", lineHeight: 1.45 }}>{i.note}</p>
-              <div style={{ fontSize: 13, color: "var(--fr-mute)" }}>{i.used}</div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </More>
       </Section>
 
       <Section eb="2 · Validation" title="Photos and people check the model">
-        <p style={soft}>
-          Crews take a BEFORE photo, clean, then take an AFTER photo. The before photo is the model&apos;s test: did it
-          say this GPT was blocked, and was it?
-        </p>
-        <ol
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-            gap: 10,
-            padding: 0,
-            margin: 0,
-            listStyle: "none",
-          }}
-        >
-          {[
-            ["Crew photo", "BEFORE and AFTER photo, with time, GPS, crew and run."],
-            ["Vision model suggests", "Blockage level 0 (clear) to 3 (blocked), a confidence and a short reason."],
-            ["Person confirms", "A reviewer sets the final level. Only confirmed labels count."],
-            ["Compare", "Confirmed level vs the risk the model gave that GPT before the visit."],
-            ["Training label", "Confirmed before photos become labels for retraining. AFTER photos stay as evidence."],
-          ].map(([t, d], i) => (
-            <li key={t} style={{ border: "2px solid var(--fr-line)", borderRadius: 16, padding: 12 }}>
-              <div style={{ color: "var(--fr-yellow)", fontWeight: 700, fontSize: 13 }}>Step {i + 1}</div>
-              <strong>{t}</strong>
-              <div style={{ fontSize: 14, color: "var(--fr-soft)", marginTop: 4, lineHeight: 1.4 }}>{d}</div>
-            </li>
-          ))}
-        </ol>
-        <p style={{ ...soft, marginTop: 12, marginBottom: 0 }}>
-          Honest status: only 7 unlabelled sample photos exist, so no accuracy is claimed. Without an API key the
-          suggestion is a labelled MOCK. Photos must be checked for faces and number plates before any training use.
-          That check is not built yet.{" "}
-          <Link href="/review" style={{ color: "var(--fr-blue)", fontWeight: 700 }}>
-            Try the review page
-          </Link>
-        </p>
+        <Figure
+          src="/infographics/model-2-checks.png"
+          alt="Five steps: crew BEFORE photo, AI suggests level 0 to 3, a person confirms, compare with the model risk, training data. The AFTER photo is proof of work."
+          caption="A person always confirms the photo level. Only confirmed labels are used to train."
+        />
+        <More label="See the steps and the honest status">
+          <ol
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+              gap: 10,
+              padding: 0,
+              margin: 0,
+              listStyle: "none",
+            }}
+          >
+            {[
+              ["Crew photo", "BEFORE and AFTER photo, with time, GPS, crew and run."],
+              ["Vision model suggests", "Blockage level 0 (clear) to 3 (blocked), a confidence and a short reason."],
+              ["Person confirms", "A reviewer sets the final level. Only confirmed labels count."],
+              ["Compare", "Confirmed level vs the risk the model gave that GPT before the visit."],
+              [
+                "Training label",
+                "Confirmed before photos become labels for retraining. AFTER photos stay as evidence.",
+              ],
+            ].map(([t, d], i) => (
+              <li key={t} style={{ border: "2px solid var(--fr-line)", borderRadius: 16, padding: 12 }}>
+                <div style={{ color: "var(--fr-yellow)", fontWeight: 700, fontSize: 13 }}>Step {i + 1}</div>
+                <strong>{t}</strong>
+                <div style={{ fontSize: 14, color: "var(--fr-soft)", marginTop: 4, lineHeight: 1.4 }}>{d}</div>
+              </li>
+            ))}
+          </ol>
+          <p style={{ ...soft, marginTop: 12, marginBottom: 0 }}>
+            Honest status: only 7 unlabelled sample photos exist, so no accuracy is claimed. Without an API key the
+            suggestion is a labelled MOCK. Photos must be checked for faces and number plates before any training use.
+            That check is not built yet.{" "}
+            <Link href="/review" style={{ color: "var(--fr-blue)", fontWeight: 700 }}>
+              Try the review page
+            </Link>
+          </p>
+        </More>
       </Section>
 
       <Section eb="3 · Training" title="From sample data to a model, and what is still to come">
-        <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-          {PIPELINE.map((p) => (
-            <li
-              key={p.step}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(110px, 140px) 1fr auto",
-                gap: 12,
-                alignItems: "center",
-                border: `2px ${p.tone === "done" ? "solid" : "dashed"} var(--fr-line)`,
-                borderRadius: 16,
-                padding: "10px 14px",
-              }}
-            >
-              <strong>{p.step}</strong>
-              <span style={{ fontSize: 14, color: "var(--fr-soft)" }}>
-                {p.what} <span style={{ color: "var(--fr-mute)" }}>({p.where})</span>
-              </span>
-              <Chip tone={p.tone}>{p.tone === "done" ? "Built" : "Planned"}</Chip>
-            </li>
-          ))}
-        </ol>
-        <p style={{ ...soft, marginTop: 12, marginBottom: 0 }}>
-          The sample data was made with an assumed rule, so a model that matches it only proves the pipeline works. It
-          is not evidence about real GPTs.
-        </p>
+        <Figure
+          src="/infographics/model-3-training.png"
+          alt="Four built steps (simulate, train, check, serve) and one planned step: real council records."
+          caption="Today the model learns from sample data. Real council records are the next step."
+        />
+        <More label="See the technical steps">
+          <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+            {PIPELINE.map((p) => (
+              <li
+                key={p.step}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(110px, 140px) 1fr auto",
+                  gap: 12,
+                  alignItems: "center",
+                  border: `2px ${p.tone === "done" ? "solid" : "dashed"} var(--fr-line)`,
+                  borderRadius: 16,
+                  padding: "10px 14px",
+                }}
+              >
+                <strong>{p.step}</strong>
+                <span style={{ fontSize: 14, color: "var(--fr-soft)" }}>
+                  {p.what} <span style={{ color: "var(--fr-mute)" }}>({p.where})</span>
+                </span>
+                <Chip tone={p.tone}>{p.tone === "done" ? "Built" : "Planned"}</Chip>
+              </li>
+            ))}
+          </ol>
+          <p style={{ ...soft, marginTop: 12, marginBottom: 0 }}>
+            The sample data was made with an assumed rule, so a model that matches it only proves the pipeline works. It
+            is not evidence about real GPTs.
+          </p>
+        </More>
       </Section>
 
       <Section eb="4 · Try it" title="Change the weather, see all 36 GPTs">
