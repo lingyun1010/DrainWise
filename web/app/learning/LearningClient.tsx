@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -191,6 +192,26 @@ export default function LearningClient() {
         {SIMULATION_LABEL}. The weeks below are made up. The Claude model&apos;s weights never change: what learns is
         the table of rules that a person approves. Nothing is applied without approval.
       </div>
+
+      <figure style={{ margin: "0 0 14px" }}>
+        <Image
+          src="/infographics/model-4-feedback.png"
+          alt="Loop of six steps: DrainWise proposes a run, the scheduler edits it with a reason, the edits are recorded, AI finds a pattern across 3 or more edits, the admin approves, and the approved rule is applied to the next plan. The risk model itself does not change."
+          width={1600}
+          height={893}
+          sizes="(max-width: 800px) 100vw, 760px"
+          style={{
+            width: "100%",
+            height: "auto",
+            borderRadius: 16,
+            border: "2px solid var(--fr-line)",
+            display: "block",
+          }}
+        />
+        <figcaption style={{ margin: "8px 0 0", fontSize: 14, color: "var(--fr-soft)" }}>
+          Edits become rules only after an admin approves them. Sample data, simulated scheduler.
+        </figcaption>
+      </figure>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
         <button

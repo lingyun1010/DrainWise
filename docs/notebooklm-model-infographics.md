@@ -1,7 +1,7 @@
 # DrainWise model explainer: source and prompts for NotebookLM infographics
 
 Upload this file as the only source. Then in Studio choose Infographic, paste one prompt below, generate, download the PNG.
-Save the files as `web/public/infographics/model-1-inputs.png`, `model-2-checks.png`, `model-3-training.png`.
+Save the files as `web/public/infographics/model-1-inputs.png`, `model-2-checks.png`, `model-3-training.png`, `model-4-feedback.png`.
 
 ## Source (plain words, all sample data)
 
@@ -35,6 +35,19 @@ It looks at four things:
 4. Serve: the app asks the model for scores (built).
 5. Real records: council history replaces the sample data (planned).
 
+### 4. Learning from feedback
+
+A scheduler (the person who plans truck runs) can edit the plan DrainWise proposes, and gives a short reason.
+
+1. DrainWise proposes a truck run.
+2. The scheduler edits it (for example moves a creek-side GPT first) and gives a reason.
+3. DrainWise records every edit and reason.
+4. A language model (Claude) looks for a pattern that repeats in at least 3 edits and proposes a rule, for example "put creek-side GPTs first".
+5. The admin approves, edits or rejects the rule. Nothing applies without approval.
+6. Approved rules become soft weights in the next plan, and each adjusted stop says which rule changed it.
+   The risk model's own weights never change. What learns is the rules table.
+   Status: the demo uses a SIMULATED scheduler with made-up preferences, not a real council officer.
+
 ## Prompts (paste one per infographic)
 
 Common style: simple, friendly, very little text, large icons, no more than 6 short labels, flat style, dark navy background with white text, Orange for High, yellow for Medium, blue for Low, English only, no logos, add the small footer "Sample data".
@@ -42,3 +55,4 @@ Common style: simple, friendly, very little text, large icons, no more than 6 sh
 1. Prompt: Infographic "What the model looks at". Show a GPT net in the middle with four arrows coming in: trees, rain cloud, falling leaf, calendar with days since clean. On the right, three risk faces: High, Medium, Low. Labels of 1 to 3 words only.
 2. Prompt: Infographic "How we check it". A left-to-right row of 5 icons: phone BEFORE photo, AI suggests 0 to 3, person confirms, compare with the model, becomes training data. One short label under each, no paragraphs.
 3. Prompt: Infographic "From sample to real". A staircase of 5 steps: Simulate, Train, Check, Serve (all marked Built) and Real council records (marked Planned, dashed outline). One short label per step.
+4. Prompt: Infographic "Learning from feedback". A circular loop of 6 icons going clockwise: clipboard with a proposed run, pencil edit with a reason bubble, notebook that records edits, AI spark finds a pattern (3+ edits), person approves with a tick (a lock labelled "Nothing applies without approval"), next plan with a small tag "Rule applied". One short label per icon. In the centre write "Rules learn, the risk model does not change". Add the small footer "Sample data, simulated scheduler".
