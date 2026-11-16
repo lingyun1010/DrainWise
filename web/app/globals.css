@@ -404,11 +404,12 @@ footer a:focus-visible {
   background: transparent;
 }
 .fr-split .fr-phonecol .fr-stagelabel {
+  color: #cfe6f0; /* 4.5:1+ on the lighter phone backdrop */
   text-align: center;
 }
 @media (min-width: 600px) {
   .fr-split .fr-device {
-    height: min(844px, calc(100vh - 120px));
+    height: min(844px, max(560px, calc(100vh - 200px))); /* leaves room for the header, stage label and frame padding */
   }
 }
 @media (max-width: 1199px) {
@@ -448,6 +449,12 @@ footer a:focus-visible {
 .fr-dash {
   max-width: none;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+}
+/* Narrower desktops: give the right column more room, so the planner stays about 350px wide and its title does not wrap. */
+@media (min-width: 900px) and (max-width: 1439px) {
+  .fr-dash {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  }
 }
 /* Check next and Truck run planner sit side by side and fill the column. */
 .fr-dash .fr-side {
