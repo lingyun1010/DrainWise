@@ -164,6 +164,7 @@ footer a:focus-visible {
   padding: 20px;
 }
 .fr-label {
+  margin: 0;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1509,4 +1510,12 @@ body {
   .fr-footer a {
     padding: 6px 0 !important;
   }
+}
+
+/* Crew card: the finish button stays in view at the bottom of the phone while the card scrolls. */
+.fr-stick {
+  position: sticky;
+  bottom: 8px;
+  z-index: 2;
+  box-shadow: 0 0 0 6px #102f45;
 }

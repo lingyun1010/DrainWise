@@ -42,3 +42,21 @@ export const WATERWAYS: Waterway[] = (raw.waterways as { name: string; kind: str
 }));
 
 export const OSM_SOURCE = raw.source;
+
+// Nearest mapped waterway to a point, in whole metres (rounded to 10 m). Sample positions, so the text says "about".
+export function nearestWaterway(x: number, y: number): { name: string; metres: number } | null {
+  let best: { name: string; d: number } | null = null;
+  for (const w of WATERWAYS) {
+    for (let i = 0; i < w.pts.length - 1; i++) {
+      const a = w.pts[i];
+      const b = w.pts[i + 1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2));
+      const d = Math.hypot(x - (a.x + t * dx), y - (a.y + t * dy));
+      if (!best || d < best.d) best = { name: w.name, d };
+    }
+  }
+  return best ? { name: best.name, metres: Math.max(10, Math.round((best.d * METRES_PER_UNIT) / 10) * 10) } : null;
+}

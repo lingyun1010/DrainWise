@@ -120,7 +120,14 @@ export default function ChatButton() {
     if (open) return;
     let last = -1;
     let timer: ReturnType<typeof setTimeout>;
+    // A tip never covers a field the person is using (for example the "Add a GPT to the run" picker).
+    const typing = () =>
+      !!document.activeElement?.closest('input, select, textarea, [aria-haspopup="listbox"], [role="listbox"]');
     const show = () => {
+      if (typing()) {
+        timer = setTimeout(show, GAP_MS);
+        return;
+      }
       let next = Math.floor(Math.random() * TIPS.length);
       if (next === last) next = (next + 1) % TIPS.length;
       last = next;
@@ -131,9 +138,14 @@ export default function ChatButton() {
       setTip(null);
       timer = setTimeout(show, GAP_MS);
     };
+    const onFocusIn = () => {
+      if (typing()) setTip(null);
+    };
+    document.addEventListener("focusin", onFocusIn);
     timer = setTimeout(show, 1500);
     return () => {
       clearTimeout(timer);
+      document.removeEventListener("focusin", onFocusIn);
       setTip(null);
     };
   }, [open]);
