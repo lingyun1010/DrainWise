@@ -1,6 +1,7 @@
 // How to use DrainWise, in the order a person meets it.
 import Link from "next/link";
 import InfoPage, { card, eyebrow, h2 } from "../InfoPage";
+import DemoVideo from "../DemoVideo";
 
 export const metadata = { title: "How to use · DrainWise (sample data)" };
 
@@ -39,6 +40,7 @@ export default function GuidePage() {
       title="How to use DrainWise"
       intro="Clean the right gross pollutant traps before they fill. Two roles work together: the Manager plans a run and a Crew does it."
     >
+      <DemoVideo />
       <Steps label="Manager" steps={MANAGER} />
       <Steps label="Crew" steps={CREW} />
       <section style={card} aria-label="Tips">
