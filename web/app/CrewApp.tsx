@@ -328,14 +328,24 @@ export default function CrewApp({
       ) : (
         <div
           className="fr-pop"
-          style={{ background: "#102F45", border: "3px solid #FF8A4C", borderRadius: 20, padding: 18 }}
+          style={{
+            background: "#102F45",
+            border: `3px solid ${TIER_LOOK[stop.tier ?? "High"]?.fill ?? "#FF8A4C"}`,
+            borderRadius: 20,
+            padding: 18,
+          }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".06em", color: "#FFB38A" }}>
-            {run!.accepted ? "YOU HAVE ARRIVED" : "NEW TASK"}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 20, margin: "6px 0" }}>
-            {stop.id}
-            {stop.typeLabel ? ` · ${stop.typeLabel}` : ""}
+          <div aria-live="polite">
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".06em", color: "#FFB38A" }}>
+              {run!.accepted ? "GO TO THIS GPT" : "NEW TASK"}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0" }}>
+              <RiskFace tier={stop.tier} />
+              <div style={{ fontWeight: 700, fontSize: 20 }}>
+                {stop.id}
+                {stop.typeLabel ? ` · ${stop.typeLabel}` : ""}
+              </div>
+            </div>
           </div>
           <div style={{ fontSize: 15, color: "#CFE6F0", lineHeight: 1.4, marginBottom: 10 }}>
             {stop.pct != null
@@ -351,7 +361,14 @@ export default function CrewApp({
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".06em", color: "#FFD27A" }}>
                 RUN · STOP {idx + 1} OF {total}
               </div>
-              <div style={{ height: 8, background: "#1E4A63", borderRadius: 999, margin: "8px 0" }}>
+              <div
+                role="progressbar"
+                aria-label="Planned load"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.min(100, Math.round((loadAll / run!.capacity) * 100))}
+                style={{ height: 8, background: "#1E4A63", borderRadius: 999, margin: "8px 0" }}
+              >
                 <div
                   style={{
                     height: "100%",
@@ -449,11 +466,14 @@ export default function CrewApp({
                   alt="Before cleaning"
                   color="#FFD27A"
                   title="Before saved"
-                  sub={PHOTO_UPLOAD_ON ? "Sent for review on submit" : "Used to improve the AI"}
+                  sub={PHOTO_UPLOAD_ON ? "Sent for review on submit" : "Kept for review. Not used for training yet."}
                 />
               )}
               {before && PHOTO_UPLOAD_ON && (
-                <div>
+                <details>
+                  <summary style={{ fontSize: 13, color: "#B9D6E3", cursor: "pointer", minHeight: 32 }}>
+                    Demo tool: mock AI check
+                  </summary>
                   <button
                     className="fr-btn fr-ghost"
                     type="button"
@@ -479,7 +499,7 @@ export default function CrewApp({
                       "Mock only in this demo: no real model is called."
                     )}
                   </div>
-                </div>
+                </details>
               )}
               {before && !after && (
                 <>
@@ -573,6 +593,26 @@ export default function CrewApp({
         />
       )}
     </aside>
+  );
+}
+
+const TIER_LOOK: Record<string, { fill: string; ink: string }> = {
+  High: { fill: "#FF8A4C", ink: "#2A1208" },
+  Medium: { fill: "#FFD27A", ink: "#0B2233" },
+  Low: { fill: "#4FC3E8", ink: "#0B2233" },
+};
+
+// Same face language as the map: frown = High, neutral = Medium, smile = Low. The label always sits next to it.
+function RiskFace({ tier }: { tier?: string }) {
+  const look = TIER_LOOK[tier ?? "High"] ?? TIER_LOOK.High;
+  const mouth = tier === "Low" ? "M13 24 Q18 29 23 24" : tier === "Medium" ? "M13 26 H23" : "M13 27 Q18 22 23 27";
+  return (
+    <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" style={{ flex: "none" }}>
+      <path d="M18 3 C18 3 6 15 6 22 a12 12 0 0 0 24 0 C30 15 18 3 18 3Z" fill={look.fill} />
+      <circle cx="14" cy="20" r="1.8" fill={look.ink} />
+      <circle cx="22" cy="20" r="1.8" fill={look.ink} />
+      <path d={mouth} fill="none" stroke={look.ink} strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 

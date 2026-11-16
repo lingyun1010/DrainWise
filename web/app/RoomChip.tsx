@@ -72,7 +72,7 @@ export default function RoomChip({ compact = false }: { compact?: boolean }) {
           setError(null);
           setOpen(true);
         }}
-        style={{ padding: "6px 12px", minHeight: 40, fontSize: compact ? 14 : 15 }}
+        style={{ padding: "6px 12px", minHeight: 44, fontSize: compact ? 14 : 15 }}
       >
         {code ? `Team ${code}` : "Team"}
       </button>

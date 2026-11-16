@@ -1524,7 +1524,9 @@ export default function Home() {
 
             <section className="fr-section" {...panelProps("plan", "Run plan")}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div className="fr-label">Truck run planner</div>
+                <div className="fr-label" style={{ whiteSpace: "nowrap" }}>
+                  Truck run planner
+                </div>
                 <HowItWorks className="fr-btn fr-ghost" />
               </div>
               <div style={{ margin: "2px 0 0", fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
@@ -1550,6 +1552,7 @@ export default function Home() {
                 max={4}
                 step={0.5}
                 value={capacity}
+                aria-valuetext={`${capacity.toFixed(1)} cubic metres (assumption)`}
                 onChange={(e) => setCapacity(+e.target.value)}
                 style={{ width: "100%", accentColor: "#4FC3E8" }}
               />
@@ -1558,7 +1561,8 @@ export default function Home() {
               ) : (
                 <>
                   <div style={{ marginTop: 12, fontWeight: 700, fontSize: 16 }}>
-                    Best run now: {runLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {runStops.length} stops
+                    Best run now: {runLoad.toFixed(1)} of {capacity.toFixed(1)} m³ · {runStops.length} stop
+                    {runStops.length === 1 ? "" : "s"}
                   </div>
                   <EmailPlan stops={planEmailStops} capacity={capacity} />
                   {leftOut.some((o) => o.pct >= 60) && (
@@ -1692,7 +1696,7 @@ export default function Home() {
                 <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}>
                   <GptPicker
                     ariaLabel="Add a GPT to the run"
-                    placeholder="Add a GPT to the run..."
+                    placeholder="Add a GPT..."
                     value={pickAdd}
                     onChange={setPickAdd}
                     options={idle
@@ -1820,6 +1824,7 @@ export default function Home() {
                   min={0}
                   max={100}
                   value={leaf}
+                  aria-valuetext={leaf < 25 ? `Low, ${leaf}%` : leaf < 65 ? `Moderate, ${leaf}%` : `Peak, ${leaf}%`}
                   disabled={offline}
                   onChange={(e) => setLeaf(+e.target.value)}
                   style={{ width: "100%", accentColor: "#FFD27A", opacity: offline ? 0.4 : 1 }}
@@ -1845,6 +1850,7 @@ export default function Home() {
                   min={0}
                   max={100}
                   value={extra}
+                  aria-valuetext={extra === 0 ? "Forecast as is" : `Plus ${extra} millimetres`}
                   disabled={offline}
                   onChange={(e) => setExtra(+e.target.value)}
                   style={{ width: "100%", accentColor: "#FF8A4C", opacity: offline ? 0.4 : 1 }}
@@ -1900,33 +1906,38 @@ export default function Home() {
                     };
                   })}
                 />
-                <div style={{ marginTop: 10, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
-                  {bom ? (
-                    <>
-                      Source:{" "}
-                      <a href={bom.copyright} target="_blank" rel="noreferrer" style={{ color: "#8FD8F0" }}>
-                        Australian Government Bureau of Meteorology
-                      </a>
-                      , precis forecast for Parramatta, issued {bom.issuedAt.slice(0, 16).replace("T", " ")} Sydney
-                      time, read {bom.fetchedAt.slice(11, 16)} UTC. A forecast is a chance, not a fact: the range means
-                      a 75% chance of at least the first amount and a 25% chance of at least the second. The daily total
-                      used is the middle of the range; no range means no rain expected (0 mm).
-                    </>
-                  ) : bomFailed ? (
-                    "The Bureau of Meteorology forecast could not be loaded, so sample rain is used. Not a forecast."
-                  ) : (
-                    "Loading the Bureau of Meteorology forecast. Sample rain until it arrives."
-                  )}{" "}
-                  {obs && (
-                    <>
-                      Rain so far today: {obs.rainMm} mm since 9am, measured at {obs.station} (a few km east of
-                      Parramatta), read at {obs.observedAt.slice(11, 16)} Sydney time.{" "}
-                    </>
-                  )}
-                  The free BoM forecast has no 3-hourly rain, so how each day&apos;s rain is split into blocks is an
-                  assumption (a fixed sample pattern, most rain in the afternoon). Light blue on top of a bar is what-if
-                  rain from the Extra rain slider.
-                </div>
+                <details style={{ marginTop: 10 }}>
+                  <summary style={{ fontSize: 13, color: "#B9D6E3", cursor: "pointer" }}>
+                    Source and assumptions
+                  </summary>
+                  <div style={{ marginTop: 6, fontSize: 13, color: "#8FB8CC", lineHeight: 1.4 }}>
+                    {bom ? (
+                      <>
+                        Source:{" "}
+                        <a href={bom.copyright} target="_blank" rel="noreferrer" style={{ color: "#8FD8F0" }}>
+                          Australian Government Bureau of Meteorology
+                        </a>
+                        , precis forecast for Parramatta, issued {bom.issuedAt.slice(0, 16).replace("T", " ")} Sydney
+                        time, read {bom.fetchedAt.slice(11, 16)} UTC. A forecast is a chance, not a fact: the range
+                        means a 75% chance of at least the first amount and a 25% chance of at least the second. The
+                        daily total used is the middle of the range; no range means no rain expected (0 mm).
+                      </>
+                    ) : bomFailed ? (
+                      "The Bureau of Meteorology forecast could not be loaded, so sample rain is used. Not a forecast."
+                    ) : (
+                      "Loading the Bureau of Meteorology forecast. Sample rain until it arrives."
+                    )}{" "}
+                    {obs && (
+                      <>
+                        Rain so far today: {obs.rainMm} mm since 9am, measured at {obs.station} (a few km east of
+                        Parramatta), read at {obs.observedAt.slice(11, 16)} Sydney time.{" "}
+                      </>
+                    )}
+                    The free BoM forecast has no 3-hourly rain, so how each day&apos;s rain is split into blocks is an
+                    assumption (a fixed sample pattern, most rain in the afternoon). Light blue on top of a bar is
+                    what-if rain from the Extra rain slider.
+                  </div>
+                </details>
               </section>
             </details>
             {!tabbed && recordsPanel}
