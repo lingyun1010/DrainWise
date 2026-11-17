@@ -15,6 +15,7 @@ import precomputed from "@/lib/precomputedScores.json";
 import CrewToggles from "./CrewToggles";
 import { lastReturn, openStops, reasonLabel, recentReturners, type Returned } from "../../planner/src/runActions";
 import { DEPOT, makeSeedAssets } from "@/lib/seed";
+import { nearestWaterway } from "@/lib/geo";
 import {
   DEFAULT_CREWS,
   HATS,
@@ -503,6 +504,11 @@ export default function Home() {
     };
   });
 
+  function whereText(x: number, y: number) {
+    const w = nearestWaterway(x, y);
+    return w ? `About ${w.metres} m from ${w.name || "a creek"} (sample position)` : undefined;
+  }
+
   function stopFor(id: string, load: number, photosNeeded: boolean): RunStop {
     const r = rows.find((x) => x.a.id === id);
     return {
@@ -513,6 +519,7 @@ export default function Home() {
       pct: r ? Math.min(99, Math.round(r.p.p_block * 100)) : undefined,
       tier: r ? TIER[r.p.level] : undefined,
       why: r ? r.p.reasons.slice(0, 2).join(". ") + "." : undefined,
+      where: r ? whereText(r.a.x, r.a.y) : undefined,
     };
   }
 
@@ -764,7 +771,7 @@ export default function Home() {
 
   const recordsPanel = (
     <section className="fr-section fr-wide" {...panelProps("records", "Records")}>
-      <div className="fr-label">Compliance records</div>
+      <h2 className="fr-label">Compliance records</h2>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <Stat
           n={photoRecs.filter((r) => r.before && !(PHOTO_UPLOAD_ON && reviewed.has(`${r.runId}:${r.stopId}`))).length}
@@ -897,7 +904,7 @@ export default function Home() {
 
   const crewsPanel = (
     <section className="fr-section" {...panelProps("crews", "Crews")}>
-      <div className="fr-label">Crews · rename, add or remove</div>
+      <h2 className="fr-label">Crews · rename, add or remove</h2>
       <ul
         style={{
           listStyle: "none",
@@ -1007,7 +1014,7 @@ export default function Home() {
   const allLogCrewsHidden = st.crews.length > 0 && st.crews.every((c) => hiddenLogCrews.includes(c.id));
   const logPanel = (
     <section className="fr-section" hidden={tabbed && tab !== "crews"} aria-label="Activity log">
-      <div className="fr-label">Activity log</div>
+      <h2 className="fr-label">Activity log</h2>
       <div style={{ marginTop: 4, fontSize: 13, color: "#8FB8CC", display: "flex", alignItems: "center", gap: 8 }}>
         <span
           aria-hidden="true"
@@ -1250,7 +1257,7 @@ export default function Home() {
       ) : null}
 
       {showMap && (
-        <div className={`fr-shell${showPhone ? " fr-split" : " fr-dash"}`} role="main">
+        <main className={`fr-shell${showPhone ? " fr-split" : " fr-dash"}`}>
           <h1 className="fr-sr">DrainWise manager</h1>
           <section className="fr-mapcol">
             {showPhone && <p className="fr-stagelabel">Manager (computer)</p>}
@@ -1432,7 +1439,7 @@ export default function Home() {
               </div>
             )}
             <section className="fr-section" {...panelProps("queue", "Check next")}>
-              <div className="fr-label">Check next · highest blockage risk</div>
+              <h2 className="fr-label">Check next · highest blockage risk</h2>
               <ol
                 style={{
                   listStyle: "none",
@@ -1524,9 +1531,9 @@ export default function Home() {
 
             <section className="fr-section" {...panelProps("plan", "Run plan")}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div className="fr-label" style={{ whiteSpace: "nowrap" }}>
+                <h2 className="fr-label" style={{ whiteSpace: "nowrap" }}>
                   Truck run planner
-                </div>
+                </h2>
                 <HowItWorks className="fr-btn fr-ghost" />
               </div>
               <div style={{ margin: "2px 0 0", fontSize: 13, lineHeight: 1.4, color: "#8FB8CC" }}>
@@ -1951,7 +1958,7 @@ export default function Home() {
               </div>
             </div>
           )}
-        </div>
+        </main>
       )}
 
       {tileList && showMap && (

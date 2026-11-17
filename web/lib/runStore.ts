@@ -13,6 +13,7 @@ export type RunStop = {
   pct?: number;
   tier?: string;
   why?: string;
+  where?: string; // sample position, for example "About 60 m from Parramatta River"
 };
 // Metadata only: no image data. before = AI training candidate, after = evidence of work.
 export type JobRecord = {

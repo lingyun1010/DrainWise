@@ -34,6 +34,7 @@ export default function Dialog({
   children: React.ReactNode;
   actions: React.ReactNode;
 }) {
+  const root = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const focusDialogRef = useRef(focusDialog);
   const closeRef = useRef(onClose); // the listener below is added once, not on every parent render
@@ -67,6 +68,17 @@ export default function Dialog({
   // back to the button that opened it when it closes.
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
+    // Everything behind the dialog becomes inert (no focus, no clicks, hidden from screen readers). Only elements
+    // that were not inert already are touched, so two dialogs on top of each other restore correctly.
+    const made: HTMLElement[] = [];
+    for (let el: HTMLElement | null = root.current; el && el !== document.documentElement; el = el.parentElement) {
+      for (const sib of el.parentElement?.children ?? []) {
+        if (sib !== el && sib instanceof HTMLElement && !sib.inert && !["SCRIPT", "STYLE"].includes(sib.tagName)) {
+          sib.inert = true;
+          made.push(sib);
+        }
+      }
+    }
     if (box.current && !box.current.contains(document.activeElement)) {
       (focusDialogRef.current
         ? box.current
@@ -74,6 +86,7 @@ export default function Dialog({
       ).focus();
     }
     return () => {
+      made.forEach((el) => (el.inert = false));
       if (opener && opener.isConnected) opener.focus();
     };
   }, []);
@@ -81,6 +94,7 @@ export default function Dialog({
   const c = TONE[tone];
   return (
     <div
+      ref={root}
       role="dialog"
       aria-modal="true"
       aria-label={label}

@@ -352,9 +352,10 @@ export default function CrewApp({
               ? `Estimated risk ${stop.pct}% (${stop.tier}). ${stop.why ?? ""}`
               : "Estimated risk from sample data."}
           </div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#8FB8CC", marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#8FB8CC", marginBottom: stop.where ? 4 : 12 }}>
             Job: Clear leaves and debris
           </div>
+          {stop.where && <div style={{ fontSize: 13, color: "#8FB8CC", marginBottom: 12 }}>{stop.where}</div>}
 
           {total > 1 && (
             <div style={{ background: "#0B2233", borderRadius: 14, padding: "10px 12px", marginBottom: 14 }}>
@@ -418,7 +419,7 @@ export default function CrewApp({
                   The camera records before and after, so no photos are needed.
                 </div>
               </div>
-              <button className="fr-btn fr-pri" type="button" onClick={finish} style={{ width: "100%" }}>
+              <button className="fr-btn fr-pri fr-stick" type="button" onClick={finish} style={{ width: "100%" }}>
                 Mark as cleaned
               </button>
             </div>
@@ -522,7 +523,7 @@ export default function CrewApp({
                 <>
                   <Thumb src={after} alt="After cleaning" color="#7ED9A3" title="After saved" sub="Kept as evidence" />
                   <button
-                    className="fr-btn fr-pri"
+                    className="fr-btn fr-pri fr-stick"
                     type="button"
                     disabled={!verdict.ok}
                     onClick={finish}
